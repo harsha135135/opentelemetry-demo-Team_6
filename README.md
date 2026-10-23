@@ -1,177 +1,122 @@
-<!-- markdownlint-disable-next-line -->
-# <img src="https://opentelemetry.io/img/logos/opentelemetry-logo-nav.png" alt="OTel logo" width="45"> OpenTelemetry Demo
+# Bosch Incident Zero Hackathon — Team 6
 
-[![Slack](https://img.shields.io/badge/slack-@cncf/otel/demo-brightgreen.svg?logo=slack)](https://cloud-native.slack.com/archives/C03B4CWV4DA)
-[![Version](https://img.shields.io/github/v/release/open-telemetry/opentelemetry-demo?color=blueviolet)](https://github.com/open-telemetry/opentelemetry-demo/releases)
-[![Commits](https://img.shields.io/github/commits-since/open-telemetry/opentelemetry-demo/latest?color=ff69b4&include_prereleases)](https://github.com/open-telemetry/opentelemetry-demo/graphs/commit-activity)
-[![Downloads](https://img.shields.io/docker/pulls/otel/demo)](https://hub.docker.com/r/otel/demo)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?color=red)](https://github.com/open-telemetry/opentelemetry-demo/blob/main/LICENSE)
-[![Telemetry Tests](https://github.com/open-telemetry/opentelemetry-demo/actions/workflows/run-telemetry-tests.yml/badge.svg)](https://github.com/open-telemetry/opentelemetry-demo/actions/workflows/run-telemetry-tests.yml)
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/opentelemetry-demo)](https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-demo)
-[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-demo.svg?type=shield&issueType=license)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-demo?ref=badge_shield&issueType=license)
-[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-demo.svg?type=shield&issueType=security)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-demo?ref=badge_shield&issueType=security)
-[![OpenSSF Scorecard for opentelemetry-demo](https://api.scorecard.dev/projects/github.com/open-telemetry/opentelemetry-demo/badge)](https://scorecard.dev/viewer/?uri=github.com/open-telemetry/opentelemetry-demo)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9247/badge)](https://www.bestpractices.dev/en/projects/9247)
+## Project
+AI On-Call Engineer for Cloud-Native Incident Response
 
-## Welcome to the OpenTelemetry Astronomy Shop Demo
+## Team Members
 
-This repository contains the OpenTelemetry Astronomy Shop, a microservice-based
-distributed system intended to illustrate the implementation of OpenTelemetry in
-a near real-world environment.
+| No. | Name | GitHub Username | Responsibility |
+|---|---|---|---|
+| 1 | Harshavardhan M | harsha135135 | [Role] |
+| 2 | [Member 2] | [GitHub Username] | [Role] |
+| 3 | [Member 3] | [GitHub Username] | [Role] |
+| 4 | [Member 4] | [GitHub Username] | [Role] |
+| 5 | [Member 5] | [GitHub Username] | [Role] |
 
-Our goals are threefold:
+## Problem Statement
 
-- Provide a realistic example of a distributed system that can be used to
-  demonstrate OpenTelemetry instrumentation and observability.
-- Build a base for vendors, tooling authors, and others to extend and
-  demonstrate their OpenTelemetry integrations.
-- Create a living example for OpenTelemetry contributors to use for testing new
-  versions of the API, SDK, and other components or enhancements.
+Build an AI-powered incident response agent that investigates
+failures in the OpenTelemetry Demo microservices application.
 
-We've already made [huge
-progress](https://github.com/open-telemetry/opentelemetry-demo/blob/main/CHANGELOG.md),
-and development is ongoing. We hope to represent the full feature set of
-OpenTelemetry across its languages in the future.
+The agent must identify root causes using real telemetry,
+recommend safe remediation actions, obtain human approval,
+execute permitted actions, and verify system recovery.
 
-If you'd like to help (**which we would love**), check out our [contributing
-guidance](./CONTRIBUTING.md).
+## Technology Stack
 
-If you'd like to extend this demo or maintain a fork of it, read our
-[fork guidance](https://opentelemetry.io/docs/demo/forking/).
+- Python 3.11
+- Docker and Docker Compose
+- OpenTelemetry
+- Grafana
+- Jaeger
+- OpenTelemetry Collector
+- LLM API (to be confirmed)
+- Git and GitHub
 
-## Quick start
+## Local Setup
 
-You can be up and running with the demo in a few minutes. Check out the docs for
-your preferred deployment method:
+Clone the repository:
 
-- [Docker](https://opentelemetry.io/docs/demo/docker_deployment/)
-- [Kubernetes](https://opentelemetry.io/docs/demo/kubernetes_deployment/)
+    git clone https://github.com/harsha135135/opentelemetry-demo-Team_6.git
 
-## Documentation
+Enter the repository:
 
-For detailed documentation, see [Demo Documentation][docs]. If you're curious
-about a specific feature, the [docs landing page][docs] can point you in the
-right direction.
+    cd opentelemetry-demo-Team_6
 
-## Demos featuring the Astronomy Shop
+Download Docker images:
 
-We welcome any vendor to fork the project to demonstrate their services and
-adding a link below. The community is committed to maintaining the project and
-keeping it up to date for you.
+    docker compose pull
 
-|                           |                |                                  |
-|---------------------------|----------------|----------------------------------|
-| [AlibabaCloud LogService] | [Google Cloud] | [Rootprint]                      |
-| [Amazon Web Services]     | [Grafana Labs] | [Sentry]                         |
-| [Apache Doris]            | [Guance]       | [ServiceNow Cloud Observability] |
-| [AppDynamics]             | [Honeycomb.io] | [SigNoz]                         |
-| [Aspecto]                 | [Instana]      | [SolarWinds Observability]       |
-| [Axiom]                   | [Kloudfuse]    | [Splunk]                         |
-| [Axoflow]                 | [Kopai]        | [Sumo Logic]                     |
-| [Azure Data Explorer]     | [Last9]        | [Tayga]                          |
-| [Bronto]                  | [Liatrio]      | [TelemetryHub]                   |
-| [Causely]                 | [Logz.io]      | [Teletrace]                      |
-| [ClickStack]              | [New Relic]    | [Tinybird]                       |
-| [Coralogix]               | [Oodle]        | [Trace0]                         |
-| [Dash0]                   | [OpenObserve]  | [Tracetest]                      |
-| [Datadog]                 | [OpenSearch]   | [Tsuga]                          |
-| [Dynatrace]               | [Oracle]       | [Uptrace]                        |
-| [Elastic]                 | [Parseable]    | [VictoriaMetrics]                |
+Start the application:
 
-## Contributing
+    docker compose up -d
 
-To get involved with the project see our [CONTRIBUTING](CONTRIBUTING.md)
-documentation. Our [SIG Calls](CONTRIBUTING.md#join-a-sig-call) are every other
-Wednesday at 8:30 AM PST and anyone is welcome.
+Check container status:
 
-New to CNCF Slack? [Create an account](https://slack.cncf.io/) first, then join
-us in
-[`#otel-community-demo`](https://cloud-native.slack.com/archives/C03B4CWV4DA).
+    docker compose ps
 
-### Maintainers
+Stop the application:
 
-- [Cyrille Le Clerc](https://github.com/cyrille-leclerc), Datadog
-- [Juliano Costa](https://github.com/julianocosta89), Datadog
-- [Shenoy Pratik](https://github.com/ps48), AWS OpenSearch
+    docker compose down
 
-For more information about the maintainer role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#maintainer).
+## Local Services
 
-### Approvers
+| Service | URL |
+|---|---|
+| Astronomy Shop | http://localhost:8080 |
+| Grafana | http://localhost:8080/grafana/ |
+| Jaeger | http://localhost:8080/jaeger/ui/ |
+| Load Generator | http://localhost:8080/loadgen/ |
+| Feature Flags | http://localhost:8080/feature/ |
 
-- [D&#xF3;nal O'Sullivan](https://github.com/osullivandonal), Elastic
-- [Piotr Kie&#x142;kowicz](https://github.com/Kielek), Splunk
+URLs depend on the Docker Compose configuration.
 
-For more information about the approver role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#approver).
+## Agent Workflow
 
-### Emeritus
+1. Receive an incident alert.
+2. Collect logs, metrics, traces and health information.
+3. Investigate the affected microservices.
+4. Identify the probable root cause.
+5. Produce an evidence-backed diagnosis.
+6. Propose a safe remediation action.
+7. Obtain explicit human approval.
+8. Execute the approved action through the Action API.
+9. Verify recovery.
+10. Generate an incident report.
 
-- [Austin Parker](https://github.com/austinlparker), Maintainer
-- [Carter Socha](https://github.com/cartersocha), Maintainer
-- [Cedric Ziel](https://github.com/cedricziel), Approver
-- [Michael Maxwell](https://github.com/mic-max), Approver
-- [Mikko Viitanen](https://github.com/mviitane), Maintainer
-- [Morgan McLean](https://github.com/mtwo), Approver
-- [Penghan Wang](https://github.com/wph95), Approver
-- [Pierre Tessier](https://github.com/puckpuck), Maintainer
-- [Reiley Yang](https://github.com/reyang), Approver
-- [Roger Coll](https://github.com/rogercoll), Maintainer
-- [Ziqi Zhao](https://github.com/fatsheep9146), Approver
+## Safety Constraints
 
-For more information about the emeritus role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#emeritus-maintainerapprovertriager).
+- Do not inspect feature flags to discover incident causes.
+- Do not modify the demo or scoring harness.
+- Do not execute state-changing actions without approval.
+- Use only organiser-approved remediation actions.
+- Do not fabricate evidence.
+- Escalate uncertain diagnoses.
+- Record actions and verification results.
 
-### Thanks to all the people who have contributed
+## Hackathon Deliverables
 
-[![contributors](https://contributors-img.web.app/image?repo=open-telemetry/opentelemetry-demo)](https://github.com/open-telemetry/opentelemetry-demo/graphs/contributors)
+- [ ] Working AI On-Call Engineer
+- [ ] Source code and setup instructions
+- [ ] Human approval gate and kill switch
+- [ ] One-page architecture overview
+- [ ] Incident reports in the required JSON schema
+- [ ] Evaluation note with successes and failures
+- [ ] Team contribution and AI tools declaration
+- [ ] Final live demonstration
 
-[docs]: https://opentelemetry.io/docs/demo/
+## Current Status
 
-<!-- Links for Demos featuring the Astronomy Shop section -->
+Environment setup in progress.
 
-[AlibabaCloud LogService]: https://github.com/aliyun-sls/opentelemetry-demo
-[Amazon Web Services]: https://github.com/aws-observability/observability-best-practices/blob/main/sandbox/otel-demo-thegame/README.md
-[AppDynamics]: https://community.splunk.com/t5/AppDynamics-Knowledge-Base/How-to-observe-Kubernetes-deployment-of-OpenTelemetry-demo-app/ta-p/741454
-[Apache Doris]: https://github.com/apache/doris-opentelemetry-demo
-[Aspecto]: https://github.com/aspecto-io/opentelemetry-demo
-[Axiom]: https://play.axiom.co/axiom-play-qf1k/dashboards/otel.traces.otel-demo-traces
-[Axoflow]: https://axoflow.com/opentelemetry-support-in-more-detail-in-axosyslog-and-syslog-ng/
-[Azure Data Explorer]: https://github.com/Azure/Azure-kusto-opentelemetry-demo
-[Bronto]: https://docs.bronto.io/getting-started/otel-demo
-[Causely]: https://github.com/causely-oss/otel-demo
-[ClickStack]: https://github.com/ClickHouse/opentelemetry-demo
-[Coralogix]: https://coralogix.com/blog/configure-otel-demo-send-telemetry-data-coralogix
-[Dash0]: https://github.com/dash0hq/opentelemetry-demo
-[Datadog]: https://docs.datadoghq.com/opentelemetry/guide/otel_demo_to_datadog
-[Dynatrace]: https://www.dynatrace.com/news/blog/opentelemetry-demo-application-with-dynatrace/
-[Elastic]: https://github.com/elastic/opentelemetry-demo
-[Google Cloud]: https://github.com/GoogleCloudPlatform/opentelemetry-demo
-[Grafana Labs]: https://github.com/grafana/opentelemetry-demo
-[Guance]: https://github.com/GuanceCloud/opentelemetry-demo
-[Honeycomb.io]: https://github.com/honeycombio/opentelemetry-demo
-[Instana]: https://github.com/instana/opentelemetry-demo
-[Kloudfuse]: https://github.com/kloudfuse/opentelemetry-demo
-[Kopai]: https://github.com/kopai-app/opentelemetry-demo/tree/main/kopai
-[Last9]: https://last9.io/docs/integrations-opentelemetry-demo/
-[Liatrio]: https://github.com/liatrio/opentelemetry-demo
-[Logz.io]: https://logz.io/learn/how-to-run-opentelemetry-demo-with-logz-io/
-[New Relic]: https://github.com/newrelic/opentelemetry-demo
-[Oodle]: https://blog.oodle.ai/meet-oodle-unified-and-ai-native-observability/
-[OpenSearch]: https://github.com/opensearch-project/opentelemetry-demo
-[OpenObserve]: https://openobserve.ai/blog/opentelemetry-astronomy-shop-demo/
-[Oracle]: https://github.com/oracle-quickstart/oci-o11y-solutions/blob/main/knowledge-content/opentelemetry-demo
-[Parseable]: https://www.parseable.com/blog/open-telemetry-demo-with-parseable-a-complete-observability-setup
-[Rootprint]: https://demo.rootprint.io
-[Sentry]: https://github.com/getsentry/opentelemetry-demo
-[ServiceNow Cloud Observability]: https://docs.lightstep.com/otel/quick-start-operator#send-data-from-the-opentelemetry-demo
-[SigNoz]: https://signoz.io/blog/opentelemetry-demo/
-[SolarWinds Observability]: https://github.com/solarwinds/opentelemetry-demo
-[Splunk]: https://github.com/signalfx/opentelemetry-demo
-[Sumo Logic]: https://www.sumologic.com/blog/common-opentelemetry-demo-application/
-[Tayga]: https://softberries.github.io/tayga/getting-started/otel-demo/
-[TelemetryHub]: https://github.com/TelemetryHub/opentelemetry-demo/tree/telemetryhub-backend
-[Teletrace]: https://github.com/teletrace/opentelemetry-demo
-[Tinybird]: https://github.com/tinybirdco/opentelemetry-demo
-[Trace0]: https://github.com/Trace0-HQ/opentelemetry-demo
-[Tracetest]: https://github.com/kubeshop/opentelemetry-demo
-[Tsuga]: https://github.com/tsuga-dev/opentelemetry-demo
-[Uptrace]: https://github.com/uptrace/uptrace/tree/master/example/opentelemetry-demo
-[VictoriaMetrics]: https://github.com/VictoriaMetrics-Community/opentelemetry-demo
+Agent implementation and testing are pending.
+
+## References
+
+- https://github.com/open-telemetry/opentelemetry-demo
+- https://opentelemetry.io/docs/
+- https://docs.docker.com/
+
+---
+
+Bosch Incident Zero Hackathon 2026 — Team 6
