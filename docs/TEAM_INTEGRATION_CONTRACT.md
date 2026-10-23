@@ -61,6 +61,12 @@ incident = Incident(
 )
 ```
 
+> **Updated 23 Oct 2026 (Harsha):** the orchestrator is `incident-agent/orchestrator.py` (`investigate(incident, config, deps) -> IncidentReport`),
+> the CLI is `incident-agent/cli.py`, and the reasoning/guardrail interfaces are in `incident-agent/contracts.py`.
+> For CP0-CP2 `proposals=[]`, `approval=None`, `verification=None`, and status is `DIAGNOSED`, `INCONCLUSIVE` or `ESCALATED`, never `RECOVERED`.
+> Telemetry tools are live-only; the actual queried windows are stored in each `Evidence.event_time_window`.
+> Exports are internal/provisional: no official organiser schema was available.
+
 #### What Harsha sends to Aditya's modules:
 Harsha's orchestrator compiles the state and calls Aditya's `report.py` and `verify.py`:
 
@@ -71,7 +77,7 @@ from models import IncidentReport, IncidentStatus, TimelineEvent
 # 1. Compile the complete incident report
 report = IncidentReport(
     incident_id=incident.id,
-    status=IncidentStatus.DIAGNOSED, # or RECOVERED, ESCALATED, etc.
+    status=IncidentStatus.DIAGNOSED, # CP0-CP2: DIAGNOSED, INCONCLUSIVE or ESCALATED
     incident=incident,
     timeline=timeline_events,        # list[TimelineEvent]
     evidence=collected_evidence,      # list[Evidence] from Neha
@@ -100,7 +106,10 @@ Target queries with service name and bounded time window:
 - Trace query parameters (`service_name`, `num_traces`, `time_window`)
 
 #### What Neha MUST return (The `Evidence` Contract):
-Every tool call by Neha must return an `Evidence` object. Aditya's test suite and report generator validate these exact fields:
+Neha's `telemetry.run_tool()` returns a `ToolResult`; Harsha's `integration.to_evidence()` maps it to `Evidence`
+(`window_start/window_end` -> `event_time_window`, `collected_at` -> `collection_time`,
+`value`/`excerpt`/`message` -> `observed_value`, `capture_ref` -> `local_capture_reference`). Evidence IDs are preserved
+and duplicates are rejected. Every tool call must end up as an `Evidence` object. Aditya's test suite and report generator validate these exact fields:
 
 ```python
 from models import Evidence, ToolStatus, TimeWindow
@@ -108,14 +117,16 @@ from models import Evidence, ToolStatus, TimeWindow
 evidence_item = Evidence(
     evidence_id="ev-met-a1b2c3d4",   # Unique ID (e.g. ev-<type>-<hex>)
     status=ToolStatus.OK,             # "ok" | "empty" | "unavailable" | "error"
-    source="prometheus",             # "prometheus" | "jaeger" | "opensearch" | "health"
-    service="frontend",
+    source="prometheus",             # "prometheus" | "jaeger" | "opensearch" | "health" | "derived"
+    service="frontend",             # Optional: None for cross-service tools such as overview (never invent a name)
     event_time_window=TimeWindow(start_time=..., end_time=...),
     collection_time=datetime.now(timezone.utc),
     tool="query_metrics",            # Name of the tool invoked
     query='traces_span_metrics_calls_total{service_name="frontend"}',
     observed_value=[...],            # Raw parsed result or summary dict
-    trace_or_log_id=None,            # Extracted trace ID or log ID if available
+    trace_or_log_id=None,            # Set only when exactly one trace/log ID exists (kept for compatibility)
+    trace_ids=["..."],               # All trace IDs returned by the tool
+    log_ids=[],                      # All log IDs returned by the tool
     local_capture_reference="captures/INC-001/ev-met-a1b2c3d4.json" # Disk path
 )
 ```
