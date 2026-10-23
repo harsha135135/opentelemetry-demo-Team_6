@@ -342,7 +342,8 @@ def test_component_phrase_with_no_matching_word_still_rejected(tmp_path):
 
 def test_prompt_requires_resource_checks():
     from reasoning import SYSTEM_PROMPT
-    assert "service_health" in SYSTEM_PROMPT and "container_cpu" in SYSTEM_PROMPT
+    assert all(w in SYSTEM_PROMPT for w in ("resource_overview", "service_health", "in parallel", "not causes", "flagd"))
+    assert "container_cpu" not in SYSTEM_PROMPT and "adHighCpu" not in SYSTEM_PROMPT  # no fault-specific hints
 
 
 # ---- resource_overview, anomaly follow-up, eval harness
