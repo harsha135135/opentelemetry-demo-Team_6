@@ -1,12 +1,13 @@
 # Bosch Incident Zero Hackathon — Team 6
 
 ## Project
+
 AI On-Call Engineer for Cloud-Native Incident Response
 
 ## Team Members
 
 | No. | Name | GitHub Username | Responsibility |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | Harshavardhan M | harsha135135 | [Role] |
 | 2 | Padarthi Neha Sai | pnehasai | [Role] |
 | 3 | Harshita C | Harshita100 | [Role] |
@@ -62,12 +63,12 @@ Stop the application:
 ## Local Services
 
 | Service | URL |
-|---|---|
-| Astronomy Shop | http://localhost:8080 |
-| Grafana | http://localhost:8080/grafana/ |
-| Jaeger | http://localhost:8080/jaeger/ui/ |
-| Load Generator | http://localhost:8080/loadgen/ |
-| Feature Flags | http://localhost:8080/feature/ |
+| --- | --- |
+| Astronomy Shop | <http://localhost:8080> |
+| Grafana | <http://localhost:8080/grafana/> |
+| Jaeger | <http://localhost:8080/jaeger/ui/> |
+| Load Generator | <http://localhost:8080/loadgen/> |
+| Feature Flags | <http://localhost:8080/feature/> |
 
 URLs depend on the Docker Compose configuration.
 
@@ -111,11 +112,20 @@ Environment setup in progress.
 
 Agent implementation and testing are pending.
 
+## Design and Implementation Guides
+
+- [Design guide and architecture overview](docs/ARCHITECTURE.md)
+- [Simple implementation guide](docs/IMPLEMENTATION_GUIDE.md)
+
+These guides describe the planned solution. No incident-response modules have
+been implemented. The implementation guide also explains the Compose layers
+needed for telemetry; the base startup command above does not include them.
+
 ## References
 
-- https://github.com/open-telemetry/opentelemetry-demo
-- https://opentelemetry.io/docs/
-- https://docs.docker.com/
+- <https://github.com/open-telemetry/opentelemetry-demo>
+- <https://opentelemetry.io/docs/>
+- <https://docs.docker.com/>
 
 ---
 
