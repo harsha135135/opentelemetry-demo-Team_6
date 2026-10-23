@@ -11,7 +11,8 @@ What this module does
 - Every result is saved immediately as an evidence file (evidence/<id>.json),
   so each diagnosis citation can be traced back to a real capture.
 - Feature-flag data is filtered out (flagd services, feature_flag span
-  events/attributes, flag-related log lines). Diagnosis must come from telemetry.
+  events/attributes, calls to flag services) and flag wording in error messages and
+  log lines is redacted. Diagnosis must come from telemetry.
 
 What this module never does
 - No writes, no shell commands, no Docker socket, no arbitrary URLs or
@@ -56,15 +57,31 @@ JAEGER_URL = os.getenv("JAEGER_URL", "http://localhost:8080").rstrip("/")
 OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "").rstrip("/")
 EVIDENCE_DIR = Path(os.getenv("EVIDENCE_DIR", "evidence"))
 REQUEST_TIMEOUT_S = float(os.getenv("TELEMETRY_TIMEOUT_S", "10"))
+# OpenSearch runs near its 1 GiB limit in the demo and has slow spells; logs get a longer timeout.
+OPENSEARCH_TIMEOUT_S = float(os.getenv("OPENSEARCH_TIMEOUT_S", "20"))
 
 MIN_WINDOW_MIN, MAX_WINDOW_MIN = 1, 60
+# Default "now" window. Incidents can be injected minutes apart, so a long window would mix the previous
+# incident into the current one. 3 min still gives rate() enough samples at the demo's 60 s metric interval.
+NOW_WINDOW_MIN = 3
 MAX_ITEMS = 20            # max traces / log lines returned to the model
 EXCERPT_CHARS = 300       # max chars per log body / error message
-MAX_LLM_CHARS = 3500      # max chars of one result shown to the model
 INVENTORY_TTL_S = 60
 
 EXCLUDED_SERVICES = {"flagd", "flagd-ui"}   # flag state is out of bounds
-_FLAG_PATTERN = re.compile(r"feature[_.]?flag|flagd|openfeature", re.IGNORECASE)
+# "feature flag" in any spelling (space, _, ., -, plural): demo services put it in error messages,
+# e.g. "Product Catalog Fail Feature Flag Enabled", which would hand the model the answer.
+_FLAG_PATTERN = re.compile(r"feature[\s_.-]*flags?|flagd|openfeature", re.IGNORECASE)
+# Neutral on purpose: a marker that says why it was withheld would itself hint at the injected fault.
+FLAG_REDACTED = "[message text withheld by policy]"
+# A call whose target is the flag system itself (flagd / OpenFeature / OFREP), judged from where the call goes.
+_FLAG_SERVICE = re.compile(r"flagd|openfeature|ofrep", re.IGNORECASE)
+_TARGET_ATTRS = ("rpc.service", "rpc.method", "server.address", "peer.service", "net.peer.name", "url.full", "http.url")
+
+
+def _redact(text: Any) -> Any:
+    """Keep the fact that something happened, drop flag wording that would reveal the injected fault."""
+    return FLAG_REDACTED if text and _FLAG_PATTERN.search(str(text)) else text
 _SERVICE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{0,62}$")
 
 _client = httpx.Client(timeout=REQUEST_TIMEOUT_S, follow_redirects=False)
@@ -108,8 +125,9 @@ class ToolResult(BaseModel):
             "message": self.message,
             "value": self.value,
         }
-        text = json.dumps(data, default=str)
-        return text if len(text) <= MAX_LLM_CHARS else text[:MAX_LLM_CHARS] + '..."(truncated)"'
+        # The full result, never cut: tool outputs are already bounded at the source (MAX_ITEMS lines/traces,
+        # EXCERPT_CHARS per message). Compact separators keep it small; the run's token budget is the limit.
+        return json.dumps(data, default=str, separators=(",", ":"))
 
 
 class TelemetryInputError(ValueError):
@@ -264,7 +282,10 @@ METRIC_TEMPLATES: dict[str, tuple[str, str, str]] = {
         "ms", "span_name"),
     # Container resource telemetry from the collector's docker_stats receiver.
     # Exact metric names are matched by pattern; confirm with `python telemetry.py names container`.
-    "container_cpu": ('{__name__=~"container_cpu_utilization.*",container_name="{s}"}', "ratio/percent", "__name__"),
+    # Current CPU from the CPU-time counter. container_cpu_utilization_ratio here is a lifetime average since the
+    # container started (flat for hours), so it cannot show a CPU incident.
+    "container_cpu": ('rate(container_cpu_usage_nanoseconds_total{container_name="{s}"}[{w}m]) / 1e7',
+                      "percent of one core, current (can exceed 100)", ""),
     "container_memory": ('{__name__=~"container_memory_(usage_total|percent|rss).*",container_name="{s}"}',
                          "bytes/percent", "__name__"),
     "container_memory_trend": ('deriv({__name__=~"container_memory_usage_total.*",container_name="{s}"}[{w}m])',
@@ -295,7 +316,7 @@ def _prom(promql: str) -> tuple[list[dict], Any]:
     return rows, body
 
 
-def query_metrics(service: str, metric: str = "error_rate", window_minutes: int = 5) -> ToolResult:
+def query_metrics(service: str, metric: str = "error_rate", window_minutes: int = 3) -> ToolResult:
     """Run one fixed metric template for one service over a bounded window."""
     service = validate_service(service)
     if metric not in METRIC_TEMPLATES:
@@ -313,7 +334,11 @@ def query_metrics(service: str, metric: str = "error_rate", window_minutes: int 
         return _result("query_metrics", "prometheus", service, promql, start, end,
                        ToolStatus.EMPTY, raw=raw, value={"metric": metric, "unit": unit}, message=msg)
     if keep:
-        series = [{keep: r["labels"].get(keep, ""), "value": r["value"]} for r in rows][:MAX_ITEMS]
+        # Per-operation series include calls to the flag service (e.g. a long-lived evaluation stream):
+        # flag state is out of bounds, so those operations never reach the model.
+        series = [{keep: r["labels"].get(keep, ""), "value": r["value"]} for r in rows
+                  if not _FLAG_PATTERN.search(str(r["labels"].get(keep, "")))
+                  and not _FLAG_SERVICE.search(str(r["labels"].get(keep, "")))][:MAX_ITEMS]
         value = {"metric": metric, "unit": unit, "series": series}
     else:
         value = {"metric": metric, "unit": unit, "value": rows[0]["value"]}
@@ -321,19 +346,98 @@ def query_metrics(service: str, metric: str = "error_rate", window_minutes: int 
                    ToolStatus.OK, raw=raw, value=value)
 
 
-def overview(window_minutes: int = 5) -> ToolResult:
-    """All services at once: request rate, error rate and p95 latency (fixed templates).
-    Good first step: shows where things changed without dumping raw data."""
+BASELINE_MIN = 30  # longer reference: catches an incident that has lasted longer than two "now" windows
+
+
+def _overview_queries(w: int, offset: str) -> dict[str, str]:
+    rng = f"[{w}m]{offset}"
+    return {
+        "request_rate": f"sum by (service_name) (rate({_CALLS}{rng}))",
+        "error_rate": (f'(sum by (service_name) (rate({_CALLS}{{status_code="STATUS_CODE_ERROR"}}{rng}))'
+                       f" or sum by (service_name) (rate({_CALLS}{rng})) * 0)"
+                       f" / sum by (service_name) (rate({_CALLS}{rng}))"),
+        "p95_ms": f"histogram_quantile(0.95, sum by (le, service_name) (rate({_DUR}{rng})))",
+    }
+
+
+def _operation_queries(w: int, offset: str) -> dict[str, str]:
+    """Per (service, server operation): a failure in one rarely called operation (e.g. 0.2% of a service's
+    calls) disappears in the service-wide rate, so incoming operations are also compared one by one."""
+    rng = f'{{span_kind="SPAN_KIND_SERVER"}}[{w}m]{offset}'
+    err_rng = f'{{span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}}[{w}m]{offset}'
+    by = "service_name, span_name"
+    return {
+        "request_rate": f"sum by ({by}) (rate({_CALLS}{rng}))",
+        "error_rate": (f"(sum by ({by}) (rate({_CALLS}{err_rng})) or sum by ({by}) (rate({_CALLS}{rng})) * 0)"
+                       f" / sum by ({by}) (rate({_CALLS}{rng}))"),
+        "p95_ms": f"histogram_quantile(0.95, sum by (le, {by}) (rate({_DUR}{rng})))",
+    }
+
+
+RECOVERING = "recovering:"  # a problem from the previous window is ending (e.g. an earlier incident switched off)
+MAX_OPERATIONS = 12
+
+
+def _changes(r: dict, operation: bool = False) -> list[str]:
+    """What moved between the previous window and now. The demo's baseline can already look
+    unhealthy (slow or erroring services), so a change is a better signal than a high level.
+    Operations are sparser and noisier than whole services, so they need larger moves and at least
+    one actual failed call; a rare operation with no calls in the previous window is compared with
+    the longer baseline instead."""
+    out = []
+    min_err, min_ms = (0.05, 200) if operation else (0.02, 100)
+    err, p95 = r.get("error_rate"), r.get("p95_ms")
+    err0, p950 = r.get("error_rate_before"), r.get("p95_ms_before")
+    # Service-wide: a rise needs at least ~2 failed calls in the window (one stray failure, e.g. a leftover
+    # call from an earlier incident, is not an incident).
+    rise_ok = "window_s" not in r or (err or 0) * (r.get("request_rate") or 0) * r["window_s"] >= 2
+    if operation:
+        err0 = err0 if err0 is not None else r.get("error_rate_baseline")
+        p950 = p950 if p950 is not None else r.get("p95_ms_baseline")
+        rise_ok = (err or 0) * (r.get("request_rate") or 0) * r["window_s"] >= 0.9  # at least ~1 failed call
+        if err is not None and err0 is None and err >= min_err and rise_ok:
+            out.append(f"error_rate {err:.3f} (no calls in the earlier windows)")
+    if err is not None and err0 is not None and err - err0 >= min_err and err >= 2 * err0 and rise_ok:
+        out.append(f"error_rate up {err0:.3f} -> {err:.3f}")
+    elif err is not None and err0 is not None and err0 - err >= min_err and err <= 0.5 * err0:
+        out.append(f"{RECOVERING} error_rate down {err0:.3f} -> {err:.3f}")
+    if p95 is not None and p950 and p95 >= 2 * p950 and p95 - p950 >= min_ms:  # demo p95 drifts ~1.5x on its own
+        out.append(f"p95 up {p950:.0f} -> {p95:.0f} ms")
+    elif p95 is not None and p950 and p95 <= 0.5 * p950 and p950 - p95 >= min_ms:
+        out.append(f"{RECOVERING} p95 down {p950:.0f} -> {p95:.0f} ms")
+    if operation:
+        return out
+    # Still high against the longer baseline: an incident that started before the previous window.
+    if not out:
+        errb, p95b = r.get("error_rate_baseline"), r.get("p95_ms_baseline")
+        if err is not None and errb is not None and err - errb >= 0.02 and err >= 2 * errb and rise_ok:
+            out.append(f"error_rate elevated {err:.3f} vs {BASELINE_MIN} min baseline {errb:.3f} (ongoing)")
+        if p95 is not None and p95b and p95 >= 2 * p95b and p95 - p95b >= 100:
+            out.append(f"p95 elevated {p95:.0f} vs {BASELINE_MIN} min baseline {p95b:.0f} ms (ongoing)")
+    rps, rps0 = r.get("request_rate"), r.get("request_rate_before")
+    if rps0 and rps0 >= 0.05:
+        if rps is None:
+            out.append(f"no traffic now (was {rps0:.2f} req/s)")
+        elif rps <= 0.5 * rps0:
+            out.append(f"traffic down {rps0:.2f} -> {rps:.2f} req/s")
+        elif rps >= 2 * rps0 and rps - rps0 >= 1:
+            out.append(f"traffic up {rps0:.2f} -> {rps:.2f} req/s")
+    return out
+
+
+def overview(window_minutes: int = 3) -> ToolResult:
+    """All services at once: request rate, error rate and p95 latency now and in the previous
+    window of the same length, plus what changed (fixed templates). Good first step."""
     start, end = _window(window_minutes, minimum=2)
     w = window_minutes
-    queries = {
-        "request_rate": f"sum by (service_name) (rate({_CALLS}[{w}m]))",
-        "error_rate": (f'(sum by (service_name) (rate({_CALLS}{{status_code="STATUS_CODE_ERROR"}}[{w}m]))'
-                       f" or sum by (service_name) (rate({_CALLS}[{w}m])) * 0)"
-                       f" / sum by (service_name) (rate({_CALLS}[{w}m]))"),
-        "p95_ms": f"histogram_quantile(0.95, sum by (le, service_name) (rate({_DUR}[{w}m])))",
-    }
+    queries = _overview_queries(w, "")
+    queries.update({f"{k}_before": q for k, q in _overview_queries(w, f" offset {w}m").items()})
+    queries.update({f"{k}_baseline": q for k, q in _overview_queries(BASELINE_MIN, f" offset {w}m").items()})
+    op_queries = _operation_queries(w, "")
+    op_queries.update({f"{k}_before": q for k, q in _operation_queries(w, f" offset {w}m").items()})
+    op_queries.update({f"{k}_baseline": q for k, q in _operation_queries(BASELINE_MIN, f" offset {w}m").items()})
     table: dict[str, dict[str, float]] = {}
+    ops: dict[tuple[str, str], dict[str, float]] = {}
     raws = {}
     try:
         for key, q in queries.items():
@@ -341,17 +445,74 @@ def overview(window_minutes: int = 5) -> ToolResult:
             for r in rows:
                 svc = r["labels"].get("service_name")
                 if svc and svc not in EXCLUDED_SERVICES:
-                    table.setdefault(svc, {})[key] = r["value"]
+                    table.setdefault(svc, {})[key] = round(r["value"], 0 if "p95" in key else 3)
+        for key, q in op_queries.items():
+            rows, raws[f"operation_{key}"] = _prom(q)
+            for r in rows:
+                svc, op = r["labels"].get("service_name"), r["labels"].get("span_name")
+                if svc and op and svc not in EXCLUDED_SERVICES and not _FLAG_PATTERN.search(op):
+                    ops.setdefault((svc, op), {})[key] = round(r["value"], 0 if "p95" in key else 4)
     except Exception as exc:
         return _failure(exc, "overview", "prometheus", None, json.dumps(queries), start, end)
-    if not table:
+    queries.update({f"operation_{k}": q for k, q in op_queries.items()})
+    if not any(k in v for v in table.values() for k in ("request_rate", "error_rate", "p95_ms")):
         return _result("overview", "prometheus", None, json.dumps(queries), start, end,
                        ToolStatus.EMPTY, raw=raws, message="no span metrics in window (is load running?)")
     rows = [{"service": s, **v} for s, v in table.items()]
-    rows.sort(key=lambda r: (-(r.get("error_rate") or 0), -(r.get("p95_ms") or 0)))
+    baseline = any(k.endswith("_before") for v in table.values() for k in v)
+    for r in rows:
+        r["changes"] = _changes({**r, "window_s": w * 60})
+        if baseline and not any(k.endswith("_before") for k in r):
+            r["baseline"] = "missing: no data for this service in the previous window"
+
+    def active(r: dict) -> list[str]:
+        return [c for c in r["changes"] if not c.startswith(RECOVERING)]
+
+    def rank(r: dict) -> tuple:
+        err_up = (r.get("error_rate") or 0) - (r.get("error_rate_before") or 0)
+        p95_up = (r.get("p95_ms") or 0) / (r.get("p95_ms_before") or r.get("p95_ms") or 1)
+        return (-len(active(r)), -err_up, -p95_up, -(r.get("error_rate") or 0))
+
+    rows.sort(key=rank)
+    changed = [f'{r["service"]}: {"; ".join(active(r))}' for r in rows if active(r)]
+    recovering = [f'{r["service"]}: {"; ".join(c[len(RECOVERING):].strip() for c in r["changes"] if c.startswith(RECOVERING))}'
+                  for r in rows if len(active(r)) < len(r["changes"])]
+    op_changed, op_recovering = [], []
+    for (svc, op), v in ops.items():
+        if v.get("request_rate") is None:
+            continue  # no calls now
+        ch = _changes({**v, "window_s": w * 60}, operation=True)
+        now = f'(now {v.get("request_rate", 0):.3f} req/s, error_rate {v.get("error_rate", 0):.3f}, p95 {v.get("p95_ms", 0):.0f} ms)'
+        act = [c for c in ch if not c.startswith(RECOVERING)]
+        if act:
+            op_changed.append((v.get("error_rate") or 0, f'{svc} "{op}": {"; ".join(act)} {now}'))
+        if len(act) < len(ch):
+            op_recovering.append(f'{svc} "{op}": ' + "; ".join(c[len(RECOVERING):].strip() for c in ch if c.startswith(RECOVERING)))
+    op_changed = [text for _, text in sorted(op_changed, key=lambda t: -t[0])][:MAX_OPERATIONS]
+
+    if not baseline:
+        changed = ["NO BASELINE: Prometheus has no data for the previous window (e.g. a history gap right after "
+                   "a restart), so changes cannot be judged. Do not read this as 'no change'."]
+    elif not changed and op_changed:
+        changed = ["no service-wide change; see operations_changed (a single operation changed)"]
     return _result("overview", "prometheus", None, json.dumps(queries), start, end,
-                   ToolStatus.OK, raw=raws, value={"services": rows[:30], "units":
-                   {"request_rate": "req/s", "error_rate": "ratio 0-1", "p95_ms": "ms"}})
+                   ToolStatus.OK, raw=raws,
+                   message=None if baseline else "previous-window baseline missing: changes cannot be judged",
+                   value={
+                       "baseline_available": baseline,
+                       "changed_since_previous_window": changed or ["no clear change in any service"],
+                       **({"recovering_since_previous_window": recovering} if recovering and baseline else {}),
+                       **({"operations_changed": op_changed} if op_changed and baseline else {}),
+                       **({"operations_recovering": op_recovering[:MAX_OPERATIONS]} if op_recovering and baseline else {}),
+                       "services": rows[:30],
+                       "note": (f"*_before = the {w} min window before this one; *_baseline = the {BASELINE_MIN} min "
+                                "before this one ('ongoing' = still high against it). The demo's normal baseline can "
+                                "already show slow or erroring services; judge changes, not absolute levels. "
+                                "'recovering' = a problem from the previous window is ending, not the current incident. "
+                                "operations_changed compares each incoming (server) operation on its own: a failing "
+                                "operation that is a small share of its service's calls shows there and not in the "
+                                "service-wide numbers."),
+                       "units": {"request_rate": "req/s", "error_rate": "ratio 0-1", "p95_ms": "ms"}})
 
 
 # --------------------------------------------------------------------------
@@ -388,6 +549,32 @@ def _is_error(status: dict) -> bool:
     return code in (2, "2", "STATUS_CODE_ERROR", "Error", "ERROR")
 
 
+_KINDS = {2: "server", 3: "client", 4: "producer", 5: "consumer"}
+
+
+def _kind(value: Any) -> str:
+    """OTLP span kind as a word; Jaeger may send the number (3) or the enum name (SPAN_KIND_CLIENT)."""
+    try:
+        return _KINDS.get(int(value), "internal")
+    except (TypeError, ValueError):
+        return str(value or "").replace("SPAN_KIND_", "").lower() or "internal"
+
+
+def _call_target(span: dict) -> dict:
+    """Who an outgoing (client) span was calling: raw target plus the matching known service, if any."""
+    a = span["attributes"]
+    target = (a.get("rpc.service") or (str(a.get("rpc.method") or "").rsplit("/", 1)[0] or None)
+              or a.get("server.address") or a.get("peer.address") or a.get("url.full") or a.get("http.url"))
+    if not target:
+        return {"target": None, "service": None}
+    target = str(target)
+    host = re.sub(r"^\w+://", "", target).split("/")[0].split(":")[0]
+    stem = re.sub(r"service$", "", target.rsplit(".", 1)[-1].lower())  # oteldemo.PaymentService -> payment
+    norm = lambda s: re.sub(r"[^a-z0-9]", "", s.lower())  # noqa: E731
+    match = next((s for s in service_inventory() if s == host or norm(s) == norm(stem)), None)
+    return {"target": target, "service": match}
+
+
 def _parse_span(sp: dict, service: str) -> dict:
     attrs = _attrs(sp.get("attributes"))
     status = sp.get("status") or {}
@@ -398,7 +585,7 @@ def _parse_span(sp: dict, service: str) -> dict:
             continue  # never pass feature-flag evaluations to the model
         if name == "exception":
             ea = _attrs(ev.get("attributes"))
-            exception = _short(f"{ea.get('exception.type', '')}: {ea.get('exception.message', '')}")
+            exception = _short(_redact(f"{ea.get('exception.type', '')}: {ea.get('exception.message', '')}"))
     try:
         dur_ms = (int(sp.get("endTimeUnixNano", 0)) - int(sp.get("startTimeUnixNano", 0))) / 1e6
     except (TypeError, ValueError):
@@ -408,22 +595,29 @@ def _parse_span(sp: dict, service: str) -> dict:
         "parent_id": _hex_id(sp.get("parentSpanId", "")),
         "service": service,
         "name": sp.get("name"),
+        "kind": _kind(sp.get("kind")),
         "duration_ms": round(dur_ms, 1) if dur_ms is not None else None,
         "error": _is_error(status),
-        "error_message": _short(status.get("message")) or exception,
+        "error_message": _short(_redact(status.get("message"))) or exception,
         "start_ns": int(sp.get("startTimeUnixNano", 0) or 0),
         "attributes": {k: _short(v) for k, v in attrs.items()
-                       if _SAFE_ATTR.match(k) and not _FLAG_PATTERN.search(k)},
+                       if _SAFE_ATTR.match(k) and not _FLAG_PATTERN.search(k) and not _FLAG_PATTERN.search(str(v))},
+        # Only the call's TARGET decides this. A span whose error text merely mentions a flag (propagated
+        # from the failing service) is a normal span: its text is redacted, but it stays in the analysis.
+        "calls_flag_service": bool(_FLAG_SERVICE.search(" ".join(
+            str(attrs.get(k) or "") for k in _TARGET_ATTRS) + " " + str(sp.get("name") or ""))),
     }
 
 
 def _error_origin(spans: list[dict]) -> dict | None:
-    """Deepest error span whose children have no errors = where the failure starts."""
+    """Deepest error span whose children have no errors = where the failure starts.
+    Calls to a feature-flag service are never candidates and never count as failing children,
+    but they stay in the parent/child chain so depths are not distorted."""
     by_parent: dict[str, list[dict]] = {}
     for s in spans:
         by_parent.setdefault(s["parent_id"], []).append(s)
-    candidates = [s for s in spans if s["error"] and
-                  not any(c["error"] for c in by_parent.get(s["span_id"], []))]
+    candidates = [s for s in spans if s["error"] and not s["calls_flag_service"] and
+                  not any(c["error"] and not c["calls_flag_service"] for c in by_parent.get(s["span_id"], []))]
     if not candidates:
         return None
     ids = {s["span_id"]: s for s in spans}
@@ -436,11 +630,72 @@ def _error_origin(spans: list[dict]) -> dict | None:
         return d
 
     o = max(candidates, key=depth)
-    return {"service": o["service"], "operation": o["name"], "error_message": o["error_message"],
-            "span_id": o["span_id"]}
+    origin = {"service": o["service"], "operation": o["name"], "error_message": o["error_message"],
+              "span_id": o["span_id"]}
+    if o["kind"] == "client" and not by_parent.get(o["span_id"]):
+        # The failing step is an outgoing call and the called service recorded nothing. The caller only
+        # observed the failure, so it must not be named as the origin: name the callee, marked as suspected.
+        callee = _call_target(o)
+        origin.update(service=callee["service"] or "unknown", certainty="suspected", observed_in=o["service"],
+                      callee_responded=False, called=callee["target"], called_service=callee["service"],
+                      note="the caller's outgoing call failed and the called service produced no span: it may be "
+                           "unreachable, stopped or not resolving, or its span is missing/late; not proof of the cause")
+    return origin
 
 
-def search_traces(service: str, window_minutes: int = 15, errors_only: bool = True,
+SLOW_TRACE_MS = 1000  # only slow traces get a latency origin
+
+
+def _latency_origin(spans: list[dict], root: dict) -> dict | None:
+    """Where a slow trace spent its time: from the root, keep following the longest child while that
+    child covers at least half of its parent. A caller that timed out (HTTP 504, gRPC DEADLINE_EXCEEDED)
+    is not where the problem is; the deepest span on this path is."""
+    if (root.get("duration_ms") or 0) < SLOW_TRACE_MS:
+        return None
+    by_parent: dict[str, list[dict]] = {}
+    for s in spans:
+        if not s["calls_flag_service"]:
+            by_parent.setdefault(s["parent_id"], []).append(s)
+    node, path = root, [root]
+    while True:
+        kids = [c for c in by_parent.get(node["span_id"], []) if c["duration_ms"] is not None]
+        nxt = max(kids, key=lambda c: c["duration_ms"], default=None)
+        if not nxt or nxt["duration_ms"] < 0.5 * (node["duration_ms"] or 0):
+            break
+        node = nxt
+        path.append(node)
+    kids = by_parent.get(node["span_id"], [])
+    covered = sum(c["duration_ms"] or 0 for c in kids)
+    unexplained = bool(kids) and covered < 0.5 * (node["duration_ms"] or 0)
+    if node is root and not unexplained:
+        return None  # no children, or time spread over many calls: no single slow step
+    out = {"service": node["service"], "operation": node["name"], "duration_ms": node["duration_ms"],
+           "trace_duration_ms": root["duration_ms"],
+           "path": [f'{s["service"]}: {s["name"]}' for s in path][-5:]}
+    if node["kind"] == "client":  # waiting on a call the callee did not record
+        callee = _call_target(node)
+        out.update(service=callee["service"] or "unknown", certainty="suspected", observed_in=node["service"],
+                   called=callee["target"])
+    elif unexplained:
+        # It made calls, but the finished ones explain less than half of the time. Spans are exported only when they
+        # end, so a downstream call that is still hanging is invisible here.
+        out.update(certainty="unexplained",
+                   note="no finished child span explains this time: either work inside this service, or a "
+                        "downstream call still running (its span is not exported until it ends)")
+    return out
+
+
+_TIMEOUT_TEXT = re.compile(r"deadline|time[d ]?\s?out|timeout", re.IGNORECASE)
+
+
+def _is_timeout(span: dict) -> bool:
+    a = span["attributes"]
+    return (str(a.get("http.status_code") or a.get("http.response.status_code") or "") == "504"
+            or str(a.get("rpc.grpc.status_code") or "") == "4"
+            or bool(_TIMEOUT_TEXT.search(str(span.get("error_message") or ""))))
+
+
+def search_traces(service: str, window_minutes: int = 3, errors_only: bool = True,
                   limit: int = 10) -> ToolResult:
     """Recent traces for a service: error spans, suspected error origin per trace,
     and observed caller->callee edges (dependency map)."""
@@ -454,27 +709,40 @@ def search_traces(service: str, window_minutes: int = 15, errors_only: bool = Tr
         "query.start_time_max": _rfc3339(end),
     }
     url = f"{JAEGER_URL}/jaeger/ui/api/v3/traces"
-    query = f"GET /jaeger/ui/api/v3/traces {json.dumps(params)}"
+    # In a busy service a plain sample of recent traces can miss a failing operation entirely (seen live:
+    # 40 frontend traces, none from the 28%-failing route), so error traces are also asked for explicitly.
+    err_params = {**params, "query.attributes": json.dumps({"error": "true"}), "query.num_traces": 2 * limit}
+    queries = [err_params, params] if errors_only else [params]
+    query = " + ".join(f"GET /jaeger/ui/api/v3/traces {json.dumps(q)}" for q in queries)
+    raw: dict = {"result": {"resourceSpans": []}}
     try:
-        r = _request("GET", url, params=params)
-        if r.status_code == 404:  # Jaeger v3 answers 404 when no traces match
-            return _result("search_traces", "jaeger", service, query, start, end,
-                           ToolStatus.EMPTY, raw=r.text[:2000], message="no traces in window")
-        r.raise_for_status()
-        raw = r.json()
+        for q in queries:
+            r = _request("GET", url, params=q)
+            if r.status_code == 404:  # Jaeger v3 answers 404 when no traces match
+                continue
+            r.raise_for_status()
+            raw["result"]["resourceSpans"] += (r.json().get("result") or {}).get("resourceSpans") or []
     except Exception as exc:
         return _failure(exc, "search_traces", "jaeger", service, query, start, end)
+    if not raw["result"]["resourceSpans"]:
+        return _result("search_traces", "jaeger", service, query, start, end,
+                       ToolStatus.EMPTY, raw=raw, message="no traces in window")
 
     traces: dict[str, list[dict]] = {}
+    seen_spans: set[tuple[str, str]] = set()  # a trace in both answers must not be counted twice
     for rs in (raw.get("result") or {}).get("resourceSpans") or []:
         svc = _attrs((rs.get("resource") or {}).get("attributes")).get("service.name", "unknown")
         if svc in EXCLUDED_SERVICES:
             continue  # flag-service spans (and their edges) are out of bounds
         for ss in rs.get("scopeSpans") or []:
             for sp in ss.get("spans") or []:
-                traces.setdefault(_hex_id(sp.get("traceId", "")), []).append(_parse_span(sp, svc))
+                key = (_hex_id(sp.get("traceId", "")), _hex_id(sp.get("spanId", "")))
+                if key in seen_spans:
+                    continue
+                seen_spans.add(key)
+                traces.setdefault(key[0], []).append(_parse_span(sp, svc))
 
-    summaries, origin_counts, edges = [], {}, {}
+    summaries, origin_counts, edges, unanswered, slow_counts = [], {}, {}, {}, {}
     for tid, spans in traces.items():
         ids = {s["span_id"]: s for s in spans}
         for s in spans:  # dependency edges from parent/child spans
@@ -482,36 +750,57 @@ def search_traces(service: str, window_minutes: int = 15, errors_only: bool = Tr
             if parent and parent["service"] != s["service"]:
                 key = f'{parent["service"]} -> {s["service"]}'
                 edges[key] = edges.get(key, 0) + 1
-        errs = [s for s in spans if s["error"]]
-        if errors_only and not errs:
+        errs = [s for s in spans if s["error"] and not s["calls_flag_service"]]
+        # Root = the longest span without a parent in this trace (a stray old span must not become the root).
+        roots = [s for s in spans if s["parent_id"] not in ids] or spans
+        root = max(roots, key=lambda s: (s["duration_ms"] or 0, -s["start_ns"]))
+        slow = _latency_origin(spans, root)
+        if errors_only and not errs and not slow:
             continue
         origin = _error_origin(spans)
         if origin:
             origin_counts[origin["service"]] = origin_counts.get(origin["service"], 0) + 1
-        root = min(spans, key=lambda s: s["start_ns"])
+            if origin.get("callee_responded") is False:
+                who = origin["called_service"] or origin["called"] or "unknown"
+                unanswered[who] = unanswered.get(who, 0) + 1
+            o_span = ids.get(origin["span_id"])
+            if o_span and _is_timeout(o_span) and slow and slow["service"] != origin["service"]:
+                origin["timed_out_waiting"] = True
+                origin["note"] = (f"this span failed because it waited too long; the time was spent in "
+                                  f"{slow['service']} ({slow['operation']}), see latency_origin")
+        if slow:
+            who = slow["service"] + (" (unexplained)" if slow.get("certainty") == "unexplained" else "")
+            slow_counts[who] = slow_counts.get(who, 0) + 1
+        newest = max(s["start_ns"] for s in spans)
         summaries.append({
             "trace_id": tid,
+            "age_s": max(0, round(end.timestamp() - newest / 1e9)) if newest else None,
             "root": f'{root["service"]}: {root["name"]}',
             "duration_ms": root["duration_ms"],
             "services": sorted({s["service"] for s in spans}),
             "error_spans": [{k: s[k] for k in ("service", "name", "error_message", "duration_ms", "attributes")}
                             for s in errs[:4]],
             "suspected_origin": origin,
-            "_start": root["start_ns"],
+            **({"latency_origin": slow} if slow else {}),
+            "_start": newest,
         })
-    summaries.sort(key=lambda t: t["_start"], reverse=True)
+    summaries.sort(key=lambda t: (bool(t["error_spans"]), t["_start"]), reverse=True)  # error traces first
     for t in summaries:
         t.pop("_start")
     summaries = summaries[:limit]
 
     if not summaries:
-        msg = ("traces found but none with errors in window" if errors_only and traces
+        msg = ("traces found but none with errors or slow steps in window" if errors_only and traces
                else "no traces in window")
         return _result("search_traces", "jaeger", service, query, start, end, ToolStatus.EMPTY,
                        raw=raw, value={"traces_scanned": len(traces), "edges": edges}, message=msg)
     value = {
         "traces_scanned": len(traces),
         "error_origin_counts": dict(sorted(origin_counts.items(), key=lambda kv: -kv[1])),
+        **({"latency_origin_counts": dict(sorted(slow_counts.items(), key=lambda kv: -kv[1]))}
+           if slow_counts else {}),
+        **({"calls_with_no_response_from": dict(sorted(unanswered.items(), key=lambda kv: -kv[1]))}
+           if unanswered else {}),
         "edges": dict(sorted(edges.items(), key=lambda kv: -kv[1])[:20]),
         "traces": summaries,
     }
@@ -527,7 +816,7 @@ _SEVERITY = {"DEBUG": 5, "INFO": 9, "WARN": 13, "ERROR": 17, "FATAL": 21}
 
 def _ppl(query: str) -> dict:
     r = _request("POST", f"{OPENSEARCH_URL}/_plugins/_ppl", json={"query": query},
-                 headers={"Content-Type": "application/json"})
+                 headers={"Content-Type": "application/json"}, timeout=OPENSEARCH_TIMEOUT_S)
     r.raise_for_status()
     return r.json()
 
@@ -544,7 +833,7 @@ def _pick(row: dict, *keys: str) -> Any:
     return None
 
 
-def query_logs(service: str, window_minutes: int = 10, min_severity: str = "WARN",
+def query_logs(service: str, window_minutes: int = 3, min_severity: str = "WARN",
                limit: int = 20) -> ToolResult:
     """Recent log lines for a service at or above a severity (WARN by default)."""
     service = validate_service(service)
@@ -590,8 +879,8 @@ def query_logs(service: str, window_minutes: int = 10, min_severity: str = "WARN
             if not ok:
                 continue
         if text and _FLAG_PATTERN.search(str(text)):
-            dropped += 1  # flag-related log lines are out of bounds for diagnosis
-            continue
+            dropped += 1  # keep that the line happened (time, severity, trace), withhold the flag wording
+            text = FLAG_REDACTED
         lines.append({
             "time": _pick(row, "@timestamp", "observedTimestamp", "time"),
             "severity": sev_text or sev_num,
@@ -602,7 +891,7 @@ def query_logs(service: str, window_minutes: int = 10, min_severity: str = "WARN
         if len(lines) >= limit:
             break
 
-    msg = f"{dropped} flag-related line(s) withheld" if dropped else None
+    msg = f"text of {dropped} line(s) withheld by policy" if dropped else None
     if not lines:
         return _result("query_logs", "opensearch", service, used, start, end, ToolStatus.EMPTY,
                        raw=body, message=f"no {min_severity}+ logs in window" + (f"; {msg}" if msg else ""))
@@ -613,10 +902,98 @@ def query_logs(service: str, window_minutes: int = 10, min_severity: str = "WARN
                    log_ids=[l["log_id"] for l in lines if l["log_id"]])
 
 
+LOG_SOURCES_NOT_ASSESSED = {"otelcol-contrib", "otel-collector", "opensearch", "jaeger", "prometheus", "grafana"}
+MAX_LOG_MESSAGES = 20
+RECENT_LOG_MIN = 15  # incidents can follow each other minutes apart
+
+
+def _log_time(value: Any) -> datetime | None:
+    try:
+        return datetime.fromisoformat(str(value).replace(" ", "T")[:26]).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def log_overview(window_minutes: int = 3) -> ToolResult:
+    """All services at once: WARN+ log messages grouped by service and message text, each with when it
+    first and last appeared in the last BASELINE_MIN + window minutes. That timeline separates the
+    current incident (a message that started recently) from baseline noise (present all along) and
+    from an earlier incident (a message that stopped)."""
+    start, end = _window(window_minutes, minimum=2)
+    if not OPENSEARCH_URL:
+        return _result("log_overview", "opensearch", None, "-", start, end, ToolStatus.UNAVAILABLE,
+                       message="OPENSEARCH_URL not set. Find the port with: docker port opensearch 9200")
+    fmt = "%Y-%m-%d %H:%M:%S"
+    hist_start = start - timedelta(minutes=BASELINE_MIN)
+    by = "by `resource.service.name`, `severity.text`, body | sort - n | head 200"
+    where = f"source=otel-logs-* | where `@timestamp` >= '{{}}' and `severity.number` >= {_SEVERITY['WARN']}"
+    now_q = f"{where.format(start.strftime(fmt))} | stats count() as n {by}"
+    hist_q = (f"{where.format(hist_start.strftime(fmt))} | stats count() as n, min(`@timestamp`) as first, "
+              f"max(`@timestamp`) as last {by}")
+    query = json.dumps({"now": now_q, "history": hist_q})
+    try:
+        now_body, hist_body = _ppl(now_q), _ppl(hist_q)
+    except Exception as exc:
+        return _failure(exc, "log_overview", "opensearch", None, query, start, end)
+
+    def rows(body: dict) -> dict[tuple, dict]:
+        out: dict[tuple, dict] = {}
+        for row in _rows(body):
+            svc = row.get("resource.service.name")
+            if not svc or svc in EXCLUDED_SERVICES or svc in LOG_SOURCES_NOT_ASSESSED:
+                continue
+            text = row.get("body")
+            text = FLAG_REDACTED if text and _FLAG_PATTERN.search(str(text)) else _short(text)
+            key = (svc, str(row.get("severity.text") or "").upper(), text)
+            cur = out.setdefault(key, {"n": 0, "first": None, "last": None})
+            cur["n"] += int(row.get("n") or 0)
+            for k, pick in (("first", min), ("last", max)):
+                t = _log_time(row.get(k))
+                if t:
+                    cur[k] = pick(cur[k], t) if cur[k] else t
+        return out
+
+    now, hist = rows(now_body), rows(hist_body)
+    ago = lambda t: round((end - t).total_seconds() / 60, 1) if t else None  # noqa: E731
+    span_min = BASELINE_MIN + window_minutes
+    current, stopped = [], []
+    for key, h in hist.items():
+        svc, sev, text = key
+        n_now = now.get(key, {}).get("n", 0)
+        first, last = ago(h["first"]), ago(h["last"])
+        item = {"service": svc, "severity": sev, "message": text, "count_now": n_now,
+                f"count_last_{span_min}m": h["n"], "first_seen_min_ago": first, "last_seen_min_ago": last}
+        if n_now:
+            started = first is not None and first <= RECENT_LOG_MIN  # older messages belong to an earlier phase
+            item["started_recently"] = started
+            current.append(((started, -(first or span_min)), item))
+        elif last is not None:
+            stopped.append((last, item))
+    current = [i for _, i in sorted(current, key=lambda t: t[0], reverse=True)][:MAX_LOG_MESSAGES]
+    stopped = [i for _, i in sorted(stopped, key=lambda t: t[0])][:8]
+    for i in stopped:
+        i.pop("count_now")
+    value = {
+        "logging_now": current or "no WARN+ messages from application services in this window",
+        **({"stopped_earlier": stopped} if stopped else {}),
+        "note": (f"WARN and above in the last {span_min} min, grouped by service and exact message. "
+                 f"started_recently=true: the message first appeared within the last {RECENT_LOG_MIN} min "
+                 "(first_seen_min_ago), a strong lead for the current incident; the smaller first_seen_min_ago, the "
+                 "newer. Older messages are the demo's baseline or an earlier incident unless their count jumped. "
+                 "stopped_earlier = an earlier problem "
+                 "that ended, not the current incident. A slow failure can log nothing until its first call gives up, "
+                 f"so a quiet log is not proof of health. Not assessed: {', '.join(sorted(LOG_SOURCES_NOT_ASSESSED))}."),
+    }
+    status = ToolStatus.OK if hist else ToolStatus.EMPTY
+    return _result("log_overview", "opensearch", None, query, start, end, status,
+                   raw={"now": now_body, "history": hist_body}, value=value,
+                   message=None if hist else f"no WARN+ log messages from application services in {span_min} min")
+
+
 # --------------------------------------------------------------------------
 # HEALTH (derived from telemetry only)
 # --------------------------------------------------------------------------
-def service_health(service: str, window_minutes: int = 5) -> ToolResult:
+def service_health(service: str, window_minutes: int = 3) -> ToolResult:
     """One-call health summary for a service, derived from metrics only:
     traffic, errors, latency, container CPU/memory/uptime (restart detection)."""
     service = validate_service(service)
@@ -650,32 +1027,32 @@ def service_health(service: str, window_minutes: int = 5) -> ToolResult:
 # Registry for the diagnosis module (Member 3): validated, read-only tools only
 # --------------------------------------------------------------------------
 class _OverviewArgs(BaseModel):
-    window_minutes: int = Field(5, ge=2, le=MAX_WINDOW_MIN)
+    window_minutes: int = Field(NOW_WINDOW_MIN, ge=2, le=MAX_WINDOW_MIN)
 
 
 class _MetricsArgs(BaseModel):
     service: str
     metric: MetricName = "error_rate"
-    window_minutes: int = Field(5, ge=2, le=MAX_WINDOW_MIN)
+    window_minutes: int = Field(NOW_WINDOW_MIN, ge=2, le=MAX_WINDOW_MIN)
 
 
 class _TracesArgs(BaseModel):
     service: str
-    window_minutes: int = Field(15, ge=1, le=MAX_WINDOW_MIN)
+    window_minutes: int = Field(NOW_WINDOW_MIN, ge=1, le=MAX_WINDOW_MIN)
     errors_only: bool = True
     limit: int = Field(10, ge=1, le=MAX_ITEMS)
 
 
 class _LogsArgs(BaseModel):
     service: str
-    window_minutes: int = Field(10, ge=1, le=MAX_WINDOW_MIN)
+    window_minutes: int = Field(NOW_WINDOW_MIN, ge=1, le=MAX_WINDOW_MIN)
     min_severity: Literal["DEBUG", "INFO", "WARN", "ERROR", "FATAL"] = "WARN"
     limit: int = Field(20, ge=1, le=MAX_ITEMS)
 
 
 class _HealthArgs(BaseModel):
     service: str
-    window_minutes: int = Field(5, ge=2, le=MAX_WINDOW_MIN)
+    window_minutes: int = Field(NOW_WINDOW_MIN, ge=2, le=MAX_WINDOW_MIN)
 
 
 TOOLS = {
@@ -685,7 +1062,12 @@ TOOLS = {
                       "One fixed metric for one service (errors, latency, per-operation, container CPU/memory/uptime)."),
     "search_traces": (search_traces, _TracesArgs,
                       "Recent (error) traces for a service with trace IDs, error messages, suspected error origin and call edges."),
-    "query_logs": (query_logs, _LogsArgs, "Recent log lines for a service at or above a severity."),
+    "log_overview": (log_overview, _OverviewArgs,
+                     "All services: WARN+ log messages grouped by message, with when each first and last appeared "
+                     "in the last ~33 min (started recently / baseline / stopped). Call it with overview at the start."),
+    "query_logs": (query_logs, _LogsArgs,
+                   "Recent log lines for a service at or above a severity. Keep the default WARN: services in this "
+                   "demo often log failures at WARN, so ERROR alone can miss them."),
     "service_health": (service_health, _HealthArgs,
                        "Health summary for one service from metrics: traffic, errors, latency, CPU, memory, restarts."),
 }
@@ -736,7 +1118,7 @@ def check_backends() -> dict[str, str]:
 
 def _print(result: ToolResult) -> None:
     print(json.dumps(result.model_dump(mode="json", exclude={"window_start", "window_end"}),
-                     indent=2, default=str)[:6000])
+                     indent=2, default=str))
 
 
 def main() -> None:
@@ -744,14 +1126,15 @@ def main() -> None:
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check")
     sub.add_parser("inventory")
-    o = sub.add_parser("overview"); o.add_argument("--window", type=int, default=5)
+    o = sub.add_parser("overview"); o.add_argument("--window", type=int, default=NOW_WINDOW_MIN)
     m = sub.add_parser("metrics"); m.add_argument("service"); m.add_argument("metric", nargs="?", default="error_rate")
-    m.add_argument("--window", type=int, default=5)
-    t = sub.add_parser("traces"); t.add_argument("service"); t.add_argument("--window", type=int, default=15)
+    m.add_argument("--window", type=int, default=NOW_WINDOW_MIN)
+    t = sub.add_parser("traces"); t.add_argument("service"); t.add_argument("--window", type=int, default=NOW_WINDOW_MIN)
     t.add_argument("--all", action="store_true", help="include traces without errors")
-    lg = sub.add_parser("logs"); lg.add_argument("service"); lg.add_argument("--window", type=int, default=10)
+    lg = sub.add_parser("logs"); lg.add_argument("service"); lg.add_argument("--window", type=int, default=NOW_WINDOW_MIN)
     lg.add_argument("--severity", default="WARN")
-    h = sub.add_parser("health"); h.add_argument("service"); h.add_argument("--window", type=int, default=5)
+    lo = sub.add_parser("log-overview"); lo.add_argument("--window", type=int, default=NOW_WINDOW_MIN)
+    h = sub.add_parser("health"); h.add_argument("service"); h.add_argument("--window", type=int, default=NOW_WINDOW_MIN)
     n = sub.add_parser("names", help="list Prometheus metric names containing text")
     n.add_argument("contains")
     a = p.parse_args()
@@ -769,6 +1152,8 @@ def main() -> None:
             _print(search_traces(a.service, a.window, errors_only=not a.all))
         elif a.cmd == "logs":
             _print(query_logs(a.service, a.window, a.severity))
+        elif a.cmd == "log-overview":
+            _print(log_overview(a.window))
         elif a.cmd == "health":
             _print(service_health(a.service, a.window))
         elif a.cmd == "names":

@@ -76,6 +76,18 @@ def test_report_generation_markdown(sample_incident, sample_evidence):
     assert generator.validate_citations() == []
 
 
+def test_markdown_tables_survive_pipes_backticks_and_show_key_fact():
+    from report import _cell, _code, _evidence_summary
+    ppl = "source=otel-logs-* | where `@timestamp` >= 'x' | head 5"
+    row = f"| a | {_code(ppl)} | {_cell('line1' + chr(10) + 'line2')} |"
+    import re
+    assert len(re.findall(r"(?<!\\)\|", row)) == 4 and "\n" not in row  # 3 cells = 4 separators, no row break
+    assert _code(ppl).startswith("`` ") and "\\|" in _code(ppl)
+    obs = {"value": {"traces_scanned": 9, "error_origin_counts": {"payment": 8}}, "excerpt": None, "message": None}
+    assert _evidence_summary(obs) == 'error_origin_counts: {"payment": 8}'
+    assert _evidence_summary({"value": None, "excerpt": "Payment request failed.", "message": None}) == "Payment request failed."
+
+
 def test_report_catches_invalid_citations(sample_incident, sample_evidence):
     diagnosis = Diagnosis(
         suspected_component="recommendation",

@@ -11,6 +11,7 @@ from contracts import DiagnosisValidation, ToolPolicy, ToolRequest, ToolValidati
 from models import Diagnosis, Evidence, ToolStatus
 
 BLOCKED_SERVICES = {"flagd", "flagd-ui"}
+_FLAG_WORDS = re.compile(r"feature[\s_.-]*flags?|flagd|openfeature", re.IGNORECASE)
 
 
 def validate_tool_request(request: ToolRequest, policy: ToolPolicy) -> ToolValidation:
@@ -63,6 +64,9 @@ def validate_diagnosis(diagnosis: Diagnosis, evidence: list[Evidence]) -> Diagno
     supporting = [by_id[i] for i in diagnosis.supporting_evidence_ids if i in by_id]
     if supporting and not any(e.status == ToolStatus.OK for e in supporting):
         errors.append("no supporting evidence has status 'ok' (empty/unavailable/error results cannot support a cause)")
+    said = " ".join([diagnosis.suspected_component, diagnosis.suspected_cause, diagnosis.next_step, *diagnosis.alternatives])
+    if _FLAG_WORDS.search(said):
+        errors.append("diagnosis refers to feature flags; flag state is out of bounds: describe the failure from telemetry only")
     if supporting:
         component = diagnosis.suspected_component.lower()
         haystack = " ".join(

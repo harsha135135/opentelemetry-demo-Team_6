@@ -3,6 +3,38 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from models import IncidentReport, IncidentStatus
 
+# Keys in observed_value["value"] that summarise a tool result best, in order of preference.
+_SUMMARY_KEYS = ("changed_since_previous_window", "calls_with_no_response_from", "error_origin_counts",
+                 "flagged", "summary", "value", "series", "lines")
+
+
+def _cell(text: Any) -> str:
+    """Make text safe inside a Markdown table cell: no row breaks, no column splits."""
+    return str(text).replace("\r", " ").replace("\n", " ").replace("|", "\\|")
+
+
+def _code(text: Any) -> str:
+    """Inline code that survives backticks inside the text (PPL queries quote fields with them)."""
+    s = _cell(text)
+    return f"`` {s} ``" if "`" in s else f"`{s}`"
+
+
+def _evidence_summary(observed: Any, limit: int = 160) -> str:
+    """The most informative short fact from an evidence item, for the readable report."""
+    if isinstance(observed, dict):
+        if observed.get("excerpt"):
+            text = observed["excerpt"]
+        elif isinstance(observed.get("value"), dict):
+            val = observed["value"]
+            key = next((k for k in _SUMMARY_KEYS if val.get(k) not in (None, [], {})), None)
+            text = f"{key}: {json.dumps(val[key], default=str)}" if key else json.dumps(val, default=str)
+        else:
+            text = observed.get("message") or json.dumps(observed, default=str)
+    else:
+        text = json.dumps(observed, default=str)
+    text = str(text)
+    return text if len(text) <= limit else text[:limit - 3] + "..."
+
 
 class ReportGenerator:
     def __init__(self, report: IncidentReport):
@@ -49,7 +81,7 @@ class ReportGenerator:
             lines.append("| Timestamp (UTC) | State | Description |")
             lines.append("| --- | --- | --- |")
             for t in rep.timeline:
-                lines.append(f"| {t.timestamp.isoformat()} | `{t.status.value}` | {t.description} |")
+                lines.append(f"| {t.timestamp.isoformat()} | `{t.status.value}` | {_cell(t.description)} |")
         else:
             lines.append("No timeline events recorded.")
 
@@ -62,12 +94,11 @@ class ReportGenerator:
             lines.append("| ID | Source | Service | Status | Tool / Query | Observed / Capture |")
             lines.append("| --- | --- | --- | --- | --- | --- |")
             for ev in rep.evidence:
-                val_snippet = str(ev.observed_value)
-                if len(val_snippet) > 60:
-                    val_snippet = val_snippet[:57] + "..."
-                capture = f"`{ev.local_capture_reference}`" if ev.local_capture_reference else "-"
+                val_snippet = _cell(_evidence_summary(ev.observed_value))
+                capture = _code(ev.local_capture_reference) if ev.local_capture_reference else "-"
                 svc_name = ev.service or "-"
-                lines.append(f"| `{ev.evidence_id}` | `{ev.source}` | `{svc_name}` | `{ev.status.value}` | `{ev.tool}: {ev.query}` | {val_snippet} ({capture}) |")
+                lines.append(f"| `{ev.evidence_id}` | `{ev.source}` | `{svc_name}` | `{ev.status.value}` | "
+                             f"{_code(f'{ev.tool}: {ev.query}')} | {val_snippet} ({capture}) |")
         else:
             lines.append("No evidence captured.")
 

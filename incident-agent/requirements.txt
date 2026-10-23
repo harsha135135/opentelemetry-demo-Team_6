@@ -2,4 +2,8 @@ httpx>=0.27
 pydantic>=2.6
 python-dotenv>=1.0
 pytest>=8.0
-anthropic>=0.40
+# LLM layer: LangChain with provider integrations (pick one in .env: LLM_PROVIDER)
+langchain>=1.0
+langchain-core>=1.0
+langchain-google-genai>=4.0
+langchain-groq>=1.0
