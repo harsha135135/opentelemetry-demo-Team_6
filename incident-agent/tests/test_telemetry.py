@@ -139,6 +139,18 @@ def test_health_does_not_expose_uncitable_sub_ids(monkeypatch, tmp_path):
     assert "sub_evidence" in (tmp_path / f"{res.evidence_id}.json").read_text()  # still auditable on disk
 
 
+def test_inventory_includes_containers_without_spans(monkeypatch, tmp_path):
+    def handler(request):
+        if "container_name" in request.url.path:
+            return httpx.Response(200, json={"data": ["valkey-cart", "flagd"]})
+        if "service_name" in request.url.path:
+            return httpx.Response(200, json={"data": ["cart"]})
+        return httpx.Response(200, json={"services": ["cart"]})
+    _use(handler, monkeypatch, tmp_path)
+    assert t.service_inventory(refresh=True) == ["cart", "valkey-cart"]  # flagd still excluded
+    assert t.validate_service("valkey-cart") == "valkey-cart"
+
+
 def test_tool_specs_are_valid_for_llm():
     names = {s["function"]["name"] for s in t.tool_specs()}
     assert names == {"overview", "query_metrics", "search_traces", "query_logs", "service_health"}

@@ -202,17 +202,19 @@ _inventory: tuple[float, list[str]] = (0.0, [])
 
 
 def service_inventory(refresh: bool = False) -> list[str]:
-    """Services observed in Prometheus and Jaeger (flag services excluded)."""
+    """Services observed in Prometheus and Jaeger, plus containers seen by docker_stats
+    (so the cache and database, which emit no spans, can be health-checked). Flag services excluded."""
     global _inventory
     if not refresh and _inventory[1] and time.time() - _inventory[0] < INVENTORY_TTL_S:
         return _inventory[1]
     names: set[str] = set()
-    try:
-        r = _request("GET", f"{PROM_URL}/api/v1/label/service_name/values")
-        if r.status_code == 200:
-            names.update(r.json().get("data") or [])
-    except httpx.HTTPError:
-        pass
+    for label in ("service_name", "container_name"):
+        try:
+            r = _request("GET", f"{PROM_URL}/api/v1/label/{label}/values")
+            if r.status_code == 200:
+                names.update(r.json().get("data") or [])
+        except httpx.HTTPError:
+            pass
     try:
         r = _request("GET", f"{JAEGER_URL}/jaeger/ui/api/v3/services")
         if r.status_code == 200:
