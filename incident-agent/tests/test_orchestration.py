@@ -319,3 +319,10 @@ def test_report_written_for_every_status_and_citation_errors_withheld(tmp_path):
     for decisions in ([ModelError("t")], [InconclusiveDecision(reason="r")], [KeyboardInterrupt()]):
         r, *_ = run(tmp_path, *decisions)
         assert write_report(r, tmp_path / "o3")[1].json_path
+
+
+def test_high_confidence_capped_with_single_source(tmp_path):
+    d = diag(["ev-query_metrics-0001"]).model_copy(update={"confidence_label": ConfidenceLabel.HIGH})
+    rep, *_ = run(tmp_path, CallToolDecision(calls=[call(1)]), FinishDecision(diagnosis=d))
+    assert rep.status == IncidentStatus.DIAGNOSED and rep.diagnosis.confidence_label == ConfidenceLabel.MEDIUM
+    assert "Capped" in rep.diagnosis.uncertainty

@@ -17,7 +17,7 @@ from contracts import (
 from guardrails import validate_diagnosis as default_validate_diagnosis, validate_tool_request as default_validate_tool_request
 from telemetry_executor import run_with_deadline
 from integration import EvidenceConflict, EvidenceRegistry, to_evidence
-from models import Incident, IncidentReport, IncidentStatus, TimelineEvent
+from models import ConfidenceLabel, Incident, IncidentReport, IncidentStatus, TimelineEvent
 
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 RECOVERY_NOT_PROVIDED = "not provided - diagnosis only (CP0-CP2, no remediation)"
@@ -121,7 +121,8 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
             if isinstance(decision, FinishDecision):
                 result = deps.validate_diagnosis(decision.diagnosis, deps.registry.all())
                 if result.valid:
-                    status, terminal_reason, diagnosis = IncidentStatus.DIAGNOSED, "diagnosed", decision.diagnosis
+                    diagnosis = _cap_confidence(decision.diagnosis, deps.registry)
+                    status, terminal_reason = IncidentStatus.DIAGNOSED, "diagnosed"
                     log(IncidentStatus.DIAGNOSED, f"Diagnosis validated: {decision.diagnosis.suspected_component}")
                 else:
                     rejected_diag_errors = result.errors
@@ -173,6 +174,16 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
         incident_id=incident.id, status=status, incident=incident, timeline=timeline, evidence=evidence,
         diagnosis=diagnosis, proposals=[], approval=None, verification=None, limitations=limitations,
     )
+
+
+def _cap_confidence(diagnosis, registry):
+    """High confidence needs supporting evidence from at least two independent sources (rule from Harshita's brain)."""
+    sources = {registry.get(i).source for i in diagnosis.supporting_evidence_ids if registry.get(i)}
+    if diagnosis.confidence_label == ConfidenceLabel.HIGH and len(sources) < 2:
+        return diagnosis.model_copy(update={
+            "confidence_label": ConfidenceLabel.MEDIUM,
+            "uncertainty": f"{diagnosis.uncertainty} [Capped to medium: high confidence needs 2+ independent sources.]".strip()})
+    return diagnosis
 
 
 def _specs(deps: Dependencies) -> list[dict]:
