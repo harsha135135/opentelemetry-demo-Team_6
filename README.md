@@ -10,7 +10,7 @@ AI On-Call Engineer for Cloud-Native Incident Response
 | 1 | Harshavardhan M | harsha135135 | [Role] |
 | 2 | Padarthi Neha Sai | pnehasai | [Role] |
 | 3 | Harshita C | Harshita100 | [Role] |
-| 4 | [Member 4] | [GitHub Username] | [Role] |
+| 4 | Deepika Raman | deepika-raman | [Role] |
 | 5 | [Member 5] | [GitHub Username] | [Role] |
 
 ## Problem Statement
