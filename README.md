@@ -20,7 +20,7 @@ incident inputs, tool results, evidence and diagnoses.
 
 The current shared contracts are `incident-agent/models.py` (updated: `Evidence.service` is optional,
 `source` may be `"derived"`, and `trace_ids`/`log_ids` were added) and `incident-agent/contracts.py`
-(orchestrator, reasoning and guardrail interfaces). See `incident-agent/INTEGRATION.md`.
+(orchestrator, reasoning and guardrail interfaces). See `incident-agent/INTEGRATION.md` and `docs/TEAM_INTEGRATION_CONTRACT.md`.
 
 ## Current Priority: CP0, CP1 and CP2
 
