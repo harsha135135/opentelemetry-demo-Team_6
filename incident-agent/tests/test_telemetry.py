@@ -56,6 +56,7 @@ def test_metric_ok_and_query_uses_template(monkeypatch, tmp_path):
     res = t.run_tool("query_metrics", {"service": "payment", "metric": "error_rate", "window_minutes": 5})
     assert res.status == t.ToolStatus.OK and res.value["value"] == 0.42
     assert 'service_name="payment"' in seen["q"] and "STATUS_CODE_ERROR" in seen["q"] and "[5m]" in seen["q"]
+    assert "or vector(0)" in seen["q"]  # zero errors with traffic = 0, not empty
 
 
 def _span(sid, parent, name, error=False, msg="", events=None):
@@ -79,6 +80,7 @@ def test_traces_find_origin_and_hide_flags(monkeypatch, tmp_path):
         _rs("checkout", [_span("00000000000000b2", "00000000000000a1", "PlaceOrder", True, "charge failed",
                                [flag_event])]),
         _rs("payment", [_span("00000000000000c3", "00000000000000b2", "charge", True, "Invalid token")]),
+        _rs("flagd", [_span("00000000000000d4", "00000000000000c3", "ResolveBoolean")]),
     ]}}
     _use(lambda r: httpx.Response(200, json=body), monkeypatch, tmp_path)
     res = t.search_traces("checkout", 15)
@@ -89,6 +91,7 @@ def test_traces_find_origin_and_hide_flags(monkeypatch, tmp_path):
     assert "checkout -> payment" in res.value["edges"]
     assert res.trace_ids == ["0af7651916cd43dd8448eb211c80319c"]
     assert "feature_flag" not in json.dumps(res.value)
+    assert "flagd" not in json.dumps(res.value)
 
 
 def test_traces_404_is_empty(monkeypatch, tmp_path):
@@ -113,6 +116,27 @@ def test_logs_parse_and_withhold_flag_lines(monkeypatch, tmp_path):
     assert res.status == t.ToolStatus.OK and res.value["count"] == 1
     assert "withheld" in res.message
     assert "paymentFailure" not in json.dumps(res.model_dump(mode="json")["value"])
+
+
+def test_logs_read_nested_severity(monkeypatch, tmp_path):
+    body = {"schema": [{"name": "severity"}, {"name": "@timestamp"}, {"name": "body"}, {"name": "traceId"},
+                       {"name": "_id"}],
+            "datarows": [[{"number": 17, "text": "error"}, "2026-10-23 09:00:00", "Payment request failed.", "",
+                          "oDRmaKEBC5GIrfqg5U64"]]}
+    _use(lambda r: httpx.Response(200, json=body), monkeypatch, tmp_path)
+    monkeypatch.setattr(t, "OPENSEARCH_URL", "http://os:9200")
+    res = t.query_logs("payment", 10, "WARN")
+    assert res.value["lines"][0]["severity"] == "error"
+    assert res.log_ids == ["oDRmaKEBC5GIrfqg5U64"]
+
+
+def test_health_does_not_expose_uncitable_sub_ids(monkeypatch, tmp_path):
+    body = {"status": "success", "data": {"result": [{"metric": {}, "value": [0, "1.5"]}]}}
+    _use(lambda r: httpx.Response(200, json=body), monkeypatch, tmp_path)
+    res = t.service_health("payment", 5)
+    assert res.status == t.ToolStatus.OK and res.source == "derived"
+    assert "ev-query_metrics" not in res.for_llm()  # only res.evidence_id is citable
+    assert "sub_evidence" in (tmp_path / f"{res.evidence_id}.json").read_text()  # still auditable on disk
 
 
 def test_tool_specs_are_valid_for_llm():
