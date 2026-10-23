@@ -53,14 +53,31 @@ class EvidenceRegistry:
         return self._items.get(evidence_id)
 
 
+def all_tool_specs() -> list[dict]:
+    """Neha's tool specs plus the integration-layer resource_overview tool (OpenAI-style, translated by the reasoner)."""
+    import resources
+    import telemetry
+
+    extra = {"type": "function", "function": {"name": "resource_overview", "description": resources.DESCRIPTION,
+                                              "parameters": resources.ResourceArgs.model_json_schema()}}
+    return telemetry.tool_specs() + [extra]
+
+
 def make_telemetry_runner(evidence_dir: Path) -> tuple[Callable[[str, dict | None], Any], ToolPolicy, Any]:
     """Point Neha's module at a per-run evidence directory; return (run_tool, policy, telemetry module)."""
     import telemetry
 
+    import resources
+
     telemetry.EVIDENCE_DIR = Path(evidence_dir).resolve()
     inventory = [s for s in telemetry.service_inventory(refresh=True) if s not in telemetry.EXCLUDED_SERVICES]
-    policy = ToolPolicy(
-        approved_services=inventory,
-        arg_models={name: spec[1] for name, spec in telemetry.TOOLS.items()},
-    )
-    return telemetry.run_tool, policy, telemetry
+    arg_models = {name: spec[1] for name, spec in telemetry.TOOLS.items()}
+    arg_models["resource_overview"] = resources.ResourceArgs
+    policy = ToolPolicy(approved_services=inventory, arg_models=arg_models)
+
+    def run_tool(name: str, arguments: dict | None):
+        if name == "resource_overview":
+            return resources.resource_overview(**resources.ResourceArgs.model_validate(arguments or {}).model_dump())
+        return telemetry.run_tool(name, arguments)
+
+    return run_tool, policy, telemetry

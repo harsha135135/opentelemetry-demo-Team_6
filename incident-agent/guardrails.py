@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -34,6 +35,17 @@ def validate_tool_request(request: ToolRequest, policy: ToolPolicy) -> ToolValid
     return ToolValidation(allowed=True, tool_name=request.tool_name, arguments=args)
 
 
+_STOPWORDS = {"container", "containers", "service", "services", "restart", "restarts", "outage", "pod", "with", "from", "that", "this", "and", "the"}
+_WORD = re.compile(r"[a-z0-9][a-z0-9_-]{3,}")
+
+
+def _component_in(component: str, haystack: str) -> bool:
+    """True if the component text, or any service-like word inside a longer phrase, appears in the cited evidence."""
+    if component in haystack:
+        return True
+    return any(w not in _STOPWORDS and w in haystack for w in _WORD.findall(component))
+
+
 def validate_diagnosis(diagnosis: Diagnosis, evidence: list[Evidence]) -> DiagnosisValidation:
     errors: list[str] = []
     by_id = {e.evidence_id: e for e in evidence}
@@ -56,6 +68,6 @@ def validate_diagnosis(diagnosis: Diagnosis, evidence: list[Evidence]) -> Diagno
         haystack = " ".join(
             f"{e.service or ''} {e.query} {json.dumps(e.observed_value, default=str)}" for e in supporting
         ).lower()
-        if component not in haystack:
+        if not _component_in(component, haystack):
             errors.append(f"suspected component '{diagnosis.suspected_component}' does not appear in any cited supporting evidence (heuristic check)")
     return DiagnosisValidation(valid=not errors, errors=errors)

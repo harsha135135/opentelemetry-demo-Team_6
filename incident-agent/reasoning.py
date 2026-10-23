@@ -22,6 +22,9 @@ Service names: frontend, frontend-proxy, cart, checkout, payment, product-catalo
 Rules:
 - Investigate systematically: start from the reported symptom, inspect traces for failing child spans, then metrics and logs. Use more than one source (traces, metrics, logs) before claiming high confidence.
 - Consider infrastructure causes (container stopped or restarting, cache or database unreachable, network latency, CPU or memory starvation) as well as application faults, and combinations of faults.
+- Start with `overview` and `resource_overview`. resource_overview compares every container's CPU, memory and uptime with the fleet and a prior window; its flags are anomalies to investigate, not causes. High CPU may be effect or load, and clustered restarts may be a cause, a side effect or environmental: neither assume nor dismiss them. Follow up each flagged service with service_health or query_metrics and traces/logs, and cite that follow-up evidence in your diagnosis (as supporting or conflicting). Merely naming a service is not enough.
+- Do not conclude from error traces alone. Quiet request metrics can hide resource problems: after the overview, run service_health (CPU, memory, restarts, latency) for the affected service, every service named in error traces, and any service with unusual latency; compare resource use across services, and use query_metrics container_cpu / container_memory / container_memory_trend / container_uptime to confirm. Sparse errors that follow a recent restart may be a side effect, not the cause.
+- Check logs for the suspected service; if logs are unavailable, say so in uncertainty.
 - Never query or reason about feature-flag systems or flagd; use telemetry only.
 - A confident wrong answer is worse than escalating: if evidence is weak, conflicting or missing, use low confidence or call `inconclusive`.
 - Use only the provided tools. You cannot change anything.
@@ -71,10 +74,12 @@ class AnthropicReasoner:
 
     def _user_blocks(self, ctx: ReasoningContext) -> list[dict[str, Any]]:
         blocks: list[dict[str, Any]] = []
+        if ctx.rejection is not None and self._repair_detail is None:
+            self._repair_detail = ctx.rejection
         if self._repair_detail is not None:
             for tid in self._pending_ids:
                 blocks.append({"type": "tool_result", "tool_use_id": tid, "is_error": True, "content": self._repair_detail})
-            blocks.append({"type": "text", "text": f"Your previous response was unusable: {self._repair_detail}"})
+            blocks.append({"type": "text", "text": f"Your previous response was not accepted: {self._repair_detail}"})
             self._pending_ids, self._repair_detail = [], None
         elif self._pending_ids:
             got = [o.call_id for o in ctx.pending_outcomes]
@@ -99,9 +104,7 @@ class AnthropicReasoner:
 
     def next_step(self, ctx: ReasoningContext) -> AgentDecision:
         self.messages.append({"role": "user", "content": self._user_blocks(ctx)})
-        kwargs: dict[str, Any] = {}
-        if not ctx.allow_tools:
-            kwargs["tool_choice"] = {"type": "any"}
+        kwargs: dict[str, Any] = {}  # tool_choice is not used: some models reject it; the last turn only offers terminal tools
         try:
             resp = self.client.messages.create(
                 model=self.model, max_tokens=self.max_output_tokens, system=SYSTEM_PROMPT,
@@ -109,7 +112,8 @@ class AnthropicReasoner:
                 timeout=max(1.0, min(ctx.request_timeout_s, ctx.remaining_seconds)), **kwargs,
             )
         except anthropic.APIError as exc:  # includes timeouts and connection errors
-            raise ModelError(f"Anthropic request failed: {type(exc).__name__}") from exc
+            detail = f" ({exc.status_code}: {str(exc.message)[:300]})" if isinstance(exc, anthropic.APIStatusError) else ""
+            raise ModelError(f"Anthropic request failed: {type(exc).__name__}{detail}") from exc
         usage = {"input_tokens": getattr(resp.usage, "input_tokens", 0), "output_tokens": getattr(resp.usage, "output_tokens", 0)}
         self.messages.append({"role": "assistant", "content": resp.content})
         tool_uses = [b for b in resp.content if b.type == "tool_use"]

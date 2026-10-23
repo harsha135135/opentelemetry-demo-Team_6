@@ -17,7 +17,7 @@ from reasoning import AnthropicReasoner, anthropic_tools
 from report_io import write_report
 
 NOW = datetime.now(timezone.utc)
-POLICY = ToolPolicy(approved_services=["checkout", "cart"], arg_models={n: s[1] for n, s in telemetry.TOOLS.items()})
+POLICY = ToolPolicy(approved_services=["checkout", "cart", "ad"], arg_models={n: s[1] for n, s in telemetry.TOOLS.items()})
 
 
 def incident(**kw):
@@ -296,7 +296,7 @@ def test_api_timeout_becomes_model_error_and_last_turn_forces_terminal(tmp_path)
     client = FakeClient(anthropic.APITimeoutError(request=None))
     with pytest.raises(ModelError):
         AnthropicReasoner("m", client=client).next_step(rctx(tmp_path, allow=False))
-    assert client.requests[0]["tool_choice"] == {"type": "any"} and len(client.requests[0]["tools"]) == 2
+    assert "tool_choice" not in client.requests[0] and len(client.requests[0]["tools"]) == 2
 
 
 def test_missing_model_fails_clearly():
@@ -326,3 +326,125 @@ def test_high_confidence_capped_with_single_source(tmp_path):
     rep, *_ = run(tmp_path, CallToolDecision(calls=[call(1)]), FinishDecision(diagnosis=d))
     assert rep.status == IncidentStatus.DIAGNOSED and rep.diagnosis.confidence_label == ConfidenceLabel.MEDIUM
     assert "Capped" in rep.diagnosis.uncertainty
+
+
+def test_component_phrase_matches_service_word_in_evidence(tmp_path):
+    d = diag(["ev-query_metrics-0001"], "checkout container (cpu saturation, restart about 7 minutes ago)")
+    rep, *_ = run(tmp_path, CallToolDecision(calls=[call(1)]), FinishDecision(diagnosis=d))
+    assert rep.status == IncidentStatus.DIAGNOSED
+
+
+def test_component_phrase_with_no_matching_word_still_rejected(tmp_path):
+    d = diag(["ev-query_metrics-0001"], "payment gateway outage")
+    rep, *_ = run(tmp_path, CallToolDecision(calls=[call(1)]), FinishDecision(diagnosis=d))
+    assert rep.status == IncidentStatus.INCONCLUSIVE
+
+
+def test_prompt_requires_resource_checks():
+    from reasoning import SYSTEM_PROMPT
+    assert "service_health" in SYSTEM_PROMPT and "container_cpu" in SYSTEM_PROMPT
+
+
+# ---- resource_overview, anomaly follow-up, eval harness
+import resources
+from orchestrator import anomaly_follow_up
+
+FLEET_CPU = {"ad": 260.0, "cart": 1.5, "checkout": 8.0, "payment": 17.0, "load-generator": 77.0, "email": 3.0}
+UP = {n: 1400.0 for n in FLEET_CPU}
+
+
+def test_cpu_outlier_flagged_against_fleet_and_baseline_not_by_fixed_limit():
+    v = resources.analyse(FLEET_CPU, {"ad": 80.0}, {}, {}, UP)
+    assert [f["container"] for f in v["flagged"]] == ["ad"]
+    assert any("fleet median" in r for r in v["flagged"][0]["reasons"]) and any("prior-window" in r for r in v["flagged"][0]["reasons"])
+    assert "not proven causes" in v["note"]  # load-generator at 77% is not flagged, and nothing claims causation
+
+
+def test_no_baseline_still_flags_on_fleet_comparison():
+    v = resources.analyse(FLEET_CPU, {}, {}, {}, UP)
+    assert v["flagged"][0]["container"] == "ad" and "prior-window" not in " ".join(v["flagged"][0]["reasons"])
+
+
+def test_memory_growth_and_limit_flagged():
+    v = resources.analyse({"a": 1.0, "b": 1.0}, {}, {"a": 90.0, "b": 40.0}, {"b": 0.3}, {"a": 1000.0, "b": 1000.0})
+    assert {f["container"] for f in v["flagged"]} == {"a", "b"}
+
+
+def test_clustered_restarts_reported_and_flagged_not_dismissed():
+    up = {"cart": 100.0, "product-catalog": 130.0, "a": 3000.0, "b": 3000.0, "c": 3000.0}
+    v = resources.analyse({k: 1.0 for k in up}, {}, {}, {}, up)
+    assert v["restart_clusters"][0]["containers"] == ["cart", "product-catalog"]
+    assert {f["container"] for f in v["flagged"]} == {"cart", "product-catalog"}
+
+
+def test_resource_overview_unavailable_is_distinct(monkeypatch, tmp_path):
+    import httpx
+    monkeypatch.setattr(telemetry, "EVIDENCE_DIR", tmp_path)
+    monkeypatch.setattr(resources, "_instant", lambda c, q: (_ for _ in ()).throw(httpx.ConnectError("x")))
+    r = resources.resource_overview(5)
+    assert r.status.value == "unavailable" and (tmp_path / f"{r.evidence_id}.json").is_file()
+
+
+def overview_runner(tmp_path, flagged=("ad",)):
+    base = Runner(tmp_path)
+
+    def run_tool(name, args):
+        res = base(name, args)
+        if name == "overview":
+            res.tool = "resource_overview"
+            res.service = None
+            res.value = {"flagged": [{"container": s, "reasons": ["cpu high"], "severity": 3} for s in flagged]}
+        return res
+    return run_tool
+
+
+def call_ov(i):
+    return ToolCall(call_id=f"toolu_{i}", tool_name="overview", arguments={})
+
+
+def test_naming_flagged_service_is_not_follow_up(tmp_path):
+    rep, *_ = run(tmp_path, CallToolDecision(calls=[call_ov(1), call(2, service="checkout")]),
+                  FinishDecision(diagnosis=diag(["ev-query_metrics-0002"], "checkout")), runner=overview_runner(tmp_path),
+                  cfg=InvestigationConfig(max_follow_up_nudges=0))
+    assert rep.diagnosis.confidence_label == ConfidenceLabel.LOW and "ad" in " ".join(rep.limitations)
+    assert "Unresolved" in rep.diagnosis.uncertainty
+
+
+def test_finish_deferred_then_follow_up_resolves(tmp_path):
+    rep, script, _ = run(tmp_path, CallToolDecision(calls=[call_ov(1), call(2, service="checkout")]),
+                         FinishDecision(diagnosis=diag(["ev-query_metrics-0002"], "checkout")),
+                         CallToolDecision(calls=[call(3, tool="service_health", service="ad")]),
+                         FinishDecision(diagnosis=diag(["ev-query_metrics-0002", "ev-service_health-0003"], "checkout")),
+                         runner=overview_runner(tmp_path))
+    assert script.contexts[2].rejection and "ad" in script.contexts[2].rejection
+    assert rep.status == IncidentStatus.DIAGNOSED and "Unresolved" not in rep.diagnosis.uncertainty
+
+
+def test_follow_up_that_is_not_ok_does_not_resolve(tmp_path):
+    reg = EvidenceRegistry()
+    runner = overview_runner(tmp_path)
+    reg.register(to_evidence(runner("overview", {})))
+    bad = Runner(tmp_path, status="unavailable")("service_health", {"service": "ad"})
+    reg.register(to_evidence(bad))
+    assert anomaly_follow_up(reg, diag([]))[0] == ["ad"]
+
+
+def test_uncited_follow_up_reported(tmp_path):
+    reg = EvidenceRegistry()
+    reg.register(to_evidence(overview_runner(tmp_path)("overview", {})))
+    f = Runner(tmp_path)("service_health", {"service": "ad"})
+    reg.register(to_evidence(f))
+    assert anomaly_follow_up(reg, diag(["x"])) == ([], ["ad"])
+    assert anomaly_follow_up(reg, diag([f.evidence_id])) == ([], [])
+
+
+def test_eval_scoring_is_separate_and_strict():
+    import sys, pathlib
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "evals"))
+    from run_eval import score
+    case = {"incident_id": "I", "expected_component": "ad", "expected_terms": ["cpu"]}
+    d = {"status": "DIAGNOSED", "diagnosis": {"suspected_component": "ad", "suspected_cause": "CPU saturation"}}
+    assert score(d, case)["correct"]
+    assert not score({**d, "diagnosis": {"suspected_component": "cart", "suspected_cause": "cpu"}}, case)["correct"]
+    assert not score({"status": "INCONCLUSIVE", "diagnosis": None}, case)["correct"]
+    assert not score({**d, "diagnosis": {"suspected_component": "ad", "suspected_cause": "restart"}}, case)["correct"]

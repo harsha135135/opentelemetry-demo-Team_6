@@ -35,6 +35,7 @@ class InvestigationConfig(BaseModel):
     max_total_tokens: int = 60000
     tool_worst_case_s: float = 25  # composite tools make several backend requests
     max_repairs: int = 1
+    max_follow_up_nudges: int = 1
 
 
 @dataclass
@@ -89,6 +90,8 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
     pending: list[ToolOutcome] = []
     status, terminal_reason, diagnosis = IncidentStatus.INCONCLUSIVE, "unknown", None
     repairs = 0
+    nudges = 0
+    rejection: str | None = None
     rejected_diag_errors: list[str] = []
     try:
         while True:
@@ -106,9 +109,9 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
                 incident=incident, evidence=deps.registry.all(), pending_outcomes=pending,
                 tool_specs=_specs(deps), allow_tools=allow_tools, remaining_tool_calls=tools_left,
                 remaining_model_calls=models_left, remaining_seconds=remaining_s,
-                request_timeout_s=config.request_timeout_s, live_only_note=live_note,
+                request_timeout_s=config.request_timeout_s, live_only_note=live_note, rejection=rejection,
             )
-            pending = []
+            pending, rejection = [], None
             stats["model_calls"] += 1  # counted before the request so failures and retries consume budget
             try:
                 decision = deps.reasoner.next_step(ctx)
@@ -121,7 +124,23 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
             if isinstance(decision, FinishDecision):
                 result = deps.validate_diagnosis(decision.diagnosis, deps.registry.all())
                 if result.valid:
+                    unresolved, uncited = anomaly_follow_up(deps.registry, decision.diagnosis)
+                    can_follow_up = tools_left > 0 and models_left > 1 and remaining_s > config.tool_worst_case_s
+                    if unresolved and nudges < config.max_follow_up_nudges and can_follow_up:
+                        nudges += 1
+                        rejection = ("Not accepted yet: resource_overview flagged " + ", ".join(unresolved) +
+                                     " with no follow-up evidence. Investigate each (service_health / query_metrics / traces / logs), "
+                                     "decide whether it is cause, effect or unrelated, cite that evidence, then finish again.")
+                        log(IncidentStatus.INVESTIGATING, f"Finish deferred: unresolved resource anomalies {unresolved}")
+                        continue
                     diagnosis = _cap_confidence(decision.diagnosis, deps.registry)
+                    if unresolved:
+                        diagnosis = diagnosis.model_copy(update={
+                            "confidence_label": ConfidenceLabel.LOW,
+                            "uncertainty": f"{diagnosis.uncertainty} [Unresolved resource anomaly without follow-up evidence: {', '.join(unresolved)}.]"})
+                        limitations.append(f"Resource anomalies flagged but not followed up with evidence: {', '.join(unresolved)}")
+                    if uncited:
+                        limitations.append(f"Follow-up evidence exists for flagged services but the diagnosis cites none of it: {', '.join(uncited)}")
                     status, terminal_reason = IncidentStatus.DIAGNOSED, "diagnosed"
                     log(IncidentStatus.DIAGNOSED, f"Diagnosis validated: {decision.diagnosis.suspected_component}")
                 else:
@@ -187,10 +206,36 @@ def _cap_confidence(diagnosis, registry):
 
 
 def _specs(deps: Dependencies) -> list[dict]:
-    import telemetry  # tool schemas come from the registered telemetry tools only
+    from integration import all_tool_specs  # only registered, read-only tools
 
     allowed = set(deps.policy.arg_models)
-    return [s for s in telemetry.tool_specs() if s["function"]["name"] in allowed]
+    return [s for s in all_tool_specs() if s["function"]["name"] in allowed]
+
+
+FOLLOW_UP_TOOLS = {"service_health", "query_metrics", "search_traces", "query_logs"}
+
+
+def anomaly_follow_up(registry: EvidenceRegistry, diagnosis) -> tuple[list[str], list[str]]:
+    """Return (unresolved, uncited) services flagged by resource_overview.
+
+    Unresolved: no ok follow-up evidence for that service collected after the overview. Merely naming the service in the
+    diagnosis does not resolve it. Uncited: follow-up exists but the diagnosis cites none of it.
+    """
+    items = registry.all()
+    unresolved, uncited = [], []
+    cited = set(diagnosis.supporting_evidence_ids) | set(diagnosis.conflicting_evidence_ids)
+    for i, ev in enumerate(items):
+        if ev.tool != "resource_overview" or ev.status.value != "ok":
+            continue
+        for flag in (ev.observed_value.get("value") or {}).get("flagged", []):
+            svc = flag["container"]
+            follow = [e for e in items[i + 1:] if e.service == svc and e.tool in FOLLOW_UP_TOOLS and e.status.value == "ok"]
+            if not follow:
+                if svc not in unresolved:
+                    unresolved.append(svc)
+            elif not cited & {e.evidence_id for e in follow} and svc not in uncited:
+                uncited.append(svc)
+    return unresolved, uncited
 
 
 def _dispatch(call, incident, config, deps, deadline, stats, limitations, log) -> ToolOutcome:

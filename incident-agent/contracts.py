@@ -68,6 +68,7 @@ class ReasoningContext(BaseModel):
     remaining_seconds: float
     request_timeout_s: float
     live_only_note: str = ""
+    rejection: Optional[str] = None  # set when the orchestrator refuses the model's finish and asks for follow-up
 
 
 class ModelError(RuntimeError):
