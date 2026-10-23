@@ -66,7 +66,8 @@ class ReportGenerator:
                 if len(val_snippet) > 60:
                     val_snippet = val_snippet[:57] + "..."
                 capture = f"`{ev.local_capture_reference}`" if ev.local_capture_reference else "-"
-                lines.append(f"| `{ev.evidence_id}` | `{ev.source}` | `{ev.service}` | `{ev.status.value}` | `{ev.tool}: {ev.query}` | {val_snippet} ({capture}) |")
+                svc_name = ev.service or "-"
+                lines.append(f"| `{ev.evidence_id}` | `{ev.source}` | `{svc_name}` | `{ev.status.value}` | `{ev.tool}: {ev.query}` | {val_snippet} ({capture}) |")
         else:
             lines.append("No evidence captured.")
 
