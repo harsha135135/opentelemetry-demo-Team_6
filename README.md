@@ -8,11 +8,53 @@ AI On-Call Engineer for Cloud-Native Incident Response
 
 | No. | Name | GitHub Username | Responsibility |
 | --- | --- | --- | --- |
-| 1 | Harshavardhan M | harsha135135 | [Role] |
-| 2 | Padarthi Neha Sai | pnehasai | [Role] |
-| 3 | Harshita C | Harshita100 | [Role] |
-| 4 | [Member 4] | [GitHub Username] | [Role] |
-| 5 | [Member 5] | [GitHub Username] | [Role] |
+| 1 | Harshavardhan M | harsha135135 | CLI, orchestrator and integration through CP2 |
+| 2 | Padarthi Neha Sai | pnehasai | Read-only telemetry: metrics, logs, traces and permitted health information |
+| 3 | Harshita C | Harshita100 | Member 3: bounded LLM tool calling and evidence-backed diagnosis |
+| 4 | Deepika Raman | deepika-raman | Member 4: architecture sketch and safety explanation |
+| 5 | Aditya R | adityatr64 | Member 5: authorised incident testing and checkpoint reports |
+
+Member 3–5 assignments follow the team-table order and should be confirmed by
+the team. Preserve existing modules and use the shared Pydantic contracts for
+incident inputs, tool results, evidence and diagnoses.
+
+## Current Priority: CP0, CP1 and CP2
+
+Checkpoint presentation: **23 October 2026, 5:30 PM IST**.
+The immediate goal is a reproducible, read-only investigation and diagnosis.
+CP3, remediation execution, optional features and cosmetic improvements are
+deferred. The full workflow and deliverables below describe the later destination.
+
+| Checkpoint | Required demonstration | Responsibility |
+| --- | --- | --- |
+| CP0 — Setup | Docker services and observability backends are operational; telemetry endpoints respond; setup commands are reproducible. | Harsha integrates setup; Neha verifies telemetry access; Member 5 records results. |
+| CP1 — Eyes | Investigate one authorised practice incident with real telemetry, show symptoms and evidence, and present a concise architecture sketch. | Harsha connects CLI and orchestration; Neha supplies read-only tools; Member 4 explains architecture and safety; Member 5 captures the run. |
+| CP2 — Brain | Bounded LLM tool calling selects useful investigation steps and produces a root-cause diagnosis supported by real evidence. Demonstrate correct diagnoses on at least three mentor-selected authorised practice incidents. | Member 3 owns diagnosis; Harsha integrates it; Neha supports queries; Member 5 checks and reports each result; Member 4 explains boundaries. |
+
+Before CP2, the working flow must be:
+
+**Alert → targeted telemetry queries → evidence → diagnosis or honest escalation
+→ checkpoint report.**
+
+- Harsha: validate inputs, connect shared contracts and modules, bound the
+  orchestration loop, and provide one reproducible CLI demonstration path.
+- Neha: return real, timestamped telemetry with source/query references;
+  distinguish missing data from healthy results.
+- Member 3: bound model/tool calls and time, validate structured output, compare
+  hypotheses, cite captured evidence and report uncertainty.
+- Member 4: explain components, data flow, read-only access and why the agent
+  cannot mutate the demo or read feature-flag state for diagnosis.
+- Member 5: obtain the mentor-selected incidents, record expected versus observed
+  diagnoses, separate mocked tests from live runs, and document failures honestly.
+
+Do not hard-code incident answers, fabricate evidence, inspect feature flags for
+diagnosis or modify the demo. Implementation and code commits must stay within
+the organiser-confirmed coding window.
+
+This README update does not verify any checkpoint. Record CP0/CP1/CP2 as passed
+only after the required behaviour is demonstrated. For CP2, report the number
+correctly diagnosed out of the number of real mentor-selected incidents tested;
+mocked tests do not count toward the three incidents.
 
 ## Problem Statement
 
