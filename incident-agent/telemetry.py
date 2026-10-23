@@ -736,7 +736,7 @@ def check_backends() -> dict[str, str]:
 
 def _print(result: ToolResult) -> None:
     print(json.dumps(result.model_dump(mode="json", exclude={"window_start", "window_end"}),
-                     indent=2, default=str)[:6000])
+                     indent=2, default=str))
 
 
 def main() -> None:
