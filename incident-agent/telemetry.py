@@ -164,6 +164,7 @@ def _capture(result: ToolResult, raw: Any) -> ToolResult:
             encoding="utf-8",
         )
     except OSError as exc:  # capture failure must never hide the result
+        result.capture_ref = None  # never point local_capture_reference at a file that wasn't written
         result.message = f"{result.message or ''} [capture failed: {exc}]".strip()
     return result
 
@@ -247,8 +248,9 @@ _DUR = "traces_span_metrics_duration_milliseconds_bucket"
 METRIC_TEMPLATES: dict[str, tuple[str, str, str]] = {
     # name: (PromQL template, unit, label to keep in output)
     "request_rate": (f'sum(rate({_CALLS}{{service_name="{{s}}"}}[{{w}}m]))', "requests/s", ""),
+    # "or vector(0)": traffic with zero errors is 0, not "no data"; no traffic stays empty.
     "error_rate": (
-        f'sum(rate({_CALLS}{{service_name="{{s}}",status_code="STATUS_CODE_ERROR"}}[{{w}}m]))'
+        f'(sum(rate({_CALLS}{{service_name="{{s}}",status_code="STATUS_CODE_ERROR"}}[{{w}}m])) or vector(0))'
         f' / sum(rate({_CALLS}{{service_name="{{s}}"}}[{{w}}m]))', "ratio 0-1", ""),
     "errors_by_operation": (
         f'topk(10, sum by (span_name) (rate({_CALLS}{{service_name="{{s}}",status_code="STATUS_CODE_ERROR"}}[{{w}}m])))',
@@ -324,7 +326,8 @@ def overview(window_minutes: int = 5) -> ToolResult:
     w = window_minutes
     queries = {
         "request_rate": f"sum by (service_name) (rate({_CALLS}[{w}m]))",
-        "error_rate": (f'sum by (service_name) (rate({_CALLS}{{status_code="STATUS_CODE_ERROR"}}[{w}m]))'
+        "error_rate": (f'(sum by (service_name) (rate({_CALLS}{{status_code="STATUS_CODE_ERROR"}}[{w}m]))'
+                       f" or sum by (service_name) (rate({_CALLS}[{w}m])) * 0)"
                        f" / sum by (service_name) (rate({_CALLS}[{w}m]))"),
         "p95_ms": f"histogram_quantile(0.95, sum by (le, service_name) (rate({_DUR}[{w}m])))",
     }
@@ -463,6 +466,8 @@ def search_traces(service: str, window_minutes: int = 15, errors_only: bool = Tr
     traces: dict[str, list[dict]] = {}
     for rs in (raw.get("result") or {}).get("resourceSpans") or []:
         svc = _attrs((rs.get("resource") or {}).get("attributes")).get("service.name", "unknown")
+        if svc in EXCLUDED_SERVICES:
+            continue  # flag-service spans (and their edges) are out of bounds
         for ss in rs.get("scopeSpans") or []:
             for sp in ss.get("spans") or []:
                 traces.setdefault(_hex_id(sp.get("traceId", "")), []).append(_parse_span(sp, svc))
@@ -553,7 +558,8 @@ def query_logs(service: str, window_minutes: int = 10, min_severity: str = "WARN
     sev = _SEVERITY[min_severity]
     primary = (f"source=otel-logs-* | where resource.service.name = '{service}'"
                f" and `@timestamp` >= '{since}' and `severity.number` >= {sev}"
-               f" | sort - `@timestamp` | head {limit * 2}")
+               f" | sort - `@timestamp` | head {limit * 2}"
+               f" | fields `@timestamp`, severity, body, traceId, _id")  # _id -> log_ids
     fallback = (f"source=otel-logs-* | where resource.service.name = '{service}'"
                 f" and `@timestamp` >= '{since}' | sort - `@timestamp` | head {limit * 5}")
     used = primary
@@ -571,8 +577,9 @@ def query_logs(service: str, window_minutes: int = 10, min_severity: str = "WARN
     lines, dropped = [], 0
     for row in _rows(body):
         text = _pick(row, "body", "body.text", "message")
-        sev_text = str(_pick(row, "severity.text", "severityText", "severity_text") or "")
-        sev_num = _pick(row, "severity.number", "severityNumber")
+        sev_obj = row.get("severity") if isinstance(row.get("severity"), dict) else {}  # otel-logs-*: {"number", "text"}
+        sev_text = str(_pick(sev_obj, "text") or _pick(row, "severity.text", "severityText", "severity_text") or "")
+        sev_num = _pick(sev_obj, "number") or _pick(row, "severity.number", "severityNumber")
         if used == fallback:
             try:
                 ok = int(sev_num) >= sev if sev_num is not None else _SEVERITY.get(sev_text.upper()[:5], 0) >= sev
@@ -588,6 +595,7 @@ def query_logs(service: str, window_minutes: int = 10, min_severity: str = "WARN
             "severity": sev_text or sev_num,
             "body": _short(text if not isinstance(text, (dict, list)) else json.dumps(text)),
             "trace_id": _hex_id(str(_pick(row, "traceId", "trace_id") or "")),
+            "log_id": str(row.get("_id") or ""),
         })
         if len(lines) >= limit:
             break
@@ -599,7 +607,8 @@ def query_logs(service: str, window_minutes: int = 10, min_severity: str = "WARN
     return _result("query_logs", "opensearch", service, used, start, end, ToolStatus.OK, raw=body,
                    value={"min_severity": min_severity, "count": len(lines), "lines": lines},
                    excerpt=lines[0]["body"], message=msg,
-                   trace_ids=sorted({l["trace_id"] for l in lines if l["trace_id"]}))
+                   trace_ids=sorted({l["trace_id"] for l in lines if l["trace_id"]}),
+                   log_ids=[l["log_id"] for l in lines if l["log_id"]])
 
 
 # --------------------------------------------------------------------------
@@ -629,8 +638,10 @@ def service_health(service: str, window_minutes: int = 5) -> ToolResult:
         status = ToolStatus.ERROR
     else:
         status = ToolStatus.EMPTY
+    # Sub-query IDs stay in the capture file only: they are not registered as Evidence,
+    # so showing them to the model would invite citations the report gate rejects.
     return _result("service_health", "derived", service, ", ".join(parts), start, end, status,
-                   raw={"sub_evidence": refs}, value={"summary": summary, "sub_evidence_ids": refs})
+                   raw={"sub_evidence": refs}, value={"summary": summary})
 
 
 # --------------------------------------------------------------------------
