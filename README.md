@@ -8,7 +8,7 @@ AI On-Call Engineer for Cloud-Native Incident Response
 | No. | Name | GitHub Username | Responsibility |
 |---|---|---|---|
 | 1 | Harshavardhan M | harsha135135 | [Role] |
-| 2 | [Padarthi Neha Sai] | [pnehasai] | [Role] |
+| 2 | Padarthi Neha Sai | pnehasai | [Role] |
 | 3 | [Member 3] | [GitHub Username] | [Role] |
 | 4 | [Member 4] | [GitHub Username] | [Role] |
 | 5 | [Member 5] | [GitHub Username] | [Role] |
