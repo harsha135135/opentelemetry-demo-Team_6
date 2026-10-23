@@ -18,6 +18,10 @@ Member 3–5 assignments follow the team-table order and should be confirmed by
 the team. Preserve existing modules and use the shared Pydantic contracts for
 incident inputs, tool results, evidence and diagnoses.
 
+The current shared contracts are `incident-agent/models.py` (updated: `Evidence.service` is optional,
+`source` may be `"derived"`, and `trace_ids`/`log_ids` were added) and `incident-agent/contracts.py`
+(orchestrator, reasoning and guardrail interfaces). See `incident-agent/INTEGRATION.md`.
+
 ## Current Priority: CP0, CP1 and CP2
 
 Checkpoint presentation: **23 October 2026, 5:30 PM IST**.
