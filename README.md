@@ -18,9 +18,12 @@ Member 3–5 assignments follow the team-table order and should be confirmed by
 the team. Preserve existing modules and use the shared Pydantic contracts for
 incident inputs, tool results, evidence and diagnoses.
 
-The current shared contracts are `incident-agent/models.py` (updated: `Evidence.service` is optional,
-`source` may be `"derived"`, and `trace_ids`/`log_ids` were added) and `incident-agent/contracts.py`
-(orchestrator, reasoning and guardrail interfaces). See `incident-agent/INTEGRATION.md` and `docs/TEAM_INTEGRATION_CONTRACT.md`.
+## Shared Contracts
+
+- **[Team integration contract](docs/TEAM_INTEGRATION_CONTRACT.md)**: who sends what to whom (updated for the revised `Evidence` model).
+- [`incident-agent/models.py`](incident-agent/models.py): shared Pydantic models. `Evidence.service` is optional, `source` may be `"derived"`, and `trace_ids`/`log_ids` were added.
+- [`incident-agent/contracts.py`](incident-agent/contracts.py): orchestrator, reasoning and guardrail interfaces.
+- [`incident-agent/INTEGRATION.md`](incident-agent/INTEGRATION.md): architecture sketch, setup and demo commands.
 
 ## Current Priority: CP0, CP1 and CP2
 
