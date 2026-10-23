@@ -1,0 +1,104 @@
+"""Interfaces between the orchestrator (Harsha) and the reasoning (Member 3) and guardrail (Member 4) modules."""
+from __future__ import annotations
+
+from typing import Any, Literal, Optional, Protocol, Union
+
+from pydantic import BaseModel, Field
+
+from models import Diagnosis, Evidence, Incident
+
+
+class ToolCall(BaseModel):
+    call_id: str  # Anthropic tool_use id, never generated locally
+    tool_name: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+
+
+class _Decision(BaseModel):
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
+class CallToolDecision(_Decision):
+    kind: Literal["call_tool"] = "call_tool"
+    calls: list[ToolCall]
+    rationale: str = ""
+
+
+class FinishDecision(_Decision):
+    kind: Literal["finish"] = "finish"
+    diagnosis: Diagnosis
+
+
+class InconclusiveDecision(_Decision):
+    kind: Literal["inconclusive"] = "inconclusive"
+    reason: str
+    relevant_evidence_ids: list[str] = Field(default_factory=list)
+
+
+class MalformedDecision(_Decision):
+    """The model request succeeded but produced nothing usable; the next request carries a repair message."""
+    kind: Literal["malformed"] = "malformed"
+    detail: str
+
+
+AgentDecision = Union[CallToolDecision, FinishDecision, InconclusiveDecision, MalformedDecision]
+
+OutcomeStatus = Literal["ok", "empty", "unavailable", "error", "rejected", "skipped"]
+
+
+class ToolOutcome(BaseModel):
+    call_id: str
+    tool_name: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    status: OutcomeStatus
+    evidence_id: Optional[str] = None
+    text: str  # content returned to the model; telemetry text is untrusted data
+    is_error: bool = False
+
+
+class ReasoningContext(BaseModel):
+    incident: Incident
+    evidence: list[Evidence]
+    pending_outcomes: list[ToolOutcome]  # results for the previous call_tool decision, same order
+    tool_specs: list[dict[str, Any]]  # OpenAI-style specs from telemetry.tool_specs()
+    allow_tools: bool
+    remaining_tool_calls: int
+    remaining_model_calls: int
+    remaining_seconds: float
+    request_timeout_s: float
+    live_only_note: str = ""
+
+
+class ModelError(RuntimeError):
+    """Model request failed (timeout, API error, bad configuration). Message must not contain secrets."""
+
+
+class ReasoningModel(Protocol):
+    def next_step(self, context: ReasoningContext) -> AgentDecision: ...
+
+
+class ToolRequest(BaseModel):
+    incident_id: str
+    tool_name: str
+    arguments: dict[str, Any]
+    window_minutes: Optional[int] = None
+    remaining_tool_calls: int
+
+
+class ToolPolicy(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+    approved_services: list[str]
+    arg_models: dict[str, Any]  # tool name -> pydantic model class
+
+
+class ToolValidation(BaseModel):
+    allowed: bool
+    tool_name: Optional[str] = None
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    reasons: list[str] = Field(default_factory=list)
+
+
+class DiagnosisValidation(BaseModel):
+    valid: bool
+    errors: list[str] = Field(default_factory=list)

@@ -60,14 +60,16 @@ class Incident(BaseModel):
 class Evidence(BaseModel):
     evidence_id: str
     status: ToolStatus
-    source: Literal["prometheus", "jaeger", "opensearch", "health"]
-    service: str
+    source: Literal["prometheus", "jaeger", "opensearch", "health", "derived"]
+    service: Optional[str] = None
     event_time_window: TimeWindow
     collection_time: datetime = Field(default_factory=utc_now)
     tool: str
     query: str
     observed_value: Any
     trace_or_log_id: Optional[str] = None
+    trace_ids: List[str] = Field(default_factory=list)
+    log_ids: List[str] = Field(default_factory=list)
     local_capture_reference: Optional[str] = None
 
 
