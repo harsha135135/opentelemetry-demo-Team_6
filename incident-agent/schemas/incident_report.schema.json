@@ -1,0 +1,654 @@
+{
+  "$defs": {
+    "ActionProposal": {
+      "properties": {
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "catalog_provenance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Catalog Provenance"
+        },
+        "expected_effect": {
+          "title": "Expected Effect",
+          "type": "string"
+        },
+        "incident_id": {
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "revision": {
+          "default": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "risk": {
+          "title": "Risk",
+          "type": "string"
+        },
+        "rollback": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rollback"
+        },
+        "runbook_id": {
+          "title": "Runbook Id",
+          "type": "string"
+        },
+        "supporting_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Evidence Ids",
+          "type": "array"
+        },
+        "target_service": {
+          "title": "Target Service",
+          "type": "string"
+        },
+        "verification_checks": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Verification Checks",
+          "type": "array"
+        },
+        "verification_plan": {
+          "title": "Verification Plan",
+          "type": "string"
+        }
+      },
+      "required": [
+        "incident_id",
+        "runbook_id",
+        "action",
+        "target_service",
+        "reason",
+        "risk",
+        "expected_effect",
+        "verification_plan"
+      ],
+      "title": "ActionProposal",
+      "type": "object"
+    },
+    "Approval": {
+      "properties": {
+        "approver": {
+          "title": "Approver",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "approved",
+            "rejected",
+            "expired"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "dispatch_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dispatch Time"
+        },
+        "expiry": {
+          "format": "date-time",
+          "title": "Expiry",
+          "type": "string"
+        },
+        "outcome": {
+          "default": "unknown",
+          "enum": [
+            "unknown",
+            "success",
+            "failed",
+            "escalated"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "proposal_digest": {
+          "title": "Proposal Digest",
+          "type": "string"
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Id"
+        },
+        "response": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Response"
+        },
+        "single_use_consumed": {
+          "default": false,
+          "title": "Single Use Consumed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "proposal_digest",
+        "decision",
+        "approver",
+        "expiry"
+      ],
+      "title": "Approval",
+      "type": "object"
+    },
+    "ConfidenceLabel": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "ConfidenceLabel",
+      "type": "string"
+    },
+    "Diagnosis": {
+      "properties": {
+        "alternatives": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Alternatives",
+          "type": "array"
+        },
+        "confidence_label": {
+          "$ref": "#/$defs/ConfidenceLabel"
+        },
+        "conflicting_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Conflicting Evidence Ids",
+          "type": "array"
+        },
+        "next_step": {
+          "title": "Next Step",
+          "type": "string"
+        },
+        "supporting_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Evidence Ids",
+          "type": "array"
+        },
+        "suspected_cause": {
+          "title": "Suspected Cause",
+          "type": "string"
+        },
+        "suspected_component": {
+          "title": "Suspected Component",
+          "type": "string"
+        },
+        "uncertainty": {
+          "title": "Uncertainty",
+          "type": "string"
+        }
+      },
+      "required": [
+        "suspected_component",
+        "suspected_cause",
+        "uncertainty",
+        "confidence_label",
+        "next_step"
+      ],
+      "title": "Diagnosis",
+      "type": "object"
+    },
+    "Evidence": {
+      "properties": {
+        "collection_time": {
+          "format": "date-time",
+          "title": "Collection Time",
+          "type": "string"
+        },
+        "event_time_window": {
+          "$ref": "#/$defs/TimeWindow"
+        },
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "local_capture_reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Local Capture Reference"
+        },
+        "log_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Log Ids",
+          "type": "array"
+        },
+        "observed_value": {
+          "title": "Observed Value"
+        },
+        "query": {
+          "title": "Query",
+          "type": "string"
+        },
+        "service": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service"
+        },
+        "source": {
+          "enum": [
+            "prometheus",
+            "jaeger",
+            "opensearch",
+            "health",
+            "derived"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ToolStatus"
+        },
+        "tool": {
+          "title": "Tool",
+          "type": "string"
+        },
+        "trace_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Trace Ids",
+          "type": "array"
+        },
+        "trace_or_log_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trace Or Log Id"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "status",
+        "source",
+        "event_time_window",
+        "tool",
+        "query",
+        "observed_value"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Incident": {
+      "properties": {
+        "affected_service": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Affected Service"
+        },
+        "detection_time": {
+          "format": "date-time",
+          "title": "Detection Time",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "observation_window": {
+          "$ref": "#/$defs/TimeWindow"
+        },
+        "recovery_condition": {
+          "title": "Recovery Condition",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "symptom": {
+          "title": "Symptom",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "symptom",
+        "observation_window",
+        "recovery_condition"
+      ],
+      "title": "Incident",
+      "type": "object"
+    },
+    "IncidentStatus": {
+      "enum": [
+        "RECEIVED",
+        "INVESTIGATING",
+        "DIAGNOSED",
+        "ACTION_PROPOSED",
+        "AWAITING_APPROVAL",
+        "APPROVED",
+        "EXECUTING",
+        "VERIFYING",
+        "RECOVERED",
+        "INCONCLUSIVE",
+        "REJECTED",
+        "ESCALATED"
+      ],
+      "title": "IncidentStatus",
+      "type": "string"
+    },
+    "TimeWindow": {
+      "properties": {
+        "end_time": {
+          "format": "date-time",
+          "title": "End Time",
+          "type": "string"
+        },
+        "start_time": {
+          "format": "date-time",
+          "title": "Start Time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_time",
+        "end_time"
+      ],
+      "title": "TimeWindow",
+      "type": "object"
+    },
+    "TimelineEvent": {
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        },
+        "status": {
+          "$ref": "#/$defs/IncidentStatus"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "description"
+      ],
+      "title": "TimelineEvent",
+      "type": "object"
+    },
+    "ToolStatus": {
+      "enum": [
+        "ok",
+        "empty",
+        "unavailable",
+        "error"
+      ],
+      "title": "ToolStatus",
+      "type": "string"
+    },
+    "Verification": {
+      "properties": {
+        "baseline_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Baseline Evidence Ids",
+          "type": "array"
+        },
+        "details": {
+          "title": "Details",
+          "type": "string"
+        },
+        "incident_id": {
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "post_action_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Post Action Evidence Ids",
+          "type": "array"
+        },
+        "result": {
+          "$ref": "#/$defs/VerificationResult"
+        },
+        "verification_time": {
+          "format": "date-time",
+          "title": "Verification Time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "incident_id",
+        "result",
+        "details"
+      ],
+      "title": "Verification",
+      "type": "object"
+    },
+    "VerificationResult": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "VerificationResult",
+      "type": "string"
+    }
+  },
+  "$id": "https://incident-zero.team6.local/schemas/incident_report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Approval"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "diagnosis": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Diagnosis"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "escalation_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Escalation Reason"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/Evidence"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "execution_mode": {
+      "anyOf": [
+        {
+          "enum": [
+            "dry_run",
+            "live"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Execution Mode"
+    },
+    "incident": {
+      "$ref": "#/$defs/Incident"
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "proposals": {
+      "items": {
+        "$ref": "#/$defs/ActionProposal"
+      },
+      "title": "Proposals",
+      "type": "array"
+    },
+    "remediation_outcome": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Remediation Outcome"
+    },
+    "schema_version": {
+      "default": "team6.incident-report/1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/IncidentStatus"
+    },
+    "timeline": {
+      "items": {
+        "$ref": "#/$defs/TimelineEvent"
+      },
+      "title": "Timeline",
+      "type": "array"
+    },
+    "verification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Verification"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "incident_id",
+    "status",
+    "incident"
+  ],
+  "title": "Team 6 Incident Report (team-defined, team6.incident-report/1.0)",
+  "type": "object"
+}

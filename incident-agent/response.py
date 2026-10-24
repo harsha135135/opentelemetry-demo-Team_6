@@ -9,16 +9,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Literal, Optional
 
-from pydantic import BaseModel
+import httpx
+from pydantic import BaseModel, ValidationError
 
+from action_api_models import ActionPayload, VerificationReport, printable
 from actions import ActionClient, Catalog
 from contracts import ModelError
 from integration import EvidenceConflict, EvidenceRegistry
 from models import ConfidenceLabel, Incident, IncidentReport, IncidentStatus, TimelineEvent, Verification, VerificationResult
 from remediation import Planner, PlannerOutputError
+from action_api_client import ActionApiError
 from safety import (
     AuditJournal, DispatchLock, Escalation, KillSwitch, PlannedAction, VerificationCheck, evaluate, proposal_digest,
-    request_approval,
+    request_approval, request_server_approval,
 )
 import verify
 
@@ -134,6 +137,9 @@ def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> 
 
         # ---- baseline before approval
         baseline, base_traffic, base_ids = verify.collect(checks, deps.run_tool, register, cfg.window_minutes)
+        observed_services = sorted({s for s in (proposal.target_service, incident.affected_service) if s and s in deps.inventory})
+        obs_before, obs_ids = verify.observe(observed_services, deps.run_tool, register, cfg.window_minutes)
+        base_ids += obs_ids
         symptoms = {c.service + "." + c.metric: verify.symptomatic(c, baseline.get((c.service, c.metric))) for c in checks}
         log(IncidentStatus.ACTION_PROPOSED, "Baseline captured", baseline={f"{k[0]}.{k[1]}": v for k, v in baseline.items()},
             evidence=base_ids, symptomatic=symptoms)
@@ -146,17 +152,49 @@ def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> 
             deps.journal.append("blocked_kill_switch", incident_id=incident.id, action=op.name)
             return finish(IncidentStatus.ESCALATED, "ESCALATED", "Kill switch is active: state-changing actions are blocked.")
         digest = proposal_digest(proposal, deps.catalog)
+        summary = _summary(report, proposal, decision.request_preview, deps, cfg, baseline)
+        server = cfg.mode == "live" and getattr(deps.client, "supports_server_approval", False)
+        payload = _payload(proposal, digest, incident.id) if getattr(deps.client, "supports_server_approval", False) else None
+        ticket, server_code = None, None
         log(IncidentStatus.AWAITING_APPROVAL, f"Awaiting human approval (digest {digest[:16]})")
-        approval = request_approval(_summary(report, proposal, decision.request_preview, deps, cfg, baseline),
-                                    digest, approver=deps.approver, ttl_s=cfg.approval_ttl_s, input_fn=deps.input_fn,
-                                    interactive=deps.interactive, print_fn=deps.print_fn, clock=deps.clock)
+        if server:
+            try:
+                ticket = deps.client.open_approval(payload, deps.approver, cfg.approval_ttl_s)
+            except (ActionApiError, httpx.HTTPError) as exc:
+                deps.journal.append("approval_request_failed", incident_id=incident.id, error=str(exc)[:300])
+                return finish(IncidentStatus.ESCALATED, "ESCALATED", f"Action API unavailable or refused the approval request: {exc}")
+            deps.journal.append("approval_opened", incident_id=incident.id, digest=digest, approval_id=ticket.approval_id,
+                                payload_digest=ticket.payload_digest)
+            log(IncidentStatus.AWAITING_APPROVAL, f"Action API approval {ticket.approval_id} opened; code shown only on the Action API console",
+                payload_digest=ticket.payload_digest, expires_at=ticket.expires_at.isoformat())
+            approval, server_code = request_server_approval(summary, digest, ticket.approval_id, approver=deps.approver,
+                                                            ttl_s=cfg.approval_ttl_s, input_fn=deps.input_fn,
+                                                            interactive=deps.interactive, print_fn=deps.print_fn, clock=deps.clock)
+        else:
+            approval = request_approval(summary, digest, approver=deps.approver, ttl_s=cfg.approval_ttl_s, input_fn=deps.input_fn,
+                                        interactive=deps.interactive, print_fn=deps.print_fn, clock=deps.clock)
         upd["approval"] = approval
-        deps.journal.append("approval", incident_id=incident.id, digest=digest, decision=approval.decision, approver=approval.approver)
+        deps.journal.append("approval", incident_id=incident.id, digest=digest, decision=approval.decision, approver=approval.approver,
+                            approval_id=ticket.approval_id if ticket else None)
         if approval.decision != "approved":
+            if ticket is not None:
+                try:
+                    deps.client.reject_approval(ticket.approval_id, approval.approver, f"agent prompt: {approval.decision}")
+                except (ActionApiError, httpx.HTTPError):
+                    limitations.append("Could not record the rejection on the Action API; the approval expires on its own.")
             return finish(IncidentStatus.REJECTED, "ESCALATED", f"Human approval {approval.decision}: no action executed.")
         log(IncidentStatus.APPROVED, f"Approved by {approval.approver}")
 
         if cfg.mode == "dry_run":
+            if payload is not None:
+                try:
+                    v = deps.client.validate(payload)
+                    log(IncidentStatus.APPROVED, f"Action API dry-run validation: {'accepted' if v.get('valid') else 'refused'}",
+                        payload_digest=v.get("payload_digest"), errors=v.get("errors"))
+                    if not v.get("valid"):
+                        limitations.append(f"Action API would refuse this action: {v.get('errors')}")
+                except (ActionApiError, httpx.HTTPError) as exc:
+                    limitations.append(f"Action API validation unavailable during dry-run: {exc}")
             deps.journal.append("dry_run_would_dispatch", incident_id=incident.id, digest=digest, request=decision.request_preview)
             limitations.append("Dry-run: the approved request was not sent; no system state was changed and recovery was not tested.")
             return finish(IncidentStatus.ACTION_PROPOSED, "DRY_RUN")
@@ -194,8 +232,11 @@ def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> 
                                     request=decision.request_preview)
                 log(IncidentStatus.EXECUTING, f"Dispatching {op.name} on {proposal.target_service}")
                 dispatched_at = deps.clock()
-                result = deps.client.execute(op, None if op.target_kind == "none" else proposal.target_service,
-                                             proposal.parameters, key)
+                if server:
+                    result = deps.client.execute_approved(payload, ticket.approval_id, server_code, key)
+                else:
+                    result = deps.client.execute(op, None if op.target_kind == "none" else proposal.target_service,
+                                                 proposal.parameters, key)
         except FileExistsError:
             return finish(IncidentStatus.ESCALATED, "ESCALATED",
                           f"Dispatch lock {deps.lock_path} exists (another dispatch or a crash); remove it manually after checking.")
@@ -205,8 +246,12 @@ def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> 
                                                "outcome": {"success": "success", "failed": "failed"}.get(result.outcome, "unknown")})
         upd["approval"] = approval
         log(IncidentStatus.EXECUTING, f"Action API result: {result.outcome} {result.http_status or ''} {result.detail}".strip())
+        if result.refused:
+            return finish(IncidentStatus.ESCALATED, "ESCALATED", f"Action not executed: {result.detail}. Not retried.")
         if result.outcome == "failed":
             return finish(IncidentStatus.ESCALATED, "ACTION_FAILED", f"Action API call failed: {result.detail}. Not retried.")
+        if result.simulated:
+            limitations.append("SIMULATED execution: the Action API changed nothing; verification can only show coincidental change.")
         if result.outcome == "unknown":
             limitations.append(f"Action outcome unknown ({result.detail}); not retried. Verifying from telemetry only.")
 
@@ -220,10 +265,23 @@ def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> 
             vals, tr, ids = verify.collect(checks, deps.run_tool, register, cfg.window_minutes)
             samples.append(vals); traffic.append(tr); post_ids += ids
         result_v = verify.judge(checks, baseline, samples, traffic, cfg.min_request_rate, op.reduces_load)
+        obs_after, obs_ids = verify.observe(observed_services, deps.run_tool, register, cfg.window_minutes)
+        post_ids += obs_ids
+        outcome, details = result_v.outcome, result_v.details
+        if result.simulated and outcome in ("VERIFIED_RECOVERY", "PARTIAL_RECOVERY"):
+            details += f"; judged {outcome} but the action was simulated, so recovery cannot be attributed to it"
+            outcome = "UNVERIFIED"
+        details = "; ".join(x for x in (details, verify.describe_observations(obs_before, obs_after)) if x)
         upd["verification"] = Verification(incident_id=incident.id, baseline_evidence_ids=base_ids,
-                                           post_action_evidence_ids=post_ids, result=VERIFICATION_RESULT[result_v.outcome],
-                                           details=result_v.details)
-        outcome = result_v.outcome
+                                           post_action_evidence_ids=post_ids, result=VERIFICATION_RESULT[outcome],
+                                           details=details)
+        if server and result.request_id:
+            try:
+                deps.client.record_verification(result.request_id, VerificationReport(
+                    outcome=outcome, details=details[:6000], baseline_evidence_ids=base_ids[:100],
+                    post_action_evidence_ids=post_ids[:100], recorded_by="incident-agent"))
+            except (ActionApiError, httpx.HTTPError, ValidationError) as exc:
+                limitations.append(f"Verification not recorded on the Action API: {exc}")
         if result.outcome == "unknown" and outcome == "VERIFIED_RECOVERY":
             limitations.append("Recovery observed although the Action API outcome is unknown; the cause of recovery is uncertain.")
         reason = None if outcome == "VERIFIED_RECOVERY" else f"Recovery not verified ({outcome}); escalating with evidence. No further action taken."
@@ -236,27 +294,36 @@ def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> 
                       "Cancelled by operator" + (" after dispatch; recovery not verified." if dispatched else "; no action was sent."))
 
 
+def _payload(proposal, digest: str, incident_id: str) -> ActionPayload:
+    return ActionPayload(incident_id=incident_id, operation=proposal.action, target=proposal.target_service,
+                         arguments=proposal.parameters, evidence_ids=proposal.supporting_evidence_ids[:20],
+                         reason=proposal.reason[:1500], proposal_digest=digest)
+
+
 def _summary(report: IncidentReport, proposal, request: dict, deps: ResponseDeps, cfg: ResponseConfig, baseline: dict) -> str:
+    """Approval screen. Model- and telemetry-derived text is escaped (no terminal control sequences) and printed
+    first; the authoritative action block comes last so nothing printed earlier can redraw it."""
+    P = printable
     d = report.diagnosis
     reg = {e.evidence_id: e for e in deps.registry.all()}
-    ev_lines = []
-    for eid in proposal.supporting_evidence_ids:
-        e = reg.get(eid)
-        if e:
-            ev_lines.append(f"  - {eid} [{e.tool}/{e.service or '-'}] {str(e.observed_value)[:160]}")
+    ev_lines = [f"  - {eid} [{e.tool}/{e.service or '-'}] {P(e.observed_value, 160)}"
+                for eid in proposal.supporting_evidence_ids if (e := reg.get(eid))]
     base = "\n".join(f"  - {s}.{m}: {v}" for (s, m), v in baseline.items())
     mode = "DRY RUN (nothing will be sent)" if cfg.mode == "dry_run" else "LIVE (the request below WILL be sent)"
+    api = "team-defined, not an organiser contract" if proposal.catalog_provenance == "team" else "see catalog"
     return "\n".join([
         "=" * 78, f"APPROVAL REQUEST - incident {report.incident_id} - mode: {mode}", "=" * 78,
-        f"Incident: {report.incident.symptom}",
-        f"Diagnosis: {d.suspected_component}: {d.suspected_cause} (confidence label {d.confidence_label.value}, not calibrated)",
-        f"Uncertainty: {d.uncertainty}",
+        f"Incident: {P(report.incident.symptom)}",
+        f"Diagnosis (model, untrusted text): {P(d.suspected_component, 200)}: {P(d.suspected_cause, 600)} "
+        f"(confidence label {d.confidence_label.value}, not calibrated)",
+        f"Uncertainty: {P(d.uncertainty, 600)}",
         "Supporting evidence:", *ev_lines,
-        f"Proposed operation: {proposal.action}  target: {proposal.target_service}  arguments: {proposal.parameters}",
-        f"Request: {request['method']} {request['url']}  body: {request['json']}",
-        f"Catalog provenance: {proposal.catalog_provenance}",
-        f"Reason: {proposal.reason}", f"Expected effect: {proposal.expected_effect}",
-        f"Risks: {proposal.risk}", f"Rollback: {proposal.rollback or 'none documented'}",
-        f"Verification: {proposal.verification_plan}", "Baseline:", base or "  (none)",
+        f"Reason: {P(proposal.reason)}", f"Expected effect: {P(proposal.expected_effect)}",
+        f"Risks: {P(proposal.risk)}", f"Rollback: {P(proposal.rollback or 'none documented')}",
+        f"Verification: {P(proposal.verification_plan)}", "Baseline:", base or "  (none)",
         "Limitations: API success is not recovery; the outcome is verified from fresh telemetry. One action per incident.",
+        "---- exact action (authoritative) ----",
+        f"OPERATION: {proposal.action}", f"TARGET:    {proposal.target_service}", f"ARGUMENTS: {proposal.parameters!r}",
+        f"REQUEST:   {request['method']} {request['url']}  body: {request['json']!r}",
+        f"ACTION API: {proposal.catalog_provenance} ({api})",
     ])

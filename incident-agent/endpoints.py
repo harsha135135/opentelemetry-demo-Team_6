@@ -87,6 +87,16 @@ def check(timeout: float = 5.0) -> list[dict[str, Any]]:
 def action_api_status(catalog_path: Optional[str]) -> dict[str, str]:
     from actions import CatalogError, load_catalog
 
+    url = _url("ACTION_API_URL")
+    if url and os.getenv("ACTION_API_TOKEN") and not catalog_path:
+        try:
+            h = httpx.get(f"{url}/health", timeout=3).json()
+            return {"backend": "action-api", "env": "ACTION_API_URL", "url": url,
+                    "status": f"team API {h.get('api_version')} executor={h.get('executor')} "
+                              f"kill_switch={'ON' if h.get('kill_switch_active') else 'off'}"}
+        except (httpx.HTTPError, ValueError):
+            return {"backend": "action-api", "env": "ACTION_API_URL", "url": url,
+                    "status": "team API UNREACHABLE (python cli.py action-api serve)"}
     if not catalog_path:
         return {"backend": "action-api", "status": "NOT CONFIGURED (no ACTION_API_CATALOG; remediation escalates)"}
     try:
@@ -99,17 +109,33 @@ def action_api_status(catalog_path: Optional[str]) -> dict[str, str]:
                       + ("live dispatch possible after approval" if live else "dry-run only")}
 
 
+def promql_of(ev: Any) -> list[tuple[str, str]]:
+    """(name, PromQL) pairs that reproduce a Prometheus evidence item, whatever format its tool stored the query in."""
+    if not ev.query:
+        return []
+    if ev.tool == "service_health" and ev.service:  # stores template names; rebuild them for the service and window
+        from telemetry import METRIC_TEMPLATES
+
+        w = max(2, round((ev.event_time_window.end_time - ev.event_time_window.start_time).total_seconds() / 60))
+        return [(m, METRIC_TEMPLATES[m][0].replace("{s}", ev.service).replace("{w}", str(w)))
+                for m in ev.query.split(", ") if m in METRIC_TEMPLATES]
+    if ev.source != "prometheus":
+        return []
+    try:  # overview stores a JSON object of named queries
+        return [(str(k), str(v)) for k, v in json.loads(ev.query).items()]
+    except (ValueError, AttributeError):
+        pass
+    if "; " in ev.query and ": " in ev.query:  # resource_overview stores "name: promql; name: promql"
+        return [(name, expr) for name, expr in (part.split(": ", 1) for part in ev.query.split("; ") if ": " in part)]
+    value = ev.observed_value.get("value") if isinstance(ev.observed_value, dict) else None
+    return [(str((value or {}).get("metric") or ev.tool) if isinstance(value, dict) else ev.tool, ev.query)]
+
+
 def evidence_links(ev: Any, limit: int = 3) -> list[str]:
     """Browser URLs that reproduce one evidence item (Prometheus query page, Jaeger traces or search)."""
     links: list[str] = []
     if ev.source == "prometheus" and _url("PROM_URL") and ev.query:
-        try:  # overview stores a JSON object of named queries
-            exprs = [str(v) for v in json.loads(ev.query).values()]
-        except (ValueError, AttributeError):
-            exprs = [ev.query]
-            if "; " in ev.query and ": " in ev.query:  # resource_overview stores "name: promql; name: promql"
-                exprs = [part.split(": ", 1)[1] for part in ev.query.split("; ") if ": " in part]
-        for expr in exprs[:limit]:
+        for _, expr in promql_of(ev)[:limit]:
             links.append(f"{_url('PROM_URL')}/query?" + urlencode({"g0.expr": expr, "g0.tab": "table"}))
     elif ev.source == "jaeger" and _url("JAEGER_URL"):
         ids = list(ev.trace_ids)[:limit]

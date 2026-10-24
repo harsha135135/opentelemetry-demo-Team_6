@@ -85,7 +85,7 @@ class ToolResult(BaseModel):
     status: ToolStatus
     evidence_id: str
     tool: str
-    source: Literal["prometheus", "jaeger", "opensearch", "derived"]
+    source: Literal["prometheus", "jaeger", "opensearch", "derived", "health"]
     service: str | None = None
     query: str
     window_start: datetime

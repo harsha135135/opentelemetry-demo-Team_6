@@ -1,17 +1,22 @@
-# Action API contract status and catalog format
+# Action API
 
-**The organiser's Action API contract has not been supplied.** None of the local repository, the team branches
-(`origin/feature/{deepika,neha,harshita,harsha}`, `origin/adi`, `main`), the compose files, the env files or the
-running containers contain an endpoint, schema or auth scheme. The example in
-`docs/TEAM_INTEGRATION_CONTRACT.md` (`restart`, `replicas`, `grace_period_seconds`) is a team placeholder.
+There are two ways the agent can execute an approved remediation:
 
-Until the contract arrives:
+1. **Team Action API (implemented, recommended for the demo).** This is our own minimal, secure API:
+   - `action_server.py`, `action_executor.py`, `action_api_client.py`
+   - contract: `docs/action_api.openapi.json` and `schemas/action_api/`
+   - design: [docs/ACTION_API_ARCHITECTURE.md](docs/ACTION_API_ARCHITECTURE.md)
+   - demo: [docs/END_TO_END_DEMO.md](docs/END_TO_END_DEMO.md)
 
-- With no catalog configured, `--respond` always escalates: "Action API contract unavailable".
-- `tests/fixtures/mock_action_catalog.json` (`"provenance": "mock"`) is used by the tests and can drive dry-run
-  demonstrations. `HttpActionClient` refuses it for live dispatch.
+   Use it with `python cli.py action-api serve` and `investigate ... --respond --action-api [--execute]`. **It is
+   team-defined, not an organiser contract**, and makes no claim to satisfy an organiser-specific requirement.
+2. **Organiser Action API (catalog adapter, waiting for a contract).** No organiser contract has been supplied. None
+   of the local repository, the team branches, the compose files, the env files or the running containers contain an
+   endpoint, schema or auth scheme. If one is supplied, describe it in a catalog file (format below) and use
+   `--action-catalog <file> --execute`. `tests/fixtures/mock_action_catalog.json` (`"provenance": "mock"`) is for
+   tests only, and `HttpActionClient` refuses it for live dispatch.
 
-## Questions for mentors
+## Questions for mentors (still open for an official API)
 
 1. Base URL, and whether it is reachable from the host or only inside the Compose network.
 2. Authentication scheme (header and token source).

@@ -118,7 +118,9 @@ class ReportGenerator:
                 lines.append(f"- **Expected Effect**: {p.expected_effect}")
                 lines.append(f"- **Verification Plan**: {p.verification_plan}")
                 lines.append(f"- **Supporting Evidence**: {', '.join(f'`{e}`' for e in p.supporting_evidence_ids) or 'None'}")
-                lines.append(f"- **Rollback**: {p.rollback or 'none documented'} | Catalog provenance: `{p.catalog_provenance or '-'}`")
+                label = {"team": "team-defined Action API (not an organiser contract)", "mock": "MOCK catalog (tests/dry-run only)",
+                         "organiser": "organiser-supplied contract"}.get(p.catalog_provenance or "", "-")
+                lines.append(f"- **Rollback**: {p.rollback or 'none documented'} | Action API: {label}")
         else:
             lines.append("No remediation actions proposed.")
 

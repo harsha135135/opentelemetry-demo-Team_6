@@ -1,0 +1,54 @@
+{
+  "$id": "https://incident-zero.team6.local/schemas/action_api/VerificationReport.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "baseline_evidence_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Baseline Evidence Ids",
+      "type": "array"
+    },
+    "details": {
+      "maxLength": 6000,
+      "title": "Details",
+      "type": "string"
+    },
+    "outcome": {
+      "enum": [
+        "VERIFIED_RECOVERY",
+        "PARTIAL_RECOVERY",
+        "NOT_RECOVERED",
+        "UNVERIFIED",
+        "ACTION_FAILED",
+        "ESCALATED",
+        "DRY_RUN"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "post_action_evidence_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Post Action Evidence Ids",
+      "type": "array"
+    },
+    "recorded_by": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Recorded By",
+      "type": "string"
+    }
+  },
+  "required": [
+    "outcome",
+    "details",
+    "recorded_by"
+  ],
+  "title": "VerificationReport",
+  "type": "object"
+}

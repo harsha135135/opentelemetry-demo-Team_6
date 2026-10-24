@@ -52,6 +52,11 @@ respond() --print_fn(summary)--> WebApprovalChannel  (stores pending request, st
           <-- "approve 1a2b3c4d" | "reject" | ""  -> safety.request_approval decides exactly as today
 ```
 
+> **Integration note (team Action API):** in live mode with `--action-api`, the flow calls
+> `safety.request_server_approval`. That function uses the same `input_fn`, `print_fn` and `interactive` hooks, but
+> the code to type is the one printed on the **Action API console**, and the server verifies it. The web page must
+> ask the human for that code. It must never fetch or display the code itself.
+
 Because the channel returns the **same answer string** the terminal would, `safety.request_approval` keeps doing all
 the validation. The UI cannot approve anything the digest code does not match.
 

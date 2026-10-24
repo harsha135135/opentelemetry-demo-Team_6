@@ -192,8 +192,10 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
     limitations.append("Confidence labels are model-reported and not calibrated; no evaluation was run.")
     limitations.append("Telemetry tools are live-only; queried windows are recorded per evidence item.")
     evidence = deps.registry.all()
-    outside = [e.evidence_id for e in evidence if e.event_time_window.end_time < incident.observation_window.start_time
-               or e.event_time_window.start_time > incident.observation_window.end_time]
+    # Point-in-time snapshots (container_state) have a zero-length window at collection time; they are not "outside".
+    outside = [e.evidence_id for e in evidence if e.event_time_window.start_time != e.event_time_window.end_time
+               and (e.event_time_window.end_time < incident.observation_window.start_time
+                    or e.event_time_window.start_time > incident.observation_window.end_time)]
     if outside:
         limitations.append(f"{len(outside)} evidence item(s) were queried outside the incident observation window: {', '.join(outside)}")
     stats.update(elapsed_s=round(elapsed, 2), terminal_reason=terminal_reason, evidence_count=len(evidence),
@@ -222,7 +224,7 @@ def _specs(deps: Dependencies) -> list[dict]:
     return [s for s in all_tool_specs() if s["function"]["name"] in allowed]
 
 
-FOLLOW_UP_TOOLS = {"service_health", "query_metrics", "search_traces", "query_logs"}
+FOLLOW_UP_TOOLS = {"service_health", "query_metrics", "search_traces", "query_logs", "container_state"}
 
 
 def anomaly_follow_up(registry: EvidenceRegistry, diagnosis) -> tuple[list[str], list[str]]:

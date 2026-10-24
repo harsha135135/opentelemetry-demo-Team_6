@@ -58,3 +58,5 @@ src/frontend/cypress/screenshots
 src/shipping/target/
 
 !src/currency/build
+
+incident-reports/*

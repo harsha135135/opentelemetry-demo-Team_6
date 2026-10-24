@@ -58,24 +58,38 @@ def all_tool_specs() -> list[dict]:
     import resources
     import telemetry
 
+    import state_tool
+
     extra = {"type": "function", "function": {"name": "resource_overview", "description": resources.DESCRIPTION,
                                               "parameters": resources.ResourceArgs.model_json_schema()}}
-    return telemetry.tool_specs() + [extra]
+    state = {"type": "function", "function": {"name": "container_state", "description": state_tool.DESCRIPTION,
+                                              "parameters": state_tool.StateArgs.model_json_schema()}}
+    return telemetry.tool_specs() + [extra, state]  # container_state is offered only when registered in the policy
 
 
-def make_telemetry_runner(evidence_dir: Path) -> tuple[Callable[[str, dict | None], Any], ToolPolicy, Any]:
-    """Point Neha's module at a per-run evidence directory; return (run_tool, policy, telemetry module)."""
+def make_telemetry_runner(evidence_dir: Path, state_client: Any = None) -> tuple[Callable[[str, dict | None], Any], ToolPolicy, Any]:
+    """Point Neha's module at a per-run evidence directory; return (run_tool, policy, telemetry module).
+    With a team Action API client, the read-only container_state tool is registered as well."""
     import telemetry
 
     import resources
+    import state_tool
 
     telemetry.EVIDENCE_DIR = Path(evidence_dir).resolve()
     inventory = [s for s in telemetry.service_inventory(refresh=True) if s not in telemetry.EXCLUDED_SERVICES]
     arg_models = {name: spec[1] for name, spec in telemetry.TOOLS.items()}
     arg_models["resource_overview"] = resources.ResourceArgs
+    state_fn = None
+    if state_client is not None:
+        arg_models["container_state"] = state_tool.StateArgs
+        state_fn = state_tool.make_state_tool(state_client)
     policy = ToolPolicy(approved_services=inventory, arg_models=arg_models)
 
     def run_tool(name: str, arguments: dict | None):
+        if name == "container_state":
+            if state_fn is None:
+                raise telemetry.TelemetryInputError("container_state is not available (no Action API configured)")
+            return state_fn(**state_tool.StateArgs.model_validate(arguments or {}).model_dump())
         if name == "resource_overview":
             return resources.resource_overview(**resources.ResourceArgs.model_validate(arguments or {}).model_dump())
         return telemetry.run_tool(name, arguments)

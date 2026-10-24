@@ -17,6 +17,7 @@ from typing import Any, Callable, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from action_api_models import SafeText, printable
 from actions import Catalog, Operation, build_request, validate_arguments
 from models import ActionProposal, Approval, ConfidenceLabel, Diagnosis, Evidence, ToolStatus
 
@@ -27,7 +28,8 @@ VERIFICATION_METRICS: dict[str, tuple[str, Optional[float], float, float]] = {
     "error_rate": ("max", 0.05, 0.0, 0.5),
     "p95_latency_ms": ("max", None, 1.0, 60000.0),
     "request_rate": ("min", None, 0.0, 10000.0),
-    "container_last_seen_age_s": ("max", 150.0, 30.0, 600.0),
+    # docker_stats samples arrive every ~10-35 s for a healthy container (measured live), so tighter bounds would fail recoveries
+    "container_last_seen_age_s": ("max", 150.0, 90.0, 600.0),
     "container_cpu": ("max", None, 0.0, 10000.0),
     "container_memory": ("max", None, 0.0, 1e12),
 }
@@ -49,17 +51,17 @@ class PlannedAction(BaseModel):
     target: Optional[str] = None
     arguments: dict[str, Any] = Field(default_factory=dict)
     supporting_evidence_ids: list[str]
-    reason: str = Field(min_length=10, max_length=1500)
-    expected_effect: str = Field(min_length=5, max_length=800)
-    risks: str = Field(min_length=5, max_length=800)
-    rollback: Optional[str] = Field(None, max_length=500)
+    reason: SafeText = Field(min_length=10, max_length=1500)
+    expected_effect: SafeText = Field(min_length=5, max_length=800)
+    risks: SafeText = Field(min_length=5, max_length=800)
+    rollback: Optional[SafeText] = Field(None, max_length=500)
     verification_checks: list[VerificationCheck] = Field(default_factory=list, max_length=MAX_CHECKS)
 
 
 class Escalation(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    reason: str = Field(min_length=5, max_length=1500)
-    recommended_human_steps: list[str] = Field(default_factory=list, max_length=8)
+    reason: SafeText = Field(min_length=5, max_length=1500)
+    recommended_human_steps: list[SafeText] = Field(default_factory=list, max_length=8)
     supporting_evidence_ids: list[str] = Field(default_factory=list)
 
 
@@ -260,3 +262,30 @@ def request_approval(summary: str, digest: str, *, approver: str, ttl_s: float, 
         return Approval(proposal_digest=digest, decision="expired", approver=approver, expiry=expiry)
     decision = "approved" if answer == f"approve {code}" else "rejected"
     return Approval(proposal_digest=digest, decision=decision, approver=approver, expiry=expiry)
+
+
+_SERVER_ANSWER = re.compile(r"^approve\s+([A-Za-z2-9]{4}-?[A-Za-z2-9]{4})$")
+
+
+def request_server_approval(summary: str, digest: str, approval_id: str, *, approver: str, ttl_s: float,
+                            input_fn: Callable[[str], str], interactive: bool, print_fn: Callable[[str], None] = print,
+                            clock: Callable[[], float] = time.monotonic) -> tuple[Approval, Optional[str]]:
+    """Approval for the team Action API. The one-time code exists only on the Action API console; the agent cannot know
+    it, so it cannot approve on its own. The server verifies the code against the exact payload at execution time."""
+    expiry = datetime.now(timezone.utc) + timedelta(seconds=ttl_s)
+    if not interactive:
+        return Approval(proposal_digest=digest, decision="rejected", approver="none (non-interactive session)", expiry=expiry), None
+    print_fn(summary)
+    print_fn(f"\nThe Action API printed a one-time approval code for {approval_id} on ITS console.\n"
+             f"To APPROVE this exact action type:  approve <CODE>\nAnything else rejects. Expires in {ttl_s:.0f}s.")
+    started = clock()
+    try:
+        answer = input_fn("> ").strip()
+    except (EOFError, KeyboardInterrupt):
+        answer = ""
+    if clock() - started > ttl_s:
+        return Approval(proposal_digest=digest, decision="expired", approver=approver, expiry=expiry), None
+    m = _SERVER_ANSWER.match(answer)
+    if not m:
+        return Approval(proposal_digest=digest, decision="rejected", approver=approver, expiry=expiry), None
+    return Approval(proposal_digest=digest, decision="approved", approver=approver, expiry=expiry), m.group(1).upper()
