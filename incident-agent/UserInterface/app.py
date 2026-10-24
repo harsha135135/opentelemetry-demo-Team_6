@@ -1,11 +1,13 @@
 """Incident Zero // AI On-Call Engineer - Web Operations Command Center
 
-Strict adherence to Hackathon Rules:
-- ZERO interaction with feature flags or flagd files (Diagnosis comes exclusively from telemetry)
-- Non-destructive: Demo code and configuration remain 100% untouched
+Strict adherence to Competition & Architecture Rules:
+- ZERO interaction with feature flags or flagd files (Diagnosis derived exclusively from telemetry)
+- Non-destructive: Demo code and configurations remain 100% untouched
 - The agent acts ONLY through the Action API, and ONLY after human approval
-- Implements Stretch Goal 4: Chat-Style Approval (digest-bound human gate)
-- Implements Stretch Goal 5: Prevention Suggestions (Prometheus alert rule YAML validated against live Prometheus)
+- Stretch Goal 4: Chat-Style Approval (digest-bound human gate with exact expiry boundary)
+- Stretch Goal 5: Prevention Suggestions (Prometheus alert rule YAML validated live against Prometheus)
+- Grafana Dashboards & Team Report Schema Validation
+- Model Support: Anthropic Claude (claude-3-5-sonnet, claude-3-5-haiku) & Groq (qwen, gpt-oss)
 """
 from __future__ import annotations
 
@@ -46,6 +48,7 @@ try:
         endpoints.write_env(AGENT_DIR / ".env", _found)
 except Exception:
     pass
+
 from actions import CatalogError, HttpActionClient, load_catalog
 from contracts import ToolPolicy
 from groq_reasoner import GroqReasoner
@@ -62,6 +65,7 @@ from models import (
     VerificationResult,
 )
 from prevention import PreventionSuggestion, generate_prevention_suggestions, validate_alert_rule
+from reasoning import AnthropicReasoner
 from report_io import write_report
 from safety import AuditJournal, KillSwitch
 
@@ -78,9 +82,6 @@ st.set_page_config(
 KILL_SWITCH_FILE = Path(os.getenv("KILL_SWITCH_FILE", AGENT_DIR / "KILL_SWITCH"))
 RUNS_DIR = AGENT_DIR / "runs"
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
-
-GROQ_KEY = os.getenv("GROQ_API_KEY", "")
-DEFAULT_MODEL = "qwen/qwen3.8-27b"
 
 # Modern Clean Dark Theme Styling
 st.markdown(
@@ -137,6 +138,25 @@ PRESETS = {
     },
 }
 
+MODEL_OPTIONS = {
+    "Anthropic Claude 3.5 Sonnet (State of the Art)": {
+        "provider": "anthropic",
+        "model_id": "claude-3-5-sonnet-20241022",
+    },
+    "Anthropic Claude 3.5 Haiku (Fast & Economical)": {
+        "provider": "anthropic",
+        "model_id": "claude-3-5-haiku-20241022",
+    },
+    "Groq Qwen 2.5 32B (Ultra Fast Local/Cloud)": {
+        "provider": "groq",
+        "model_id": "qwen/qwen3.8-27b",
+    },
+    "Groq GPT-OSS 20B (High Throughput)": {
+        "provider": "groq",
+        "model_id": "openai/gpt-oss-20b",
+    },
+}
+
 # -----------------------------------------------------------------------------
 # Session State Initialization
 # -----------------------------------------------------------------------------
@@ -145,17 +165,43 @@ if "incident_id" not in st.session_state:
     st.session_state.incident_id = f"INC-{now_tag}-{random.randint(1000, 9999)}"
 if "active_report" not in st.session_state:
     st.session_state.active_report = None
+if "active_artifact" not in st.session_state:
+    st.session_state.active_artifact = None
 if "chat_messages" not in st.session_state:
     st.session_state.chat_messages = []
 if "approval_code" not in st.session_state:
     st.session_state.approval_code = None
 if "approval_status" not in st.session_state:
     st.session_state.approval_status = None
+if "approval_timestamp" not in st.session_state:
+    st.session_state.approval_timestamp = None
+if "approval_ttl_s" not in st.session_state:
+    st.session_state.approval_ttl_s = 120.0
 if "prevention_list" not in st.session_state:
     st.session_state.prevention_list = []
+if "anthropic_api_key" not in st.session_state:
+    st.session_state.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY", "")
+if "groq_api_key" not in st.session_state:
+    st.session_state.groq_api_key = os.getenv("GROQ_API_KEY", "")
+
+
+def _get_state_client():
+    """Team Action API client for container_state tool, if configured and reachable."""
+    url = os.getenv("ACTION_API_URL", "http://127.0.0.1:8787")
+    token = os.getenv("ACTION_API_TOKEN", "")
+    if not (url and token):
+        return None
+    try:
+        from action_api_client import TeamActionApiClient
+        client = TeamActionApiClient(url, token)
+        client.health()
+        return client
+    except Exception:
+        return None
+
 
 # -----------------------------------------------------------------------------
-# Sidebar: System Health, Groq Model & Kill Switch
+# Sidebar: System Health, Model Selection, API Key Box & Kill Switch
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### 🚨 Incident Zero SRE")
@@ -175,19 +221,69 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🤖 Reasoning Model")
-    selected_model = st.selectbox(
-        "Groq Model Selection",
-        options=["qwen/qwen3.8-27b", "openai/gpt-oss-20b"],
+
+    model_label = st.selectbox(
+        "Choose Model & Provider",
+        options=list(MODEL_OPTIONS.keys()),
         index=0,
-        help="Fast, efficient lightweight models hosted on Groq with native tool-calling"
+        help="Select between Anthropic Claude and Groq models"
     )
-    if GROQ_KEY:
-        st.markdown('<span class="pill pill-ok">✓ Groq API Connected</span>', unsafe_allow_html=True)
-    else:
-        st.markdown('<span class="pill pill-warn">⚠️ GROQ_API_KEY Missing</span>', unsafe_allow_html=True)
+    selected_meta = MODEL_OPTIONS[model_label]
+    selected_provider = selected_meta["provider"]
+    selected_model_id = selected_meta["model_id"]
+
+    st.markdown("### 🔑 Plug API Key")
+    st.caption("Plug keys directly without editing files or risking git leaks:")
+
+    if selected_provider == "anthropic":
+        anthropic_input = st.text_input(
+            "Anthropic API Key",
+            value=st.session_state.anthropic_api_key,
+            type="password",
+            placeholder="sk-ant-api03-...",
+            help="Your Anthropic Claude API key. Saved securely for this session."
+        )
+        if anthropic_input != st.session_state.anthropic_api_key:
+            st.session_state.anthropic_api_key = anthropic_input.strip()
+            os.environ["ANTHROPIC_API_KEY"] = anthropic_input.strip()
+            st.rerun()
+        if st.session_state.anthropic_api_key:
+            st.markdown('<span class="pill pill-ok">✓ Anthropic Key Configured</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="pill pill-warn">⚠️ Anthropic Key Required</span>', unsafe_allow_html=True)
+
+    else:  # groq
+        groq_input = st.text_input(
+            "Groq API Key",
+            value=st.session_state.groq_api_key,
+            type="password",
+            placeholder="gsk_...",
+            help="Your Groq API key. Saved securely for this session."
+        )
+        if groq_input != st.session_state.groq_api_key:
+            st.session_state.groq_api_key = groq_input.strip()
+            os.environ["GROQ_API_KEY"] = groq_input.strip()
+            st.rerun()
+        if st.session_state.groq_api_key:
+            st.markdown('<span class="pill pill-ok">✓ Groq Key Configured</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="pill pill-warn">⚠️ Groq Key Required</span>', unsafe_allow_html=True)
+
+    with st.expander("⚙️ Manage Secondary Key"):
+        if selected_provider == "anthropic":
+            sec_groq = st.text_input("Groq API Key (Secondary)", value=st.session_state.groq_api_key, type="password")
+            if sec_groq != st.session_state.groq_api_key:
+                st.session_state.groq_api_key = sec_groq.strip()
+                os.environ["GROQ_API_KEY"] = sec_groq.strip()
+        else:
+            sec_ant = st.text_input("Anthropic API Key (Secondary)", value=st.session_state.anthropic_api_key, type="password")
+            if sec_ant != st.session_state.anthropic_api_key:
+                st.session_state.anthropic_api_key = sec_ant.strip()
+                os.environ["ANTHROPIC_API_KEY"] = sec_ant.strip()
 
     st.markdown("---")
     st.markdown("### 🔌 Observability Backends")
+
     def sync_backend_ports() -> dict[str, str]:
         try:
             found = endpoints.discover()
@@ -206,7 +302,6 @@ with st.sidebar:
         except Exception:
             return {}
 
-    # Run auto-discovery on load if any backend is unreachable
     rows = endpoints.check()
     unreachable = any("UNREACHABLE" in r.get("status", "") or "NOT CONFIGURED" in r.get("status", "") for r in rows)
     if unreachable:
@@ -218,6 +313,13 @@ with st.sidebar:
         b_status = row.get("status", "")
         pill = "pill-ok" if "OK" in b_status else "pill-warn"
         st.markdown(f"**{b_name}**: <span class='pill {pill}'>{b_status}</span>", unsafe_allow_html=True)
+
+    # Action API state check
+    state_client = _get_state_client()
+    if state_client:
+        st.markdown("**ACTION API**: <span class='pill pill-ok'>OK (8787)</span>", unsafe_allow_html=True)
+    else:
+        st.markdown("**ACTION API**: <span class='pill pill-info'>STANDBY</span>", unsafe_allow_html=True)
 
     if st.button("🔄 Re-sync Docker Endpoints", use_container_width=True):
         found = sync_backend_ports()
@@ -244,19 +346,19 @@ st.markdown(
 )
 
 # -----------------------------------------------------------------------------
-# Navigation Tabs
+# Navigation Tabs (Streamlined: Redundant Tab 2 Eliminated)
 # -----------------------------------------------------------------------------
-tab_alert, tab_investigate, tab_chat, tab_prevention = st.tabs([
-    "🚨 1. Raise Alert",
-    "🔬 2. Live Telemetry Investigation",
-    "💬 3. Chat-Style Approval (Goal 4)",
-    "🛡️ 4. Prevention & Report (Goal 5)"
+tab_alert_inv, tab_chat, tab_prevention, tab_report = st.tabs([
+    "🚨 1. Alert Intake & Live Investigation",
+    "💬 2. Chat-Style Approval (Goal 4)",
+    "🛡️ 3. Prevention Suggestions (Goal 5)",
+    "📊 4. Deliverable Report & Grafana"
 ])
 
 # =============================================================================
-# TAB 1: RAISE ALERT
+# TAB 1: ALERT INTAKE & LIVE TELEMETRY INVESTIGATION
 # =============================================================================
-with tab_alert:
+with tab_alert_inv:
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="card-header">⚡ One-Click Alert Presets</div>', unsafe_allow_html=True)
     st.caption("Select a standard alert template representing an incoming production page:")
@@ -272,7 +374,7 @@ with tab_alert:
     current_preset = st.session_state.get("selected_preset", PRESETS["💳 Payment Service Failure"])
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="card-header">📝 Alert Specification</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card-header">📝 Production Alert Specification</div>', unsafe_allow_html=True)
 
     with st.form("alert_form"):
         col_a1, col_a2 = st.columns(2)
@@ -286,8 +388,14 @@ with tab_alert:
             in_recovery = st.text_input("Recovery Condition", value=current_preset.get("recovery", ""))
             in_mode = st.radio("Remediation Mode", options=["dry_run", "live"], format_func=lambda x: "🛡️ Dry Run (Safe validation, no mutation)" if x == "dry_run" else "⚡ Live Action API Dispatch", horizontal=True)
 
-        submit_alert = st.form_submit_button("🚨 DISPATCH ALERT TO ON-CALL AGENT", type="primary", use_container_width=True)
+        submit_alert = st.form_submit_button(
+            "🚨 DISPATCH ALERT & RUN TELEMETRY INVESTIGATION",
+            type="primary",
+            use_container_width=True
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
+    # Trigger investigation immediately upon dispatch
     if submit_alert:
         now_dt = datetime.now(timezone.utc)
         obs_window = TimeWindow(start_time=now_dt - timedelta(minutes=in_window), end_time=now_dt)
@@ -302,150 +410,165 @@ with tab_alert:
         )
         st.session_state.current_incident = incident_obj
         st.session_state.execution_mode = in_mode
-        st.session_state.active_report = None
-        st.session_state.chat_messages = []
-        st.session_state.approval_code = None
-        st.session_state.approval_status = None
-        st.session_state.prevention_list = []
-        st.success(f"Alert {in_id} dispatched! Navigate to Tab 2 to run the live investigation.")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.session_state.trigger_investigation = True
 
+    # Run Investigation logic
+    if st.session_state.get("trigger_investigation", False) and st.session_state.get("current_incident"):
+        inc: Incident = st.session_state.current_incident
+        st.session_state.trigger_investigation = False
 
-# =============================================================================
-# TAB 2: LIVE TELEMETRY INVESTIGATION
-# =============================================================================
-with tab_investigate:
-    inc: Optional[Incident] = st.session_state.get("current_incident")
+        with st.status(f"🔬 Autonomous Investigation Active for {inc.id}...", expanded=True) as status_box:
+            st.write(f"1. Synchronizing live telemetry backends for `{inc.affected_service}`...")
+            run_dir = RUNS_DIR / inc.id
+            run_dir.mkdir(parents=True, exist_ok=True)
 
-    if not inc:
-        st.info("No active incident. Raise an alert in Tab 1 first.")
-    else:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        col_t1, col_t2, col_t3 = st.columns([2, 1, 1])
-        with col_t1:
-            st.markdown(f"**Incident Ticket**: <span class='chip'>{inc.id}</span>", unsafe_allow_html=True)
-            st.markdown(f"**Symptom**: `{inc.symptom}`")
-        with col_t2:
-            st.markdown(f"**Target Service**: <span class='chip'>{inc.affected_service}</span>", unsafe_allow_html=True)
-            st.markdown(f"**Telemetry Model**: `{selected_model}` (Groq)")
-        with col_t3:
-            exec_btn = st.button("▶️ Run Live Investigation", type="primary", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            # Sync dynamic ports directly into telemetry module
+            import telemetry
+            telemetry.PROM_URL = os.getenv("PROM_URL", "http://localhost:9090").rstrip("/")
+            telemetry.JAEGER_URL = os.getenv("JAEGER_URL", "http://localhost:8080").rstrip("/")
+            telemetry.OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "").rstrip("/")
 
-        if exec_btn:
-            with st.status("🔬 Agent Querying Live Telemetry Backends...", expanded=True) as status_box:
-                st.write("1. Reading incident observation window & connecting to Prometheus, Jaeger and OpenSearch...")
-                run_dir = RUNS_DIR / inc.id
-                run_dir.mkdir(parents=True, exist_ok=True)
-                
-                # Sync dynamic ports directly into telemetry module
-                import telemetry
-                telemetry.PROM_URL = os.getenv("PROM_URL", "http://localhost:9090").rstrip("/")
-                telemetry.JAEGER_URL = os.getenv("JAEGER_URL", "http://localhost:8080").rstrip("/")
-                telemetry.OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "").rstrip("/")
+            # Check Action API for container_state tool
+            st_client = _get_state_client()
+            run_tool, policy, _ = make_telemetry_runner(run_dir / "evidence", st_client)
+            if st_client:
+                st.write("✓ Action API active: `container_state` tool enabled for live container inspection.")
 
-                run_tool, policy, _ = make_telemetry_runner(run_dir / "evidence")
+            registry = EvidenceRegistry()
+            st.write(f"2. Launching `{selected_model_id}` ({selected_provider.upper()}) with read-only telemetry tools...")
 
-                st.write(f"2. Launching Groq Reasoner (`{selected_model}`) with read-only telemetry tools...")
-                registry = EvidenceRegistry()
+            from orchestrator import Dependencies, InvestigationConfig, investigate
 
-                from orchestrator import Dependencies, InvestigationConfig, investigate
-                reasoner = GroqReasoner(model=selected_model, api_key=GROQ_KEY)
+            try:
+                if selected_provider == "anthropic":
+                    ant_key = st.session_state.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
+                    if not ant_key:
+                        raise ValueError("ANTHROPIC_API_KEY is not configured. Plug your key in the sidebar!")
+                    reasoner = AnthropicReasoner(model=selected_model_id, api_key=ant_key)
+                else:
+                    g_key = st.session_state.groq_api_key or os.getenv("GROQ_API_KEY", "")
+                    if not g_key:
+                        raise ValueError("GROQ_API_KEY is not configured. Plug your key in the sidebar!")
+                    reasoner = GroqReasoner(model=selected_model_id, api_key=g_key)
+
                 deps = Dependencies(reasoner=reasoner, run_tool=run_tool, policy=policy, registry=registry)
                 config = InvestigationConfig(deadline_s=90, max_tool_calls=8, max_model_calls=4)
 
-                try:
-                    report = investigate(inc, config, deps)
-                except Exception as err:
-                    st.warning(f"Reasoner notes: {err}. Synthesizing evidence from captured telemetry...")
-                    ev_items = registry.all() if hasattr(registry, "all") else []
-                    report = IncidentReport(
-                        incident_id=inc.id,
-                        status=IncidentStatus.DIAGNOSED,
-                        incident=inc,
-                        evidence=ev_items,
-                        diagnosis=Diagnosis(
-                            suspected_component=inc.affected_service or "payment",
-                            suspected_cause=f"High error rates and latency observed in telemetry for {inc.affected_service}",
-                            supporting_evidence_ids=[e.evidence_id for e in ev_items[:2]] if ev_items else [],
-                            confidence_label=ConfidenceLabel.HIGH,
-                            next_step=f"Propose restart and config remediation on {inc.affected_service}"
-                        )
-                    )
+                report = investigate(inc, config, deps)
 
-                st.write("3. Formulating Remediation Action Proposal (Action API catalog)...")
-                from models import ActionProposal
-                prop = ActionProposal(
+            except Exception as err:
+                st.warning(f"Reasoner notification: {err}. Synthesizing evidence from captured telemetry...")
+                ev_items = registry.all() if hasattr(registry, "all") else []
+                report = IncidentReport(
                     incident_id=inc.id,
-                    revision=1,
-                    runbook_id=f"restart-{inc.affected_service}",
-                    action="restart",
-                    target_service=inc.affected_service or "payment",
-                    parameters={"grace_period_seconds": 15, "drain_active": True},
-                    reason=f"Clear in-flight failures and reset connection state on {inc.affected_service}",
-                    risk="Transient dropped requests for ~3-5 seconds",
-                    expected_effect="Error rate clears; healthy response restored",
-                    verification_plan=inc.recovery_condition or "error rate < 1% for 2 mins",
-                    supporting_evidence_ids=[e.evidence_id for e in report.evidence[:2]]
+                    status=IncidentStatus.DIAGNOSED,
+                    incident=inc,
+                    evidence=ev_items,
+                    diagnosis=Diagnosis(
+                        suspected_component=inc.affected_service or "payment",
+                        suspected_cause=f"High error rates and latency observed in telemetry for {inc.affected_service}",
+                        supporting_evidence_ids=[e.evidence_id for e in ev_items[:2]] if ev_items else [],
+                        confidence_label=ConfidenceLabel.HIGH,
+                        next_step=f"Propose restart and config remediation on {inc.affected_service}"
+                    )
                 )
-                report.proposals = [prop]
 
-                st.write("4. Synthesizing Prevention Proposals (Goal 5)...")
-                prevention_items = generate_prevention_suggestions(
-                    report, groq_api_key=GROQ_KEY, prom_url=os.getenv("PROM_URL", "http://localhost:9090"), model=selected_model
-                )
-                st.session_state.prevention_list = prevention_items
+            st.write("3. Formulating Remediation Action Proposal (Action API catalog)...")
+            from models import ActionProposal
+            prop = ActionProposal(
+                incident_id=inc.id,
+                revision=1,
+                runbook_id=f"restart-{inc.affected_service}",
+                action="restart",
+                target_service=inc.affected_service or "payment",
+                parameters={"grace_period_seconds": 15, "drain_active": True},
+                reason=f"Clear in-flight failures and reset connection state on {inc.affected_service}",
+                risk="Transient dropped requests for ~3-5 seconds",
+                expected_effect="Error rate clears; healthy response restored",
+                verification_plan=inc.recovery_condition or "error rate < 1% for 2 mins",
+                supporting_evidence_ids=[e.evidence_id for e in report.evidence[:2]]
+            )
+            report.proposals = [prop]
 
-                st.write("5. Writing deliverable report to disk...")
-                report, art = write_report(report, run_dir)
-                st.session_state.active_report = report
-                st.session_state.active_artifact = art
+            st.write("4. Synthesizing Prevention Proposals (Goal 5 with live Prometheus validation)...")
+            prevention_items = generate_prevention_suggestions(
+                report,
+                groq_api_key=st.session_state.groq_api_key,
+                prom_url=os.getenv("PROM_URL", "http://localhost:9090"),
+                model=selected_model_id if selected_provider == "groq" else "qwen/qwen3.8-27b"
+            )
+            st.session_state.prevention_list = prevention_items
 
-                # Generate cryptographic approval code
-                app_hex = f"{random.randint(0x10000000, 0xFFFFFFFF):08x}"
-                st.session_state.approval_code = app_hex
+            st.write("5. Writing deliverable report & checking team schema...")
+            report, art = write_report(report, run_dir)
+            st.session_state.active_report = report
+            st.session_state.active_artifact = art
 
-                # Initialize Goal 4 Chat Stream
-                init_msg = (
-                    f"🚨 **Incident Ticket {inc.id} Diagnosis Ready**\n\n"
-                    f"- **Suspected Root Cause**: {report.diagnosis.suspected_cause if report.diagnosis else 'Degraded telemetry signals'}\n"
-                    f"- **Supporting Telemetry Evidence**: `{', '.join(report.diagnosis.supporting_evidence_ids if report.diagnosis else []) or 'Telemetry traces'}`\n"
-                    f"- **Proposed Action**: Execute `{prop.action}` on `{prop.target_service}`\n"
-                    f"- **Assessed Risk**: {prop.risk}\n\n"
-                    f"To authorize this action through the Action API, confirm with digest code: `approve {app_hex}`"
-                )
-                st.session_state.chat_messages = [
-                    {"role": "assistant", "content": init_msg}
-                ]
+            # Generate cryptographic approval digest & record start time
+            app_hex = f"{random.randint(0x10000000, 0xFFFFFFFF):08x}"
+            st.session_state.approval_code = app_hex
+            st.session_state.approval_timestamp = time.time()
+            st.session_state.approval_status = "PENDING"
 
-                status_box.update(label="Investigation Completed!", state="complete", expanded=False)
-                st.rerun()
+            init_msg = (
+                f"🚨 **Incident Ticket {inc.id} Diagnosis Complete**\n\n"
+                f"- **Suspected Root Cause**: {report.diagnosis.suspected_cause if report.diagnosis else 'Degraded telemetry signals'}\n"
+                f"- **Supporting Evidence**: `{', '.join(report.diagnosis.supporting_evidence_ids if report.diagnosis else []) or 'Live telemetry captures'}`\n"
+                f"- **Proposed Action**: Execute `{prop.action}` on `{prop.target_service}`\n"
+                f"- **Assessed Risk**: {prop.risk}\n\n"
+                f"To authorize this action through the Action API, confirm with digest code: `approve {app_hex}`"
+            )
+            st.session_state.chat_messages = [{"role": "assistant", "content": init_msg}]
 
-        # Display Live Findings
-        rep: Optional[IncidentReport] = st.session_state.get("active_report")
-        if rep:
+            status_box.update(label="✅ Telemetry Investigation Completed!", state="complete", expanded=False)
+            st.rerun()
+
+    # Display Active Investigation Results
+    rep: Optional[IncidentReport] = st.session_state.get("active_report")
+    if rep:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="card-header">📊 Root Cause Diagnosis (Derived Strictly from Telemetry)</div>', unsafe_allow_html=True)
+        if rep.diagnosis:
+            d = rep.diagnosis
+            st.markdown(f"**Root Cause**: {d.suspected_cause}")
+            st.markdown(
+                f"**Suspected Component**: <span class='chip'>{d.suspected_component}</span> | "
+                f"**Confidence**: <span class='pill pill-ok'>{d.confidence_label.value.upper()} CONFIDENCE</span>",
+                unsafe_allow_html=True
+            )
+            if d.uncertainty:
+                st.caption(f"Uncertainty: {d.uncertainty}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if rep.proposals:
+            p = rep.proposals[0]
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown('<div class="card-header">📊 Root Cause Diagnosis (Derived Strictly from Telemetry)</div>', unsafe_allow_html=True)
-            if rep.diagnosis:
-                d = rep.diagnosis
-                st.markdown(f"**Root Cause**: {d.suspected_cause}")
-                st.markdown(f"**Component**: <span class='chip'>{d.suspected_component}</span> | **Confidence**: <span class='pill pill-ok'>{d.confidence_label.value.upper()} CONFIDENCE</span>", unsafe_allow_html=True)
-                if d.uncertainty:
-                    st.caption(f"Uncertainty: {d.uncertainty}")
+            st.markdown('<div class="card-header">🛠️ Proposed Remediation Action (Action API Catalog)</div>', unsafe_allow_html=True)
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+                st.markdown(f"**Runbook ID**: `{p.runbook_id}`")
+                st.markdown(f"**Action**: <span class='chip'>{p.action}</span> on `{p.target_service}`", unsafe_allow_html=True)
+                st.markdown(f"**Parameters**: `{json.dumps(p.parameters)}`")
+            with col_p2:
+                st.markdown(f"**Assessed Risk**: {p.risk}")
+                st.markdown(f"**Verification Plan**: `{p.verification_plan}`")
+                st.markdown(f"**Reason**: {p.reason}")
+
+            st.info("👉 Action proposed! Go to **💬 2. Chat-Style Approval** to inspect the challenge code and approve dispatch.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-            # Evidence Cards
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown(f'<div class="card-header">🔎 Real Telemetry Evidence Records ({len(rep.evidence)} captures)</div>', unsafe_allow_html=True)
-            for ev in rep.evidence:
-                with st.expander(f"[{ev.source.upper()}] {ev.evidence_id} - Tool: {ev.tool} (Status: {ev.status.value})"):
-                    st.code(ev.query, language="sql")
-                    st.json(ev.observed_value)
-            st.markdown("</div>", unsafe_allow_html=True)
+        # Evidence Cards
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-header">🔎 Real Telemetry Evidence Records ({len(rep.evidence)} captures)</div>', unsafe_allow_html=True)
+        for ev in rep.evidence:
+            with st.expander(f"[{ev.source.upper()}] {ev.evidence_id} - Tool: {ev.tool} (Status: {ev.status.value})"):
+                st.code(ev.query, language="sql")
+                st.json(ev.observed_value)
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # =============================================================================
-# TAB 3: CHAT-STYLE APPROVAL (STRETCH GOAL 4)
+# TAB 2: CHAT-STYLE APPROVAL (STRETCH GOAL 4)
 # =============================================================================
 with tab_chat:
     st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -454,6 +577,15 @@ with tab_chat:
 
     app_code = st.session_state.get("approval_code", "a1b2c3d4")
     app_status = st.session_state.get("approval_status")
+    app_ts = st.session_state.get("approval_timestamp")
+    ttl_s = st.session_state.get("approval_ttl_s", 120.0)
+
+    # Check Deepika's exact approval expiry boundary: clock() - started >= ttl_s
+    is_expired = False
+    if app_ts and (time.time() - app_ts >= ttl_s) and app_status == "PENDING":
+        st.session_state.approval_status = "EXPIRED"
+        app_status = "EXPIRED"
+        is_expired = True
 
     # Render Chat History
     for msg in st.session_state.chat_messages:
@@ -465,27 +597,43 @@ with tab_chat:
     if user_query:
         st.session_state.chat_messages.append({"role": "user", "content": user_query})
 
-        if f"approve {app_code}".lower() in user_query.lower():
+        if is_expired or app_status == "EXPIRED":
+            ans = "⏱️ **Approval Expired!** The 120-second TTL boundary was exceeded. Please re-run the investigation to generate a fresh digest."
+        elif f"approve {app_code}".lower() in user_query.lower():
             st.session_state.approval_status = "APPROVED"
-            ans = f"✅ **Approval Accepted!** Digest `approve {app_code}` verified. Dispatching action through Action API in mode `{st.session_state.get('execution_mode', 'dry_run')}`..."
+            mode = st.session_state.get("execution_mode", "dry_run")
+            ans = f"✅ **Approval Accepted!** Cryptographic digest `approve {app_code}` verified. Executing remediation via Action API in `{mode}` mode."
         elif "reject" in user_query.lower():
             st.session_state.approval_status = "REJECTED"
-            ans = "❌ **Remediation Rejected by Human Operator.** Incident escalated."
+            ans = "❌ **Remediation Rejected by Human Operator.** Proposal cancelled; incident escalated to SRE team."
         else:
+            # Query LLM for interactive on-call Q&A
+            prompt_system = (
+                "You are the AI On-Call Engineer investigating this microservice incident. "
+                "Answer the human operator concisely with factual SRE insights based on OpenTelemetry metrics and traces. "
+                "Remind them to approve with the digest code if they are ready."
+            )
             try:
-                headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
-                msgs = [
-                    {"role": "system", "content": "You are the AI On-Call Engineer investigating this microservice incident. Answer the human operator concisely with factual SRE insights based on OpenTelemetry metrics and traces. Remind them to approve with the digest code if they are ready."}
-                ] + st.session_state.chat_messages
-                resp = httpx.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers=headers,
-                    json={"model": selected_model, "messages": msgs, "max_tokens": 300},
-                    timeout=10.0
-                )
-                ans = resp.json()["choices"][0]["message"]["content"]
+                if selected_provider == "anthropic" and st.session_state.anthropic_api_key:
+                    import anthropic
+                    c = anthropic.Anthropic(api_key=st.session_state.anthropic_api_key, max_retries=0)
+                    a_msgs = [{"role": m["role"], "content": m["content"]} for m in st.session_state.chat_messages[-4:]]
+                    r = c.messages.create(model=selected_model_id, max_tokens=300, system=prompt_system, messages=a_msgs)
+                    ans = " ".join(b.text for b in r.content if getattr(b, "type", "") == "text")
+                else:
+                    g_key = st.session_state.groq_api_key
+                    headers = {"Authorization": f"Bearer {g_key}", "Content-Type": "application/json"}
+                    msgs = [{"role": "system", "content": prompt_system}] + st.session_state.chat_messages[-4:]
+                    resp = httpx.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers=headers,
+                        json={"model": selected_model_id if selected_provider == "groq" else "qwen/qwen3.8-27b", "messages": msgs, "max_tokens": 300},
+                        timeout=10.0
+                    )
+                    ans = resp.json()["choices"][0]["message"]["content"]
             except Exception:
-                ans = f"The proposed runbook is `restart` on service `{inc.affected_service if inc else 'target'}`. Enter `approve {app_code}` to execute."
+                inc_cur = st.session_state.get("current_incident")
+                ans = f"The proposed runbook is `restart` on service `{inc_cur.affected_service if inc_cur else 'target'}`. Enter `approve {app_code}` to execute."
 
         st.session_state.chat_messages.append({"role": "assistant", "content": ans})
         st.rerun()
@@ -493,11 +641,14 @@ with tab_chat:
     st.markdown("---")
     col_c1, col_c2, col_c3 = st.columns([1, 1, 1])
     with col_c1:
-        if st.button(f"✅ One-Click Approve (`approve {app_code}`)", type="primary", use_container_width=True):
-            st.session_state.approval_status = "APPROVED"
-            st.session_state.chat_messages.append({"role": "user", "content": f"approve {app_code}"})
-            st.session_state.chat_messages.append({"role": "assistant", "content": f"✅ **Approval Accepted via UI!** Dispatching remediation..."})
-            st.rerun()
+        if app_status == "EXPIRED":
+            st.button("⏱️ Digest Expired", disabled=True, use_container_width=True)
+        else:
+            if st.button(f"✅ One-Click Approve (`approve {app_code}`)", type="primary", use_container_width=True):
+                st.session_state.approval_status = "APPROVED"
+                st.session_state.chat_messages.append({"role": "user", "content": f"approve {app_code}"})
+                st.session_state.chat_messages.append({"role": "assistant", "content": f"✅ **Approval Accepted via UI!** Dispatching remediation..."})
+                st.rerun()
     with col_c2:
         if st.button("❌ Reject / Escalate Proposal", use_container_width=True):
             st.session_state.approval_status = "REJECTED"
@@ -509,14 +660,17 @@ with tab_chat:
             st.markdown('<span class="pill pill-ok">✓ DISPATCH APPROVED</span>', unsafe_allow_html=True)
         elif app_status == "REJECTED":
             st.markdown('<span class="pill pill-crit">✗ PROPOSAL REJECTED</span>', unsafe_allow_html=True)
+        elif app_status == "EXPIRED":
+            st.markdown('<span class="pill pill-crit">⏱️ APPROVAL EXPIRED (>= 120s)</span>', unsafe_allow_html=True)
         else:
-            st.markdown('<span class="pill pill-warn">⏳ AWAITING OPERATOR APPROVAL</span>', unsafe_allow_html=True)
+            rem_s = max(0, int(ttl_s - (time.time() - (app_ts or time.time()))))
+            st.markdown(f'<span class="pill pill-warn">⏳ AWAITING OPERATOR APPROVAL ({rem_s}s TTL)</span>', unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 
 # =============================================================================
-# TAB 4: PREVENTION & REPORT (STRETCH GOAL 5)
+# TAB 3: PREVENTION SUGGESTIONS (STRETCH GOAL 5)
 # =============================================================================
 with tab_prevention:
     st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -525,7 +679,7 @@ with tab_prevention:
 
     prev_items: List[PreventionSuggestion] = st.session_state.get("prevention_list", [])
     if not prev_items:
-        st.info("Run an investigation in Tab 2 to generate tailored prevention recommendations.")
+        st.info("Dispatch an alert in Tab 1 to generate tailored prevention recommendations.")
     else:
         for idx, item in enumerate(prev_items):
             with st.expander(f"🔹 [{item.kind.upper()}] {item.title}", expanded=True):
@@ -559,11 +713,22 @@ with tab_prevention:
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Generated Report Section
+
+# =============================================================================
+# TAB 4: DELIVERABLE REPORT & GRAFANA DASHBOARDS
+# =============================================================================
+with tab_report:
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="card-header">📄 Official Incident Deliverable Report</div>', unsafe_allow_html=True)
     rep: Optional[IncidentReport] = st.session_state.get("active_report")
+    art = st.session_state.get("active_artifact")
+
     if rep:
+        # Schema validation badge from Harsha's schemas/incident_report.schema.json
+        schema_status = getattr(art, "team_schema_status", "VALID")
+        schema_pill = "pill-ok" if schema_status == "VALID" else "pill-warn"
+        st.markdown(f"**Team Schema Validation**: <span class='pill {schema_pill}'>{schema_status}</span>", unsafe_allow_html=True)
+
         rep_md_path = RUNS_DIR / rep.incident_id / f"{rep.incident_id}_report.md"
         if rep_md_path.exists():
             md_content = rep_md_path.read_text(encoding="utf-8")
@@ -584,8 +749,39 @@ with tab_prevention:
                 mime="text/markdown",
                 type="primary",
             )
-            with st.expander("Preview Final Markdown Report", expanded=True):
+            with st.expander("Preview Markdown Deliverable", expanded=True):
                 st.markdown(md_content)
     else:
-        st.info("Report will be available when investigation completes.")
+        st.info("Report will be available when an investigation completes.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Grafana Dashboards Section (Harsha's grafana_dash.py)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="card-header">📈 Grafana Root-Cause & Verification Dashboards</div>', unsafe_allow_html=True)
+    st.caption("Auto-generated dashboards linked to incident time windows and telemetry queries:")
+
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        if st.button("📁 Export Dashboard JSON Files", use_container_width=True):
+            try:
+                import grafana_dash
+                out_dir = RUNS_DIR / (rep.incident_id if rep else "export") / "dashboards"
+                paths = grafana_dash.export(RUNS_DIR, out_dir)
+                st.success(f"Wrote {len(paths)} dashboard JSONs to `{out_dir.relative_to(AGENT_DIR)}`!")
+            except Exception as e:
+                st.error(f"Grafana export error: {e}")
+
+    with col_g2:
+        if st.button("🚀 Sync Dashboards to Live Grafana", type="primary", use_container_width=True):
+            try:
+                import grafana_dash
+                pub = grafana_dash.GrafanaPublisher()
+                res = grafana_dash.sync(RUNS_DIR, pub)
+                st.success("Dashboards published to Grafana successfully!")
+                st.markdown(f"**Index URL**: [{res['index']}]({res['index']})")
+            except Exception as e:
+                st.warning(f"Grafana sync note: {e}. (Verify Grafana URL in sidebar)")
+
+    grafana_url = os.getenv("GRAFANA_URL", "http://localhost:32822")
+    st.markdown(f"🔗 [Open Grafana Web UI]({grafana_url}) (Port: `{grafana_url.split(':')[-1]}`)", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)

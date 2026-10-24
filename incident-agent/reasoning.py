@@ -68,11 +68,14 @@ def anthropic_tools(tool_specs: list[dict], allow_telemetry: bool) -> list[dict]
 
 
 class AnthropicReasoner:
-    def __init__(self, model: str, client: Any = None, max_output_tokens: int = 1500) -> None:
+    def __init__(self, model: str, client: Any = None, max_output_tokens: int = 1500, api_key: str | None = None) -> None:
         if not model:
             raise ModelError("model identifier missing: pass --model or set ANTHROPIC_MODEL")
         if client is None:
-            client = anthropic.Anthropic(max_retries=0)  # reads ANTHROPIC_API_KEY from the environment
+            key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
+            if not key:
+                raise ModelError("ANTHROPIC_API_KEY is not configured: set it in UI sidebar or environment")
+            client = anthropic.Anthropic(api_key=key, max_retries=0)
         self.client = client
         self.model = model
         self.max_output_tokens = max_output_tokens

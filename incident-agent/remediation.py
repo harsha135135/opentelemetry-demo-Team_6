@@ -64,10 +64,15 @@ def planner_tools(catalog: Catalog) -> list[dict[str, Any]]:
 
 
 class AnthropicPlanner:
-    def __init__(self, model: str, client: Any = None, max_output_tokens: int = 1200, timeout_s: float = 60) -> None:
+    def __init__(self, model: str, client: Any = None, max_output_tokens: int = 1200, timeout_s: float = 60, api_key: str | None = None) -> None:
         if not model:
             raise ModelError("model identifier missing: pass --model or set ANTHROPIC_MODEL")
-        self.client = client or anthropic.Anthropic(max_retries=0)
+        if client is None:
+            key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
+            if not key:
+                raise ModelError("ANTHROPIC_API_KEY is not configured: set it in UI sidebar or environment")
+            client = anthropic.Anthropic(api_key=key, max_retries=0)
+        self.client = client
         self.model, self.max_output_tokens, self.timeout_s = model, max_output_tokens, timeout_s
         self.messages: list[dict[str, Any]] = []
         self._pending: list[str] = []

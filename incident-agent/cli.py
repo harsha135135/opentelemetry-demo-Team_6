@@ -93,6 +93,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Action API catalog JSON written from the official contract",
     )
     r.add_argument(
+        "--action-api",
+        action="store_true",
+        help="use the team Action API (ACTION_API_URL, ACTION_API_TOKEN): catalog, validation, server-issued approval",
+    )
+    r.add_argument(
         "--approver",
         default=os.getenv("INCIDENT_AGENT_APPROVER", ""),
         help="name recorded with the approval",
@@ -106,6 +111,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     r.add_argument("--interval-s", type=float, default=30)
     r.add_argument("--samples", type=int, default=2)
+    i.add_argument(
+        "--grafana",
+        action="store_true",
+        help="after the report, publish the Grafana dashboards (grafana sync)",
+    )
 
     e = sub.add_parser(
         "endpoints",
@@ -125,6 +135,72 @@ def build_parser() -> argparse.ArgumentParser:
 
     c = sub.add_parser("catalog", help="validate and show the Action API catalog")
     c.add_argument("--action-catalog", default=os.getenv("ACTION_API_CATALOG", ""))
+
+    a = sub.add_parser("action-api", help="run or query the team Action API")
+    asub = a.add_subparsers(dest="api_cmd", required=True)
+    s = asub.add_parser(
+        "serve",
+        help="start the Action API (the only process that can restart containers)",
+    )
+    s.add_argument("--host", default=os.getenv("ACTION_API_HOST", "127.0.0.1"))
+    s.add_argument(
+        "--port",
+        type=int,
+        default=int(os.getenv("ACTION_API_PORT", "8787")),
+    )
+    s.add_argument(
+        "--executor",
+        choices=["simulate", "docker"],
+        default=os.getenv("ACTION_API_EXECUTOR", "simulate"),
+    )
+    s.add_argument("--state-dir", default=str(ACTION_API_STATE_DIR))
+    s.add_argument(
+        "--bind-all",
+        action="store_true",
+        help="allow a non-loopback host (not recommended)",
+    )
+    asub.add_parser(
+        "init-token",
+        help="add ACTION_API_TOKEN/ACTION_API_URL to .env if absent (never overwrites)",
+    )
+    asub.add_parser("health")
+    asub.add_parser("operations")
+    asub.add_parser("actions")
+    asub.add_parser(
+        "services",
+        help="read-only system state (container state/health, load generator)",
+    )
+    sh = asub.add_parser("show")
+    sh.add_argument("action_id")
+    asub.add_parser(
+        "export-schemas",
+        help="regenerate schemas/action_api/*.json and docs/action_api.openapi.json",
+    )
+
+    au = sub.add_parser(
+        "audit",
+        help="show the agent audit journal (or the Action API audit with --server)",
+    )
+    au.add_argument("--server", action="store_true")
+    au.add_argument("--incident-id")
+    au.add_argument("--tail", type=int, default=50)
+    au.add_argument("--out", default="runs")
+
+    rp = sub.add_parser("report", help="print an incident report")
+    rp.add_argument("incident_id")
+    rp.add_argument("--json", action="store_true")
+    rp.add_argument("--out", default="runs")
+
+    g = sub.add_parser(
+        "grafana",
+        help="root-cause and verification dashboards for every report (GRAFANA_URL)",
+    )
+    gsub = g.add_subparsers(dest="grafana_cmd", required=True)
+    gs = gsub.add_parser("sync", help="publish the index and each incident's dashboards to Grafana")
+    gs.add_argument("--out", default="runs")
+    ge = gsub.add_parser("export", help="write the dashboard JSON files instead of publishing")
+    ge.add_argument("dir")
+    ge.add_argument("--out", default="runs")
 
     return p
 
@@ -365,6 +441,14 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_kill_switch(args)
     if args.cmd == "catalog":
         return cmd_catalog(args)
+    if args.cmd == "action-api":
+        return cmd_action_api(args)
+    if args.cmd == "audit":
+        return cmd_audit(args)
+    if args.cmd == "report":
+        return cmd_report(args)
+    if args.cmd == "grafana":
+        return cmd_grafana(args)
 
     if not args.model:
         print(
@@ -379,7 +463,17 @@ def main(argv: list[str] | None = None) -> int:
 
     catalog, client = None, None
 
-    if args.respond:
+    if args.respond and args.action_api:
+        import httpx
+
+        from action_api_client import ActionApiError
+        try:
+            client = _team_client()
+            catalog = client.catalog()
+        except (ActionApiError, httpx.HTTPError) as exc:
+            print(f"error: team Action API unavailable ({exc}); start it with: python cli.py action-api serve", file=sys.stderr)
+            return 2
+    elif args.respond:
         try:
             catalog = load_catalog(args.action_catalog)
             client = HttpActionClient(catalog) if args.execute else None
@@ -408,7 +502,7 @@ def main(argv: list[str] | None = None) -> int:
             recovery_condition=args.recovery_condition,
         )
 
-        run_tool, policy, _ = make_telemetry_runner(run_dir / "evidence")
+        run_tool, policy, _ = make_telemetry_runner(run_dir / "evidence", _state_client())
 
         if not policy.approved_services:
             print(
@@ -506,18 +600,19 @@ def main(argv: list[str] | None = None) -> int:
         f"Elapsed: {meta.get('elapsed_s')}s"
     )
     print(f"Report JSON: {art.json_path}\nReport MD:   {art.markdown_path}")
-    print(
-        "Official schema: "
-        + art.official_schema_status
-        + " (exports are provisional/internal)"
-    )
-
-    for error in art.internal_validation_errors + art.export_errors:
-        print(f"VALIDATION/EXPORT ERROR: {error}")
-
-    for limitation in report.limitations:
-        print(f"limitation: {limitation}")
-
+    print(f"Report schema (team-defined schemas/incident_report.schema.json): {art.team_schema_status}"
+          " | organiser schema: none supplied")
+    for e in art.team_schema_errors:
+        print(f"SCHEMA ERROR: {e}")
+    for e in art.internal_validation_errors + art.export_errors:
+        print(f"VALIDATION/EXPORT ERROR: {e}")
+    for lim in report.limitations:
+        print(f"limitation: {lim}")
+    if args.grafana and art.json_path:
+        try:
+            cmd_grafana(args, report.incident_id)
+        except Exception as exc:  # the report is already written; a dashboard problem must not fail the incident
+            print(f"grafana: dashboards not published ({type(exc).__name__}: {exc})", file=sys.stderr)
     return 0 if not art.export_errors else 1
 
 
