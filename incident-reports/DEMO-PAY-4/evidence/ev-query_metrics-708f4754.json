@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-708f4754",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "payment",
+    "query": "(sum(rate(traces_span_metrics_calls_total{service_name=\"payment\",status_code=\"STATUS_CODE_ERROR\"}[5m])) or vector(0)) / sum(rate(traces_span_metrics_calls_total{service_name=\"payment\"}[5m]))",
+    "window_start": "2026-10-24T06:14:57.156671Z",
+    "window_end": "2026-10-24T06:19:57.156671Z",
+    "collected_at": "2026-10-24T06:19:57.158286Z",
+    "value": {
+      "metric": "error_rate",
+      "unit": "ratio 0-1"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-708f4754.json",
+    "message": "no requests in window - cannot judge error rate"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {}, \"value\": [1792822797.157, \"NaN\"]}]}}"
+}

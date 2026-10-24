@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-19bdf76f",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "opensearch",
+    "query": "time() - max_over_time(timestamp({__name__=~\"container_uptime.*\",container_name=\"opensearch\"})[60m:30s])",
+    "window_start": "2026-10-24T06:15:08.032182Z",
+    "window_end": "2026-10-24T06:20:08.032182Z",
+    "collected_at": "2026-10-24T06:20:08.033697Z",
+    "value": {
+      "metric": "container_last_seen_age_s",
+      "unit": "s since last sample",
+      "value": 12.105
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-19bdf76f.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"container_name\": \"opensearch\", \"host_name\": \"docker-desktop\"}, \"value\": [1792822808.031, \"12.104999780654907\"]}]}}"
+}

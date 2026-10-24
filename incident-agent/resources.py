@@ -22,6 +22,9 @@ from pydantic import BaseModel, Field
 import telemetry
 from telemetry import ToolResult, ToolStatus
 
+# CPU comes from the cumulative CPU-time counter: container_cpu_utilization_ratio in this setup is a lifetime average
+# (measured: docker stats 404.7%, CPU-time rate 399.8%, utilization ratio 47.5%). Fix found on feature/neha2 (Neha).
+CPU_NS = "container_cpu_usage_nanoseconds_total"
 CPU, MEM, UP, MEM_BYTES = (
     "container_cpu_utilization_ratio", "container_memory_percent_ratio",
     "container_uptime_seconds", "container_memory_usage_total_bytes",
@@ -128,8 +131,8 @@ def resource_overview(window_minutes: int = 5) -> ToolResult:
     start, end = now - timedelta(minutes=window_minutes), now
     w = window_minutes
     queries = {
-        "cpu": f"{CPU}",
-        "cpu_prior": f"avg_over_time({CPU}[{w}m] offset {w + 5}m)",
+        "cpu": f"sum by (container_name) (rate({CPU_NS}[{w}m])) / 1e7",  # percent of one core
+        "cpu_prior": f"sum by (container_name) (rate({CPU_NS}[{w}m] offset {w + 5}m)) / 1e7",
         "mem": f"{MEM}",
         "mem_growth": f"deriv({MEM_BYTES}[{w}m]) * {w * 60} / {MEM_BYTES}",
         "uptime": f"{UP}",

@@ -229,6 +229,42 @@ def _marker(name: str, when: datetime, color: str) -> dict:
             "useValueForTime": False}
 
 
+# ---------------------------------------------------------------- Explore deep links
+def _ms(iso: str) -> str:
+    return str(int(datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp() * 1000))
+
+
+def explore_url(ds: dict, targets: list[dict], time_range: dict) -> str:
+    """Grafana Explore with the exact queries and the incident's time range (opens in the demo's own datasources)."""
+    pane = {"datasource": ds["uid"], "queries": [{"refId": chr(65 + i), "datasource": ds, **t} for i, t in enumerate(targets)],
+            "range": {"from": _ms(time_range["from"]), "to": _ms(time_range["to"])}}
+    return "/grafana/explore?" + urlencode({"schemaVersion": 1, "orgId": 1, "panes": json.dumps({"iz": pane}, separators=(",", ":"))})
+
+
+def _logs_target(svc: str, sev: int) -> dict:
+    ppl = (f"source=otel-logs-* | where resource.service.name = '{svc}' and `severity.number` >= {sev}"
+           " | sort - `@timestamp` | fields `@timestamp`, severity.text, body, traceId")
+    return {"queryType": "PPL", "format": "table", "query": ppl, "timeField": "observedTimestamp",
+            "metrics": [{"id": "1", "type": "logs"}], "bucketAggs": []}
+
+
+def _explore_links(ev: Evidence, time_range: Optional[dict]) -> list[str]:
+    """Markdown links that open this evidence item's own query in Grafana Explore."""
+    if not time_range:
+        return []
+    svc = _service(ev.service)
+    if ev.source in ("prometheus", "derived"):
+        return [f"[Explore {md(name, 40)}]({explore_url(PROM, [{'expr': expr}], time_range)})" for name, expr in promql_of(ev)[:2]]
+    if ev.source == "opensearch" and svc:
+        sev = SEVERITY.get(str(_value(ev).get("min_severity", "WARN")).upper(), 13)
+        return [f"[Explore logs]({explore_url(LOGS, [_logs_target(svc, sev)], time_range)})"]
+    if ev.source == "jaeger":
+        return [f"[Explore trace {n}]({explore_url(JAEGER, [{'query': t}], time_range)})" for n, t in enumerate(_trace_ids(ev)[:2], 1)]
+    if ev.source == "health" and svc:
+        return [f"[Explore availability]({explore_url(PROM, [{'expr': _template('container_last_seen_age_s', svc, 5)}], time_range)})"]
+    return []
+
+
 # ---------------------------------------------------------------- report facts
 def _captured(ev: Evidence) -> str:
     ov = ev.observed_value if isinstance(ev.observed_value, dict) else {"value": ev.observed_value}
@@ -250,8 +286,14 @@ def _captured(ev: Evidence) -> str:
         return ", ".join(f"{k} {_num(x[0].get('value') if isinstance(x, list) and x and isinstance(x[0], dict) else x)}"
                          for k, x in s.items())
     if ev.tool == "search_traces":
+        traces = [t for t in v.get("traces") or [] if isinstance(t, dict)]
+        slow = max(traces, key=lambda t: t.get("duration_ms") or 0, default=None)
+        first_err = next((sp.get("error_message") for t in traces for sp in t.get("error_spans") or []
+                          if isinstance(sp, dict) and sp.get("error_message")), None)
         return (f"{v.get('traces_scanned', '?')} traces; error origin {v.get('error_origin_counts') or {}}; "
-                f"edges {dict(list((v.get('edges') or {}).items())[:4])}")
+                f"edges {dict(list((v.get('edges') or {}).items())[:4])}"
+                + (f"; slowest {_num(slow.get('duration_ms'))} ms ({slow.get('root')})" if slow and slow.get("duration_ms") else "")
+                + (f"; first error: {first_err}" if first_err else ""))
     if ev.tool == "query_logs":
         lines = v.get("lines") or []
         return f"{v.get('count', len(lines))} lines at {v.get('min_severity', '?')}+" + (
@@ -400,7 +442,7 @@ def _dashboard(uid: str, title: str, grid: _Grid, rep: IncidentReport, kind: str
             "links": _links(rep, time_range, kind), "panels": grid.panels}
 
 
-def _evidence_table(items: list[tuple[str, Evidence]]) -> str:
+def _evidence_table(items: list[tuple[str, Evidence]], time_range: Optional[dict] = None) -> str:
     rows = ["| # | Evidence | Role | Tool | Service | Window (UTC) | Captured value (from the report) | Open |",
             "| --- | --- | --- | --- | --- | --- | --- | --- |"]
     for i, (role, ev) in enumerate(items, 1):
@@ -410,6 +452,7 @@ def _evidence_table(items: list[tuple[str, Evidence]]) -> str:
         else:
             opener = {"prometheus": "panel below", "derived": "panels below", "opensearch": "log panel below",
                       "health": "metric panel below"}.get(ev.source, "-")
+        opener = " · ".join([opener] + _explore_links(ev, time_range)) if opener != "-" else (" · ".join(_explore_links(ev, time_range)) or "-")
         window = f"{_utc(ev.event_time_window.start_time, '%H:%M')}–{_utc(ev.event_time_window.end_time, '%H:%M')}"
         rows.append(f"| {i} | {code(ev.evidence_id)} | {role} | {code(ev.tool)} | {code(ev.service or 'fleet')} | "
                     f"{window} | {md(_captured(ev), 260)} | {opener} |")
@@ -439,11 +482,8 @@ def _evidence_panels(grid: _Grid, ev: Evidence, comp: Optional[str], seen: set[s
                                  highlight=comp if fleet else None), 12 if fleet else 8, 8)
     elif ev.source == "opensearch" and svc and room():
         sev = SEVERITY.get(str(_value(ev).get("min_severity", "WARN")).upper(), 13)
-        ppl = (f"source=otel-logs-* | where resource.service.name = '{svc}' and `severity.number` >= {sev}"
-               " | sort - `@timestamp` | fields `@timestamp`, severity.text, body, traceId")
         grid.add({"type": "table", "title": f"logs ({svc}) · {ev.evidence_id}", "description": desc, "datasource": LOGS,
-                  "targets": [{"refId": "A", "datasource": LOGS, "queryType": "PPL", "format": "table", "query": ppl,
-                               "timeField": "observedTimestamp", "metrics": [{"id": "1", "type": "logs"}], "bucketAggs": []}],
+                  "targets": [{"refId": "A", "datasource": LOGS, **_logs_target(svc, sev)}],
                   "options": {"showHeader": True, "cellHeight": "sm"}}, 24, 8)
     elif ev.source == "health" and svc:
         expr = _template("container_last_seen_age_s", svc, 5)
@@ -468,6 +508,10 @@ def root_cause_dashboard(rep: IncidentReport) -> dict:
         if d.alternatives:
             lines += ["**Alternatives considered.**", *[f"- {md(a, 300)}" for a in d.alternatives], ""]
         lines += [f"**Next step.** {md(d.next_step, 400)}", ""]
+        if rep.proposals:
+            pr, ver_uid = rep.proposals[0], dashboard_uids(rep.incident_id)[1]
+            lines += [f"**Proposed Action API request.** {code(pr.action)} on {code(pr.target_service)} "
+                      f"[open the exact request, approval and verification](/grafana/d/{ver_uid})", ""]
     else:
         lines += ["## No accepted diagnosis",
                   f"**Status** {code(rep.status.value)} · **Detected** {_utc(inc.detection_time)} UTC. The agent abstained "
@@ -483,7 +527,8 @@ def root_cause_dashboard(rep: IncidentReport) -> dict:
     conflicting = [by_id[i] for i in (d.conflicting_evidence_ids if d else []) if i in by_id]
     if not d:  # no citations: show what was collected
         supporting = [e for e in rep.evidence if e.status == ToolStatus.OK][:12]
-    table = _evidence_table([("supporting" if d else "collected", e) for e in supporting] + [("conflicting", e) for e in conflicting])
+    table = _evidence_table([("supporting" if d else "collected", e) for e in supporting] + [("conflicting", e) for e in conflicting],
+                            _time_range(rep))
     grid.add(_text("Cited evidence: captured values (the record) · re-query panels below", table), 24, _text_h(table, 38))
 
     seen: set[str] = set()
@@ -519,6 +564,36 @@ def root_cause_dashboard(rep: IncidentReport) -> dict:
                       "Diagnosis and the evidence it cites, generated by incident-agent from the saved report.")
 
 
+_APPROVAL_ID = re.compile(r"\bapr-[a-f0-9]{16}\b")
+
+
+def action_request_markdown(rep: IncidentReport) -> str:
+    """The proposal as the exact team Action API ActionPayload (validated against its schema), with the server IDs."""
+    from action_api_models import ActionPayload
+
+    p, a = rep.proposals[0], rep.approval
+    payload = {"incident_id": rep.incident_id, "operation": p.action, "target": p.target_service,
+               "arguments": p.parameters, "evidence_ids": p.supporting_evidence_ids[:20], "reason": p.reason[:1500],
+               "proposal_digest": a.proposal_digest if a else None}
+    try:
+        ActionPayload.model_validate(payload)
+        valid = "valid against `schemas/action_api/ActionPayload.schema.json`"
+    except ValidationError as exc:
+        valid = f"does **not** validate as an ActionPayload ({len(exc.errors())} error(s)); shown as recorded"
+    body = json.dumps(payload, indent=2, ensure_ascii=True).replace("`", "\\u0060")  # no fence breaking
+    api = ("POST /v1/actions/execute on the **team-defined** Action API (not an organiser contract)"
+           if p.catalog_provenance == "team" else f"catalog provenance {code(p.catalog_provenance or '-')}")
+    approval_id = next((m.group(0) for t in rep.timeline for m in [_APPROVAL_ID.search(t.description)] if m), None)
+    lines = [f"**Endpoint.** {api} · payload {valid}.", "", "```json", body, "```", ""]
+    if approval_id:
+        lines.append(f"**Approval.** {code(approval_id)}: the one-time code was shown only on the Action API console.")
+    if a and a.request_id:
+        lines.append(f"**Server action record.** {code(a.request_id)}: inspect with "
+                     f"{code('python cli.py action-api show ' + a.request_id, 80)} and "
+                     f"{code('python cli.py audit --server --incident-id ' + rep.incident_id, 90)}.")
+    return "\n".join(lines)
+
+
 def verification_dashboard(rep: IncidentReport) -> dict:
     _, ver = dashboard_uids(rep.incident_id)
     comp, p, a, v = _component(rep), (rep.proposals[0] if rep.proposals else None), rep.approval, rep.verification
@@ -546,6 +621,9 @@ def verification_dashboard(rep: IncidentReport) -> dict:
     header = "\n".join(lines)
     grid = _Grid()
     grid.add(_text("Remediation and verification", header), 24, _text_h(header))
+    if p:
+        request = action_request_markdown(rep)
+        grid.add(_text("Action API request (exact payload sent for approval and execution)", request), 24, _text_h(request))
 
     checks = verification_checks(rep)
     if checks:
@@ -578,16 +656,36 @@ def verification_dashboard(rep: IncidentReport) -> dict:
     items = [("post-action" if i in post else "baseline", by_id[i]) for i in ids if i in by_id]
     if items:
         grid.section("Baseline and post-action evidence", collapsed=True)
-        table = _evidence_table(items)
+        table = _evidence_table(items, _time_range(rep))
         grid.add(_text("Verification evidence: captured values", table), 24, _text_h(table, 38))
     return _dashboard(ver, f"{rep.incident_id} · Verification: {outcome}", grid, rep, "verification",
                       "Action, approval and recovery checks, generated by incident-agent from the saved report.")
+
+
+def _index_links(r: IncidentReport, rc: str, ver: str) -> str:
+    links = [f"[Root cause](/grafana/d/{rc})", f"[Verification](/grafana/d/{ver})"]
+    if r.proposals:
+        links.append(f"[Action API request](/grafana/d/{ver})")
+    comp = _component(r)
+    if comp:
+        tr = _time_range(r)
+        links.append(f"[Metrics]({explore_url(PROM, [{'expr': _template('error_rate', comp, 2)}, {'expr': _template('p95_latency_ms', comp, 2)}], tr)})")
+        start, end = (int(datetime.fromisoformat(tr[k].replace("Z", "+00:00")).timestamp() * 1e6) for k in ("from", "to"))
+        links.append(f"[Traces]({JAEGER_UI}/search?" + urlencode({"service": comp, "start": start, "end": end,
+                                                                  "lookback": "custom", "limit": 20}) + ")")
+        links.append(f"[Logs]({explore_url(LOGS, [_logs_target(comp, SEVERITY['WARN'])], tr)})")
+        caller = _service(r.incident.affected_service)
+        if caller and caller != comp:  # a stopped or silent component logs nothing; its caller shows the symptom
+            links.append(f"[Symptom metrics: {caller}]({explore_url(PROM, [{'expr': _template('error_rate', caller, 2)}], tr)})")
+            links.append(f"[Symptom logs: {caller}]({explore_url(LOGS, [_logs_target(caller, SEVERITY['WARN'])], tr)})")
+    return " · ".join(links)
 
 
 def index_dashboard(reports: list[IncidentReport]) -> dict:
     reports = sorted(reports, key=lambda r: r.incident.detection_time, reverse=True)
     rows = ["| Incident | Detected (UTC) | Status | Root cause | Remediation | Verification | Open |",
             "| --- | --- | --- | --- | --- | --- | --- |"]
+    # Open column: root cause, Action API request + verification, and the component's metrics/traces/logs in the incident window
     faults: dict[str, list[str]] = {}
     for r in reports:
         rc, ver = dashboard_uids(r.incident_id)
@@ -597,7 +695,7 @@ def index_dashboard(reports: list[IncidentReport]) -> dict:
             f" {code(r.proposals[0].action)} → {code(r.proposals[0].target_service)}" if r.proposals else "")
         verified = code(r.verification.result.value) if r.verification else "not run"
         rows.append(f"| **{md(r.incident_id, 60)}** | {_utc(r.incident.detection_time, '%m-%d %H:%M')} | {code(r.status.value)} | "
-                    f"{cause} | {action} | {verified} | [Root cause](/grafana/d/{rc}) · [Verification](/grafana/d/{ver}) |")
+                    f"{cause} | {action} | {verified} | {_index_links(r, rc, ver)} |")
         if d:
             faults.setdefault(d.suspected_component, []).append(
                 f"[{md(r.incident_id, 60)}](/grafana/d/{rc}) ({d.confidence_label.value}, {md(r.remediation_outcome or 'not requested')}, "

@@ -101,8 +101,28 @@ Terminal 2: the agent.
 
     cd incident-agent
     .venv/bin/python cli.py investigate --incident-id INC-002 --symptom "..." --model claude-sonnet-5-5 \
-        --respond --action-api --execute
+        --respond --action-api --execute --approval-ttl-s 300
     .venv/bin/python cli.py report INC-002 ; .venv/bin/python cli.py audit --server
+
+**Read-only flagd demo.** The operator toggles a failure flag by hand in the flagd UI
+(<http://localhost:8080/feature>). After 2–3 minutes, describe the symptom you observe and run a dry-run:
+
+    .venv/bin/python cli.py investigate --incident-id FLAG-1 --symptom "<symptom you observe>" \
+        --model claude-sonnet-5-5 --respond --action-api --grafana
+
+The agent never reads flag state: it diagnoses from telemetry alone. A restart needs process-level evidence, so a
+flag-driven fault is escalated with steps for a human instead of being restarted. Reset the flag in the flagd UI
+afterwards.
+
+**Grafana navigation.** `cli.py grafana sync`, or `--grafana` on a run, publishes the Incident Zero index:
+<http://localhost:8080/grafana/d/iz-index>. Each incident row links to:
+- the root cause;
+- the verification result;
+- the Action API request;
+- Grafana Explore for the component's metrics and logs, and Jaeger traces in the incident window;
+- the symptom metrics and logs of the calling service.
+
+Each cited evidence row on the root-cause page opens its own exact PromQL, log query or trace in Explore.
 
 Use a new `--incident-id` for every run, because each incident allows one action. Full walkthrough and scenarios
 A–J: [incident-agent/docs/END_TO_END_DEMO.md](incident-agent/docs/END_TO_END_DEMO.md). Every CLI command:
@@ -115,14 +135,20 @@ A–J: [incident-agent/docs/END_TO_END_DEMO.md](incident-agent/docs/END_TO_END_D
   - the operation is allowlisted and its arguments are valid;
   - the target is the diagnosed component;
   - the cited evidence exists;
+  - a restart needs process-level evidence about the target: stopped, unhealthy or restarting, stopped reporting, a
+    CPU or memory anomaly, or callers getting refused connections or failed name resolution;
   - confidence is not low;
   - a symptom is present at baseline.
 - **Live approval (`--execute`).** The Action API creates an approval bound to the SHA-256 of the exact action and
   prints a one-time code **only on its own console**. The on-call human checks the action against the agent's
-  summary and types `approve <CODE>` in the agent terminal. The server then verifies the code.
-  - Single use. The TTL defaults to 120 s (`--approval-ttl-s`), and 5 wrong attempts lock the approval.
+  summary and types, in the agent terminal, the word `approve` followed by that code: `approve XXXX-XXXX`. The
+  server then verifies the code.
+  - Case, angle brackets and quotes are ignored. Typing only `approve`, or only the code, prints a hint and asks
+    again, up to 3 attempts within the TTL.
+  - An empty line, `reject`, `no` or `deny` rejects immediately. So do a non-interactive session and a timeout.
+  - Single use. The TTL defaults to 120 s (`--approval-ttl-s`; use 300 for the live demo). 5 wrong codes lock the
+    approval on the server.
   - Any change to the action voids it.
-  - A non-interactive session, a timeout or any other answer is a rejection.
 - **Dry-run (default).** No server approval is opened. The agent shows its own digest-bound code, and the server
   only validates the payload (`POST /v1/actions/validate`).
 - One action per incident, idempotency keys, and uncertain outcomes are never retried. Recovery is measured from
@@ -227,7 +253,7 @@ Implementation and code commits must stay within the organiser-confirmed coding 
 | Source code and setup instructions | This README and [incident-agent/INTEGRATION.md](incident-agent/INTEGRATION.md) |
 | Human approval gate and kill switch | Implemented and covered by mocked tests; [see above](#how-the-approval-gate-works). Live demonstration pending. |
 | One-page architecture overview | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Incident reports | [incident-reports/](incident-reports/README.md): JSON plus Markdown. LIVE-1-BASELINE and LIVE-2-PAYMENT carry the team-defined schema version `team6.incident-report/1.0`; the two earlier runs predate the schema. |
+| Incident reports | [incident-reports/](incident-reports/README.md): JSON plus Markdown. LIVE-1-BASELINE, LIVE-2-PAYMENT and DEMO-PAY-4 carry the team-defined schema version `team6.incident-report/1.0`; the two earlier runs predate the schema. |
 | Evaluation note | [docs/EVALUATION_NOTE.md](docs/EVALUATION_NOTE.md). Practice-incident ground truth still to fill in. |
 | Team contribution and AI tools declaration | [docs/TEAM_FORM.md](docs/TEAM_FORM.md). Members must confirm their rows and declare AI tools. |
 | Final live demonstration | `TODO (team to fill)` |
@@ -241,7 +267,7 @@ The incident agent is implemented in `incident-agent/`:
   switch and an audit trail;
 - measured recovery verification and reports.
 
-180 mocked and in-process tests pass (24 October). Checkpoints count only once they are demonstrated live.
+220 mocked and in-process tests pass (24 October). Checkpoints count only once they are demonstrated live.
 
 | Guide | Contents |
 | --- | --- |

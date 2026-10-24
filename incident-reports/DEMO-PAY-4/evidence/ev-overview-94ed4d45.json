@@ -1,0 +1,130 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-overview-94ed4d45",
+    "tool": "overview",
+    "source": "prometheus",
+    "service": null,
+    "query": "{\"request_rate\": \"sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))\", \"error_rate\": \"(sum by (service_name) (rate(traces_span_metrics_calls_total{status_code=\\\"STATUS_CODE_ERROR\\\"}[5m])) or sum by (service_name) (rate(traces_span_metrics_calls_total[5m])) * 0) / sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))\", \"p95_ms\": \"histogram_quantile(0.95, sum by (le, service_name) (rate(traces_span_metrics_duration_milliseconds_bucket[5m])))\"}",
+    "window_start": "2026-10-24T06:14:53.530188Z",
+    "window_end": "2026-10-24T06:19:53.530188Z",
+    "collected_at": "2026-10-24T06:19:53.545276Z",
+    "value": {
+      "services": [
+        {
+          "service": "fraud-detection",
+          "request_rate": 0.004167,
+          "error_rate": 1.0,
+          "p95_ms": 15000.0
+        },
+        {
+          "service": "checkout",
+          "request_rate": 0.358339,
+          "error_rate": 0.209302,
+          "p95_ms": 45.619048
+        },
+        {
+          "service": "load-generator",
+          "request_rate": 1.766696,
+          "error_rate": 0.066038,
+          "p95_ms": 4348.387097
+        },
+        {
+          "service": "ad",
+          "request_rate": 0.775013,
+          "error_rate": 0.037634,
+          "p95_ms": 16.8
+        },
+        {
+          "service": "frontend",
+          "request_rate": 28.77548,
+          "error_rate": 0.008688,
+          "p95_ms": 41.915416
+        },
+        {
+          "service": "frontend-proxy",
+          "request_rate": 27.275455,
+          "error_rate": 0.004583,
+          "p95_ms": 41.995354
+        },
+        {
+          "service": "frontend-web",
+          "request_rate": 10.296005,
+          "error_rate": 0.002023,
+          "p95_ms": 195.678733
+        },
+        {
+          "service": "recommendation",
+          "request_rate": 2.487541,
+          "error_rate": 0.0,
+          "p95_ms": 34.873239
+        },
+        {
+          "service": "product-catalog",
+          "request_rate": 10.058501,
+          "error_rate": 0.0,
+          "p95_ms": 32.939929
+        },
+        {
+          "service": "shipping",
+          "request_rate": 0.333339,
+          "error_rate": 0.0,
+          "p95_ms": 9.0
+        },
+        {
+          "service": "cart",
+          "request_rate": 5.500092,
+          "error_rate": 0.0,
+          "p95_ms": 3.9125
+        },
+        {
+          "service": "quote",
+          "request_rate": 0.500008,
+          "error_rate": 0.0,
+          "p95_ms": 1.982609
+        },
+        {
+          "service": "currency",
+          "request_rate": 0.954183,
+          "error_rate": 0.0,
+          "p95_ms": 1.9
+        },
+        {
+          "service": "telemetry-docs",
+          "request_rate": 0.195837,
+          "error_rate": 0.0,
+          "p95_ms": 1.9
+        },
+        {
+          "service": "image-provider",
+          "request_rate": 3.870898,
+          "error_rate": 0.0,
+          "p95_ms": 1.9
+        },
+        {
+          "service": "email",
+          "request_rate": 0.0
+        },
+        {
+          "service": "accounting",
+          "request_rate": 0.0
+        },
+        {
+          "service": "payment",
+          "request_rate": 0.0
+        }
+      ],
+      "units": {
+        "request_rate": "req/s",
+        "error_rate": "ratio 0-1",
+        "p95_ms": "ms"
+      }
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-overview-94ed4d45.json",
+    "message": null
+  },
+  "raw": "{\"request_rate\": {\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"service_name\": \"frontend-web\"}, \"value\": [1792822793.53, \"10.296004933415558\"]}, {\"metric\": {\"service_name\": \"shipping\"}, \"value\": [1792822793.53, \"0.33333888898148306\"]}, {\"metric\": {\"service_name\": \"currency\"}, \"value\": [1792822793.53, \"0.9541825697094952\"]}, {\"metric\": {\"service_name\": \"frontend\"}, \"value\": [1792822793.53, \"28.775479591326523\"]}, {\"metric\": {\"service_name\": \"quote\"}, \"value\": [1792822793.53, \"0.5000083334722246\"]}, {\"metric\": {\"service_name\": \"flagd\"}, \"value\": [1792822793.53, \"16.512775212920218\"]}, {\"metric\": {\"service_name\": \"product-catalog\"}, \"value\": [1792822793.53, \"10.058500975016251\"]}, {\"metric\": {\"service_name\": \"checkout\"}, \"value\": [1792822793.53, \"0.3583393056550943\"]}, {\"metric\": {\"service_name\": \"recommendation\"}, \"value\": [1792822793.53, \"2.487541459024317\"]}, {\"metric\": {\"service_name\": \"email\"}, \"value\": [1792822793.53, \"0\"]}, {\"metric\": {\"service_name\": \"accounting\"}, \"value\": [1792822793.53, \"0\"]}, {\"metric\": {\"service_name\": \"cart\"}, \"value\": [1792822793.53, \"5.500091668194471\"]}, {\"metric\": {\"service_name\": \"fraud-detection\"}, \"value\": [1792822793.53, \"0.004166736112268538\"]}, {\"metric\": {\"service_name\": \"load-generator\"}, \"value\": [1792822793.53, \"1.7666961116018602\"]}, {\"metric\": {\"service_name\": \"telemetry-docs\"}, \"value\": [1792822793.53, \"0.19583659727662128\"]}, {\"metric\": {\"service_name\": \"ad\"}, \"value\": [1792822793.53, \"0.7750129168819481\"]}, {\"metric\": {\"service_name\": \"frontend-proxy\"}, \"value\": [1792822793.53, \"27.27545459090985\"]}, {\"metric\": {\"service_name\": \"payment\"}, \"value\": [1792822793.53, \"0\"]}, {\"metric\": {\"service_name\": \"image-provider\"}, \"value\": [1792822793.53, \"3.8708978482974716\"]}]}}, \"error_rate\": {\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"service_name\": \"frontend\"}, \"value\": [1792822793.534, \"0.008688097306689834\"]}, {\"metric\": {\"service_name\": \"accounting\"}, \"value\": [1792822793.534, \"NaN\"]}, {\"metric\": {\"service_name\": \"load-generator\"}, \"value\": [1792822793.534, \"0.0660377358490566\"]}, {\"metric\": {\"service_name\": \"ad\"}, \"value\": [1792822793.534, \"0.03763440860215054\"]}, {\"metric\": {\"service_name\": \"frontend-proxy\"}, \"value\": [1792822793.534, \"0.004582951420714941\"]}, {\"metric\": {\"service_name\": \"frontend-web\"}, \"value\": [1792822793.534, \"0.0020234722784297854\"]}, {\"metric\": {\"service_name\": \"checkout\"}, \"value\": [1792822793.534, \"0.20930232558139533\"]}, {\"metric\": {\"service_name\": \"fraud-detection\"}, \"value\": [1792822793.534, \"1\"]}, {\"metric\": {\"service_name\": \"flagd\"}, \"value\": [1792822793.534, \"0.0010093363613424174\"]}, {\"metric\": {\"service_name\": \"shipping\"}, \"value\": [1792822793.534, \"0\"]}, {\"metric\": {\"service_name\": \"currency\"}, \"value\": [1792822793.534, \"0\"]}, {\"metric\": {\"service_name\": \"quote\"}, \"value\": [1792822793.534, \"0\"]}, {\"metric\": {\"service_name\": \"product-catalog\"}, \"value\": [1792822793.534, \"0\"]}, {\"metric\": {\"service_name\": \"recommendation\"}, \"value\": [1792822793.534, \"0\"]}, {\"metric\": {\"service_name\": \"email\"}, \"value\": [1792822793.534, \"NaN\"]}, {\"metric\": {\"service_name\": \"cart\"}, \"value\": [1792822793.534, \"0\"]}, {\"metric\": {\"service_name\": \"telemetry-docs\"}, \"value\": [1792822793.534, \"0\"]}, {\"metric\": {\"service_name\": \"payment\"}, \"value\": [1792822793.534, \"NaN\"]}, {\"metric\": {\"service_name\": \"image-provider\"}, \"value\": [1792822793.534, \"0\"]}]}}, \"p95_ms\": {\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"service_name\": \"quote\"}, \"value\": [1792822793.537, \"1.982608695652174\"]}, {\"metric\": {\"service_name\": \"telemetry-docs\"}, \"value\": [1792822793.537, \"1.9\"]}, {\"metric\": {\"service_name\": \"payment\"}, \"value\": [1792822793.537, \"NaN\"]}, {\"metric\": {\"service_name\": \"image-provider\"}, \"value\": [1792822793.537, \"1.9\"]}, {\"metric\": {\"service_name\": \"frontend-web\"}, \"value\": [1792822793.537, \"195.67873303167417\"]}, {\"metric\": {\"service_name\": \"flagd\"}, \"value\": [1792822793.537, \"1.934163883894169\"]}, {\"metric\": {\"service_name\": \"cart\"}, \"value\": [1792822793.537, \"3.9124999999999996\"]}, {\"metric\": {\"service_name\": \"product-catalog\"}, \"value\": [1792822793.537, \"32.9399293286219\"]}, {\"metric\": {\"service_name\": \"checkout\"}, \"value\": [1792822793.537, \"45.61904761904763\"]}, {\"metric\": {\"service_name\": \"email\"}, \"value\": [1792822793.537, \"NaN\"]}, {\"metric\": {\"service_name\": \"accounting\"}, \"value\": [1792822793.537, \"NaN\"]}, {\"metric\": {\"service_name\": \"fraud-detection\"}, \"value\": [1792822793.537, \"15000\"]}, {\"metric\": {\"service_name\": \"shipping\"}, \"value\": [1792822793.537, \"8.999999999999998\"]}, {\"metric\": {\"service_name\": \"frontend\"}, \"value\": [1792822793.537, \"41.915416098226444\"]}, {\"metric\": {\"service_name\": \"recommendation\"}, \"value\": [1792822793.537, \"34.87323943661966\"]}, {\"metric\": {\"service_name\": \"load-generator\"}, \"value\": [1792822793.537, \"4348.387096774193\"]}, {\"metric\": {\"service_name\": \"ad\"}, \"value\": [1792822793.537, \"16.79999999999997\"]}, {\"metric\": {\"service_name\": \"frontend-proxy\"}, \"value\": [1792822793.537, \"41.99535423925664\"]}, {\"metric\": {\"service_name\": \"currency\"}, \"value\": [1792822793.537, \"1.9\"]}]}}}"
+}

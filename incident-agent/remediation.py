@@ -21,6 +21,9 @@ RULES
 - Choose only an operation listed in the Action API catalog below, with a target from its allowed_targets and arguments
   that match its parameter schema exactly. Never describe shell commands, scripts, URLs or operations not in the catalog.
 - Target the root-cause component from the diagnosis, not a caller that only shows the symptom.
+- restart_service is allowed only with process-level evidence for the target (container stopped/unhealthy/
+  restarting, stopped reporting, CPU or memory anomaly, callers getting connection refused / no such host). Errors
+  returned by a running process, latency and configuration or feature-flag faults are not fixed by a restart: escalate.
 - Pick an operation only if it plausibly addresses the diagnosed cause. If none does, or evidence is weak or conflicting,
   call `escalate` with concrete steps for a human. Escalating is better than a wrong or risky action.
 - Cite evidence_id values from the evidence list that support acting on that target. Never invent IDs.

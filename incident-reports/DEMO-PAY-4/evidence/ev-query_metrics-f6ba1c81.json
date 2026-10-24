@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-f6ba1c81",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "grafana",
+    "query": "deriv({__name__=~\"container_memory_usage_total.*\",container_name=\"grafana\"}[5m])",
+    "window_start": "2026-10-24T06:15:07.988935Z",
+    "window_end": "2026-10-24T06:20:07.988935Z",
+    "collected_at": "2026-10-24T06:20:07.990701Z",
+    "value": {
+      "metric": "container_memory_trend",
+      "unit": "bytes/s (positive = growing)",
+      "value": -157057.011353
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-f6ba1c81.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"container_name\": \"grafana\", \"host_name\": \"docker-desktop\"}, \"value\": [1792822807.988, \"-157057.01135316296\"]}]}}"
+}

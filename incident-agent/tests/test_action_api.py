@@ -591,3 +591,18 @@ def test_container_state_tool_filters_and_reports_unavailable(tmp_path, monkeypa
         def system_state(self):
             raise httpx.ConnectError("down")
     assert state_tool.make_state_tool(Down())(None).status.value == "unavailable"
+
+
+def test_demo_pay_4_regression_approve_without_code_then_code(api, tmp_path):
+    """The operator first types APPROVE (no code), is re-prompted, then types the console code: action runs."""
+    start, console, _ = api
+    tel, rep, reg = silent_payment(tmp_path)
+    svc, _, client = start(DockerExecutor(PROJECT, run=FakeDocker(on_restart=lambda: setattr(tel, "phase", "after")), docker="docker"))
+    answers = iter(["APPROVE", None])
+
+    def human(prompts):
+        a = next(answers)
+        return a if a is not None else f"approve <{console.code()}>"
+    out = respond(rep, LIVE, response_deps(tmp_path, tel, reg, Planner(plan(target="payment")), client=client,
+                                           catalog=client.catalog(), answer=human))
+    assert out.remediation_outcome == "VERIFIED_RECOVERY" and svc.list_actions().actions[0].status == "succeeded"

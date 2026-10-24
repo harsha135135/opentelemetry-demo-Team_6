@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-da279ed3",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "fraud-detection",
+    "query": "{__name__=~\"container_memory_(usage_total|percent|rss).*\",container_name=\"fraud-detection\"}",
+    "window_start": "2026-10-24T06:14:59.650271Z",
+    "window_end": "2026-10-24T06:19:59.650271Z",
+    "collected_at": "2026-10-24T06:19:59.651755Z",
+    "value": {
+      "metric": "container_memory",
+      "unit": "bytes/percent"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-da279ed3.json",
+    "message": "no data in window (no traffic, no errors recorded, or metric not exported)"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}"
+}

@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-c7b1e54c",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "payment",
+    "query": "deriv({__name__=~\"container_memory_usage_total.*\",container_name=\"payment\"}[5m])",
+    "window_start": "2026-10-24T06:14:57.165596Z",
+    "window_end": "2026-10-24T06:19:57.165596Z",
+    "collected_at": "2026-10-24T06:19:57.167121Z",
+    "value": {
+      "metric": "container_memory_trend",
+      "unit": "bytes/s (positive = growing)"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-c7b1e54c.json",
+    "message": "no data in window (no traffic, no errors recorded, or metric not exported)"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}"
+}

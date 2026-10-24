@@ -206,3 +206,75 @@ def test_cli_export_writes_index_and_both_dashboards_per_report(tmp_path):
     rc, ver = gd.dashboard_uids(rep.incident_id)
     assert sorted(p.name for p in (tmp_path / "out").iterdir()) == sorted([f"{gd.INDEX_UID}.json", f"{rc}.json", f"{ver}.json"])
     assert gd.load_reports(runs)[1] and "BROKEN" in gd.load_reports(runs)[1][0]
+
+
+# ---- navigation hardening: Explore deep links, Action API request, trace details
+from urllib.parse import parse_qs, urlparse
+
+
+def _pane(url):
+    q = parse_qs(urlparse(url).query)
+    return json.loads(q["panes"][0])["iz"]
+
+
+def test_explore_url_carries_exact_query_and_incident_range(tmp_path):
+    rep = verified(tmp_path)
+    tr = gd._time_range(rep)
+    url = gd.explore_url(gd.PROM, [{"expr": 'sum(rate(x{service_name="payment"}[2m]))'}], tr)
+    pane = _pane(url)
+    assert url.startswith("/grafana/explore?") and pane["datasource"] == "webstore-metrics"
+    assert pane["queries"][0]["expr"] == 'sum(rate(x{service_name="payment"}[2m]))'
+    assert int(pane["range"]["from"]) < int(pane["range"]["to"])
+
+
+def test_evidence_rows_open_their_own_metric_log_and_trace_queries(tmp_path):
+    rep = verified(tmp_path)
+    body = text(gd.root_cause_dashboard(rep))
+    links = re.findall(r"\[Explore [^\]]*\]\((/grafana/explore\?[^)]*)\)", body)
+    sources = {_pane(u)["datasource"] for u in links}
+    assert {"webstore-logs"} <= sources  # the cited payment logs open in Explore
+    log_pane = next(_pane(u) for u in links if _pane(u)["datasource"] == "webstore-logs")
+    assert "resource.service.name = 'payment'" in log_pane["queries"][0]["query"]
+
+
+def test_verification_page_shows_exact_action_api_request(tmp_path):
+    from action_api_models import ActionPayload
+    rep = verified(tmp_path)
+    body = text(gd.verification_dashboard(rep))
+    payload = json.loads(re.search(r"```json\n(.*?)\n```", body, re.S).group(1))
+    ActionPayload.model_validate(payload)
+    assert payload["operation"] == "restart_service" and payload["target"] == "payment"
+    assert "valid against `schemas/action_api/ActionPayload.schema.json`" in body
+
+
+def test_action_request_cannot_break_out_of_the_code_block(tmp_path):
+    rep = verified(tmp_path)
+    p = rep.proposals[0].model_copy(update={"reason": "evil ``` [link](http://x) <script>alert(1)</script> reason"})
+    body = gd.action_request_markdown(rep.model_copy(update={"proposals": [p]}))
+    inner = re.search(r"```json\n(.*?)\n```", body, re.S).group(1)
+    assert "`" not in inner and body.count("```") == 2
+
+
+def test_index_row_links_to_every_view(tmp_path):
+    rep = verified(tmp_path)
+    body = text(gd.index_dashboard([rep]))
+    for label in ("[Root cause]", "[Verification]", "[Action API request]", "[Metrics]", "[Traces]", "[Logs]"):
+        assert label in body
+
+
+def test_trace_summary_names_slowest_trace_and_first_error():
+    ev = Evidence(evidence_id="ev-t-1", status=ToolStatus.OK, source="jaeger", service="checkout",
+                  event_time_window=TimeWindow(start_time=NOW - timedelta(minutes=5), end_time=NOW), tool="search_traces",
+                  query="q", observed_value={"value": {"traces_scanned": 3, "traces": [
+                      {"trace_id": "a" * 32, "root": "frontend: POST /api/checkout", "duration_ms": 4100.0,
+                       "error_spans": [{"error_message": "dial payment:50051: connection refused"}]},
+                      {"trace_id": "b" * 32, "root": "frontend: GET /", "duration_ms": 12.0, "error_spans": []}]}})
+    captured = gd._captured(ev)
+    assert "slowest 4100" in captured and "frontend: POST /api/checkout" in captured and "connection refused" in captured
+
+
+def test_index_links_symptom_logs_of_the_caller_when_component_differs(tmp_path):
+    rep = verified(tmp_path)  # diagnosed payment, affected service checkout
+    body = text(gd.index_dashboard([rep]))
+    url = re.search(r"\[Symptom logs: checkout\]\((/grafana/explore\?[^)]*)\)", body).group(1)
+    assert "resource.service.name = 'checkout'" in _pane(url)["queries"][0]["query"]

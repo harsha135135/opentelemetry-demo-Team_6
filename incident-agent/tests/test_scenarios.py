@@ -29,8 +29,9 @@ def plan(op="restart_service", target="payment", ids=None, **kw):
 def payment_fault(tmp, after_err=0.0):
     tools = {
         ("overview", None): ("ok", {"services": [{"service": "checkout", "error_rate": 0.4}, {"service": "payment", "error_rate": 0.6}]}, {}),
-        ("search_traces", "checkout"): ("ok", {"error_origin_counts": {"payment": 9}, "edges": {"checkout -> payment": 9}}, {}),
-        ("query_logs", "payment"): ("ok", {"lines": [{"body": "payment request failed: invalid token"}]}, {}),
+        ("search_traces", "checkout"): ("ok", {"error_origin_counts": {"payment": 9}, "edges": {"checkout -> payment": 9},
+                                               "traces": [{"error_spans": [{"error_message": "dial payment:50051: connection refused"}]}]}, {}),
+        ("query_logs", "payment"): ("ok", {"lines": [{"body": "payment process crashed and is not accepting connections"}]}, {}),
     }
     before = {("payment", "error_rate"): 0.6, ("payment", "request_rate"): 2.0, ("checkout", "error_rate"): 0.4,
               ("checkout", "request_rate"): 2.0, ("payment", "container_last_seen_age_s"): 10.0}
@@ -341,3 +342,21 @@ def test_cancellation_during_verification_reports_unverified(tmp_path):
     deps.sleep = interrupt
     out = respond(rep, FAST, deps)
     assert out.remediation_outcome == "UNVERIFIED" and "after dispatch" in out.escalation_reason
+
+
+# ---- restart needs process-level evidence (flag/application faults escalate)
+def test_application_error_without_process_evidence_escalates_instead_of_restarting(tmp_path):
+    tools = {("search_traces", "checkout"): ("ok", {"error_origin_counts": {"payment": 9},
+                                                    "traces": [{"error_spans": [{"error_message": "payment: Invalid token"}]}]}, {}),
+             ("query_logs", "payment"): ("ok", {"lines": [{"body": "payment request failed: invalid token"}]}, {})}
+    before = {("payment", "error_rate"): 0.6, ("payment", "request_rate"): 2.0, ("checkout", "error_rate"): 0.4,
+              ("checkout", "request_rate"): 2.0}
+    tel = Telemetry(tmp_path, tools, before)
+    rep, reg = diagnosed(tmp_path, tel, "payment", "payment rejects charges with an application error",
+                         [("search_traces", {"service": "checkout"})], [("query_logs", {"service": "payment"})],
+                         ["search_traces", "query_logs"], service="checkout")
+    planner = Planner(plan())
+    client = Client(tel)
+    out = respond(rep, FAST, response_deps(tmp_path, tel, reg, planner, client=client, answer=approve_shown_code))
+    assert out.remediation_outcome == "ESCALATED" and out.approval is None and client.calls == []
+    assert "process-level evidence" in planner.calls[1] and "process-level evidence" in out.escalation_reason

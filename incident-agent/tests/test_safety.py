@@ -121,7 +121,7 @@ def _diag(component="cart", conf=ConfidenceLabel.MEDIUM):
 
 
 def _evidence(tmp_path):
-    tel = Telemetry(tmp_path, {("search_traces", "cart"): ("ok", {"origin": "cart"}, {})})
+    tel = Telemetry(tmp_path, {("search_traces", "cart"): ("ok", {"origin": "cart", "error_message": "cart: connection refused"}, {})})
     from integration import to_evidence
     return [to_evidence(tel("search_traces", {"service": "cart"}))]
 
@@ -315,3 +315,80 @@ def test_availability_bound_cannot_be_tighter_than_reporting_interval(tmp_path):
                  verification_checks=[VerificationCheck(service="cart", metric="container_last_seen_age_s", max_value=30.0)])
     d = evaluate(plan, catalog=MOCK_CATALOG, diagnosis=_diag(), evidence=ev, inventory=SERVICES, incident_id="I", affected_service=None)
     assert not d.allowed and any("outside [90.0, 600.0]" in e for e in d.errors)
+
+
+# ---- approval prompt UX (DEMO-PAY-4: the operator typed "APPROVE" without the code)
+def _answers(*seq):
+    it = iter(seq)
+    return lambda _prompt: next(it)
+
+
+def _server(answers, clock=None):
+    from safety import request_server_approval
+    shown = []
+    a, code = request_server_approval("summary", "d" * 64, "apr-0123456789abcdef", approver="h", ttl_s=60,
+                                      input_fn=answers, interactive=True, print_fn=shown.append,
+                                      clock=clock or (lambda: 0.0))
+    return a.decision, code, shown
+
+
+def test_missing_code_reprompts_with_hint_then_approves():
+    decision, code, shown = _server(_answers("APPROVE", "approve qx7e-fp9n"))
+    assert decision == "approved" and code == "QX7E-FP9N"
+    assert any("the code is missing" in s for s in shown)
+
+
+@pytest.mark.parametrize("typed, expected", [("approve <QX7E-FP9N>", "QX7E-FP9N"), ("  Approve   'QX7EFP9N' ", "QX7EFP9N")])
+def test_brackets_quotes_and_case_are_forgiven(typed, expected):
+    assert _server(_answers(typed))[:2] == ("approved", expected)
+
+
+def test_code_alone_three_times_rejects():
+    decision, code, shown = _server(_answers("QX7E-FP9N", "QX7E-FP9N", "QX7E-FP9N"))
+    assert decision == "rejected" and code is None and any("type the word approve before the code" in s for s in shown)
+
+
+@pytest.mark.parametrize("typed", ["", "reject", "No", "deny"])
+def test_explicit_or_empty_rejects_without_reprompt(typed):
+    calls = []
+
+    def answer(_p):
+        calls.append(1)
+        return typed
+    assert _server(answer)[0] == "rejected" and len(calls) == 1
+
+
+def test_reprompts_cannot_extend_the_ttl():
+    t = iter([0.0, 10.0, 70.0])
+    assert _server(_answers("APPROVE", "approve QX7E-FP9N"), clock=lambda: next(t))[0] == "expired"
+
+
+def test_malformed_server_code_reprompts():
+    decision, _, shown = _server(_answers("approve QX7", "approve QX7E-FP9N"))
+    assert decision == "approved" and any("codes look like XXXX-XXXX" in s for s in shown)
+
+
+def test_local_wrong_code_reprompts_then_correct_code_approves():
+    digest = "abcdef0123456789" * 4
+    shown = []
+    a = request_approval("s", digest, approver="h", ttl_s=60, input_fn=_answers("approve 00000000", "approve ABCDEF01"),
+                         interactive=True, print_fn=shown.append, clock=lambda: 0.0)
+    assert a.decision == "approved" and any("does not match" in s for s in shown)
+
+
+
+@pytest.mark.parametrize("tool, value, expected", [
+    ("container_state", {"services": [{"service": "cart", "state": "exited"}]}, True),
+    ("container_state", {"services": [{"service": "cart", "state": "running", "health": "unhealthy"}]}, True),
+    ("container_state", {"services": [{"service": "cart", "state": "running", "restart_count": 0}]}, False),
+    ("resource_overview", {"flagged": [{"container": "cart", "kind": "silent"}]}, True),
+    ("resource_overview", {"flagged": [{"container": "ad"}]}, False),
+    ("search_traces", {"error_message": "cart: lookup cart on 127.0.0.11:53: no such host"}, True),
+    ("search_traces", {"error_message": "cart: rpc error: code = Unavailable desc = timeout"}, False),
+    ("query_logs", {"lines": [{"body": "cart request failed: invalid token"}]}, False),
+])
+def test_process_level_evidence_signals(tmp_path, tool, value, expected):
+    from integration import to_evidence
+    from safety import process_level_evidence
+    ev = to_evidence(Telemetry(tmp_path, {(tool, "cart"): ("ok", value, {})})(tool, {"service": "cart"}))
+    assert process_level_evidence("cart", [ev]) is expected

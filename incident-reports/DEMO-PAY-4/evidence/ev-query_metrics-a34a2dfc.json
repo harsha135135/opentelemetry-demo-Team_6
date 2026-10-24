@@ -1,0 +1,29 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-a34a2dfc",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "opensearch",
+    "query": "{__name__=~\"container_cpu_utilization.*\",container_name=\"opensearch\"}",
+    "window_start": "2026-10-24T06:15:08.026698Z",
+    "window_end": "2026-10-24T06:20:08.026698Z",
+    "collected_at": "2026-10-24T06:20:08.027725Z",
+    "value": {
+      "metric": "container_cpu",
+      "unit": "ratio/percent",
+      "series": [
+        {
+          "__name__": "container_cpu_utilization_ratio",
+          "value": 0.754752
+        }
+      ]
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-a34a2dfc.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"__name__\": \"container_cpu_utilization_ratio\", \"container_name\": \"opensearch\", \"host_name\": \"docker-desktop\"}, \"value\": [1792822808.026, \"0.7547520197889954\"]}]}}"
+}

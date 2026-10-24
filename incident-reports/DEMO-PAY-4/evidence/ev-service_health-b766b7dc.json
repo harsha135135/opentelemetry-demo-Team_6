@@ -1,0 +1,31 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-service_health-b766b7dc",
+    "tool": "service_health",
+    "source": "derived",
+    "service": "fraud-detection",
+    "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+    "window_start": "2026-10-24T06:14:59.637437Z",
+    "window_end": "2026-10-24T06:19:59.637437Z",
+    "collected_at": "2026-10-24T06:19:59.657729Z",
+    "value": {
+      "summary": {
+        "request_rate": 0.004167,
+        "error_rate": 1.0,
+        "p95_latency_ms": 15000.0,
+        "container_cpu": "empty",
+        "container_memory": "empty",
+        "container_memory_trend": "empty",
+        "container_uptime": "empty",
+        "container_last_seen_age_s": "empty"
+      }
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-service_health-b766b7dc.json",
+    "message": null
+  },
+  "raw": "{\"sub_evidence\": [\"ev-query_metrics-659f181c\", \"ev-query_metrics-8ae7d6e5\", \"ev-query_metrics-d23dae31\", \"ev-query_metrics-9e54f1f7\", \"ev-query_metrics-da279ed3\", \"ev-query_metrics-c2af1b85\", \"ev-query_metrics-7f3fc5e2\", \"ev-query_metrics-98cb132c\"]}"
+}

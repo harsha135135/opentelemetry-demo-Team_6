@@ -5,16 +5,17 @@ live read-only runs and live remediation separate. Results in this note come fro
 `incident-agent/runs/`. Where the repository doesn't prove a fact, the note says so.
 
 > **Where the reports are.** `incident-agent/.gitignore` excludes `runs/`, so the agent's original output
-> (`incident-agent/runs/<ID>/<ID>_report.{md,json}`) stays on the demo laptop. The four 24 October live runs are
-> copied, with their evidence, into [`incident-reports/`](../incident-reports/README.md), which is meant to be
-> committed. SMOKE-001 and PRACTICE-1 to PRACTICE-8 exist only under `runs/` unless they're copied too.
+> (`incident-agent/runs/<ID>/<ID>_report.{md,json}`) stays on the demo laptop. All five 24 October runs (the four
+> `LIVE-*` runs and DEMO-PAY-4) are copied, with their evidence, into
+> [`incident-reports/`](../incident-reports/README.md), which is meant to be committed. SMOKE-001 and PRACTICE-1 to
+> PRACTICE-8 exist only under `runs/`.
 
 ## 1. Mocked and in-process tests
 
 | Item | Value |
 | --- | --- |
 | Command | `cd incident-agent && .venv/bin/python -m pytest -q tests` |
-| Result | **180 passed**, per the integrating session's latest run on 24 Oct 2026. Re-run and update this line before submission. |
+| Result | **220 passed** on 24 Oct 2026 (after the CPU-metric fix, the restart guard and the Grafana navigation). Re-run and update this line before submission. |
 | Files | `test_orchestration.py`, `test_safety.py`, `test_scenarios.py`, `test_action_api.py`, `test_telemetry.py`, `test_report.py` |
 | Scope | Budgets and loop termination; evidence validation and the bounded correction; policy refusals; approval rejection, expiry, replay and payload mismatch; the kill switch; idempotency; unknown outcomes; verification outcomes; prompt-injection text in telemetry. Action API scenarios A–J run against a real HTTP server on 127.0.0.1 with a fake Docker runner, plus a test that the schemas and OpenAPI file don't drift from the models. |
 
@@ -28,7 +29,7 @@ The reports don't record the model ID or a code commit.
 
 - Times are UTC.
 - "Calls" is model calls / tool calls / wall time, from each report's `Finished:` line.
-- Only LIVE-2-PAYMENT proposed an action. No run was approved or executed one.
+- LIVE-2-PAYMENT and DEMO-PAY-4 proposed an action. No run approved or executed one.
 - For the 24 October runs, the ground truth was recorded by the integrating session in
   [`incident-reports/README.md`](../incident-reports/README.md), not by the reports. Member 5 still needs to confirm
   those verdicts.
@@ -48,6 +49,7 @@ The reports don't record the model ID or a code commit.
 | LIVE-A-HEALTHY-1 | 24 Oct 05:21 | Routine check: the shop may be slow; verify health | **Abstained.** All telemetry was empty: fleet overview, resources, and frontend traces, logs and health. | `INCONCLUSIVE` | `ESCALATED` (dry-run) | 3 / 6 / 7.9 s | Per `incident-reports/README.md`: stack started without the observability layer, so the collector exported to `debug` only. **Correct abstention** (to confirm). |
 | LIVE-1-BASELINE | 24 Oct 05:50 | Load generator reports about 20% of requests failing; find the cause | `load-generator` (low). Its `user_ask_agent` task POSTs to `http://agent:8010`, which doesn't resolve; a separate ~5% `ad` GetAds UNAVAILABLE. Unexamined anomalies: opensearch, astronomy-db. | `ESCALATED` | `ESCALATED` (dry-run, low confidence) | 6 / 12 / 28.9 s | Per `incident-reports/README.md`: no injected fault; the optional `agent` service isn't part of `make start`. **Plausible; not acting was correct** (to confirm). |
 | LIVE-2-PAYMENT | 24 Oct 05:54 | Users report checkout failing; orders are not completing | `payment` (high). The container exited; checkout's Charge calls fail with a DNS lookup error for `payment`, and the frontend returns 500 on `/api/checkout`. Proposed `restart_service payment {grace_period_seconds: 10}`, which **passed policy**. | `REJECTED` | `ESCALATED`: approval auto-rejected in a non-interactive session, nothing ran | 5 / 9 / 17.9 s | Per `incident-reports/README.md`: `docker stop payment`. **Diagnosis correct** (to confirm). |
+| [DEMO-PAY-4](../incident-reports/DEMO-PAY-4/DEMO-PAY-4_report.md) | 24 Oct 06:20 | Users report checkout failing | `payment` (high). The container exited; checkout's Charge calls fail with "no route to host", so PlaceOrder fails. Proposed `restart_service payment`, which **passed policy**. **Live mode:** the server opened an approval and printed the code. | `REJECTED` | `ESCALATED`: the human's answer was rejected, nothing ran | 6 / 12 / 22.5 s | Per the integrating session: `payment` still stopped from LIVE-2-PAYMENT. **Diagnosis correct** (to confirm). |
 
 **CP2 tally** (correct diagnoses / mentor-selected incidents tested): `TODO (team to fill)`. No report states that
 its incident was mentor-selected. SMOKE-001 explicitly says it was not.
@@ -63,14 +65,21 @@ checked.
 | `cp0_check.txt` (23 Oct 10:44 UTC) | Prometheus, Jaeger and OpenSearch answered `HTTP 200 OK`; 18 services seen; one `ok` capture each from `overview`, `query_logs`, `search_traces` and `query_metrics` in `cp0_evidence/`. Local CP0 evidence; mentor sign-off is `TODO (team to fill)`. |
 | `check_ad/`, `check_ad2/` | Ad-hoc tool captures (`query_metrics`, `search_traces`) with no report. Not counted as runs. |
 | `audit.jsonl` | Five `finished` events, all `ESCALATED` in dry-run: LIVE-STACKDOWN-1 at 04:53:59 and 04:54:46, LIVE-A-HEALTHY-1, LIVE-1-BASELINE and LIVE-2-PAYMENT. LIVE-2-PAYMENT also has one `approval` event, `rejected` with approver "none (non-interactive session)". The first LIVE-STACKDOWN-1 run reused the incident ID, so only the second run's report remains. |
-| `action_api/audit.jsonl` | One `validated` event for **LIVE-PLAN-1** at 05:21:34: `restart_service` on `payment`. This is a dry-run `POST /v1/actions/validate` only. No approval was opened, nothing ran, and there is no report. |
+| `action_api/audit.jsonl` | A `validated` event for **LIVE-PLAN-1** at 05:21:34: `restart_service` on `payment`, a dry-run `POST /v1/actions/validate` only, with no report. Then `approval_created` for DEMO-PAY-4 at 06:20:23; no `action_accepted` follows. |
 
 ## 3. Human-approved live remediation: not yet done
 
-LIVE-2-PAYMENT went furthest. The diagnosis was correct, and the `restart_service payment` proposal passed policy.
-The approval prompt then rejected it automatically, because the shell wasn't interactive: the designed behaviour.
-No report contains a verification. Neither audit log contains `approval_created`, `dispatch_intent` or
-`action_accepted`. The end-to-end flow (scenario B in
+DEMO-PAY-4 went furthest. It ran in live mode with the server approval flow:
+- The diagnosis was correct, and the `restart_service payment` proposal passed policy.
+- The server recorded `approval_created` and printed the one-time code on its console.
+- The human's answer was rejected and nothing ran. The integrating session reports the operator typed `APPROVE`
+  without the code. The typed answer is deliberately not logged.
+- The prompt was then changed: an answer missing the code now gets a hint and a re-prompt (up to 3 attempts within
+  the TTL) instead of an immediate rejection.
+
+Earlier, LIVE-2-PAYMENT reached the same point in a non-interactive shell, which rejects automatically. No report
+contains a verification, and neither audit log contains `dispatch_intent` or `action_accepted`. The end-to-end flow
+(scenario B in
 [`END_TO_END_DEMO.md`](../incident-agent/docs/END_TO_END_DEMO.md): practice fault, diagnosis, approval code typed by
 a human, `docker` executor, measured recovery) is **not demonstrated yet**.
 
@@ -119,9 +128,26 @@ a human, `docker` executor, measured recovery) is **not demonstrated yet**.
    nothing was planned. It also left two flagged containers (opensearch, astronomy-db) unexamined within the 12-call
    budget.
 
-## 5. Limits of this evaluation
+## 5. Defects found in hardening (24 Oct)
 
-- Confidence labels are model-reported and **not calibrated**. Thirteen runs are too few to measure accuracy.
+1. **CPU under-reported.** The live measurements for `ad` were:
+
+   | Source | `ad` CPU |
+   | --- | --- |
+   | `docker stats` | 404.7% |
+   | `rate(container_cpu_usage_nanoseconds_total)` | 399.8% |
+   | `container_cpu_utilization_ratio` | 47.5% |
+
+   So the ratio we used is a lifetime average in this setup. Below the 100% flag threshold, a CPU spike was missed.
+   Fixed by switching to the CPU-time rate. Neha found this first on `feature/neha2`.
+2. **Restart proposed for faults it cannot fix.** A restart is now refused without process-level evidence about the
+   target, so application or flag-driven errors escalate.
+3. **Approval prompt.** DEMO-PAY-4: the operator typed `APPROVE` without the code. The prompt now explains where the
+   code is and asks again, up to 3 times within the TTL.
+
+## 6. Limits of this evaluation
+
+- Confidence labels are model-reported and **not calibrated**. Fourteen runs are too few to measure accuracy.
 - Telemetry tools are live-only, so a run can't look at a past incident window. Windows are at most 60 minutes.
   `container_state` always reads the present state, so the reports flag it as queried outside the incident window.
 - Container silence is detected only after 150 s without samples, and within a 60-minute lookback. A container that
@@ -131,6 +157,6 @@ a human, `docker` executor, measured recovery) is **not demonstrated yet**.
   checks can't judge those containers from metrics; `container_state` still sees them.
 - New reports are validated against the team-defined schema
   [`incident-agent/schemas/incident_report.schema.json`](../incident-agent/schemas/incident_report.schema.json).
-  LIVE-1-BASELINE and LIVE-2-PAYMENT carry `schema_version` `team6.incident-report/1.0`. LIVE-STACKDOWN-1,
+  LIVE-1-BASELINE, LIVE-2-PAYMENT and DEMO-PAY-4 carry `schema_version` `team6.incident-report/1.0`. LIVE-STACKDOWN-1,
   LIVE-A-HEALTHY-1, SMOKE-001 and PRACTICE-1 to PRACTICE-8 were written before the schema was added, and weren't
   checked against it.

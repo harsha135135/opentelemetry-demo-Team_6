@@ -56,7 +56,7 @@ cd incident-agent
 | C | Dependency latency | An authorised practice incident with latency | The planner escalates: a restart would not fix it. No approval. |
 | D | Insufficient evidence | Telemetry missing or contradictory | `INCONCLUSIVE`, abstains |
 | E | Malicious telemetry | Mocked (`tests/test_action_api.py::test_E_*`) | Injected text cannot widen the target or approve. The API rejects `approved: true` with 400. |
-| F | Approval rejected | Type anything other than `approve <CODE>` | `REJECTED`; the server approval is marked `rejected`; nothing runs |
+| F | Approval rejected | Press Enter or type `reject` (malformed answers are re-prompted, at most 3 attempts) | `REJECTED`; the server approval is marked `rejected`; nothing runs |
 | G | Approval expired | Wait longer than `--approval-ttl-s` | `expired`; nothing runs |
 | H | Kill switch | `python cli.py kill-switch on` | Blocked before approval; the server also returns 423 |
 | I | Action API unavailable | Stop terminal 1 | `ESCALATED`, "Action API unavailable" |
@@ -78,7 +78,7 @@ sleep 180
 .venv/bin/python cli.py investigate --incident-id DEMO-B-$(date +%H%M) \
     --symptom "Checkout fails for users; payments not completing" --service checkout \
     --model claude-sonnet-5-5 --respond --action-api --execute \
-    --settle-s 120 --interval-s 30 --samples 2
+    --settle-s 120 --interval-s 30 --samples 2 --approval-ttl-s 300
 ```
 
 1. The agent investigates live telemetry: overview, resource_overview (payment silent), traces (checkout →
@@ -86,7 +86,9 @@ sleep 180
 2. It prints the approval summary: diagnosis, cited evidence IDs, `restart_service payment {grace_period_seconds: 10}`,
    risks, verification criteria and baseline.
 3. **Terminal 1** prints `ONE-TIME APPROVAL CODE: XXXX-XXXX`. Check that the action matches, then type
-   `approve XXXX-XXXX` in terminal 2.
+   `approve XXXX-XXXX` in terminal 2, **with the word `approve` and the code**. Typing only `APPROVE`, or only the
+   code, gets a hint and a retry (3 attempts within the TTL). An empty line or `reject` rejects. `--approval-ttl-s 300`
+   gives you 5 minutes to compare the two terminals.
 4. The API restarts `payment`. The agent waits about 2.5 min, re-queries Prometheus, traces and logs, and prints
    the outcome.
 

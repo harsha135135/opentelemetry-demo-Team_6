@@ -1,0 +1,33 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-3ef26e36",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "grafana",
+    "query": "{__name__=~\"container_memory_(usage_total|percent|rss).*\",container_name=\"grafana\"}",
+    "window_start": "2026-10-24T06:15:07.986627Z",
+    "window_end": "2026-10-24T06:20:07.986627Z",
+    "collected_at": "2026-10-24T06:20:07.988600Z",
+    "value": {
+      "metric": "container_memory",
+      "unit": "bytes/percent",
+      "series": [
+        {
+          "__name__": "container_memory_percent_ratio",
+          "value": 69.977344
+        },
+        {
+          "__name__": "container_memory_usage_total_bytes",
+          "value": 366882816.0
+        }
+      ]
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-3ef26e36.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"__name__\": \"container_memory_percent_ratio\", \"container_name\": \"grafana\", \"host_name\": \"docker-desktop\"}, \"value\": [1792822807.986, \"69.97734375\"]}, {\"metric\": {\"__name__\": \"container_memory_usage_total_bytes\", \"container_name\": \"grafana\", \"host_name\": \"docker-desktop\"}, \"value\": [1792822807.986, \"366882816\"]}]}}"
+}

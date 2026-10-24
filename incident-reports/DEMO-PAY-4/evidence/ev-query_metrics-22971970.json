@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-22971970",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "kafka",
+    "query": "{__name__=~\"container_uptime.*\",container_name=\"kafka\"}",
+    "window_start": "2026-10-24T06:15:08.011455Z",
+    "window_end": "2026-10-24T06:20:08.011455Z",
+    "collected_at": "2026-10-24T06:20:08.012741Z",
+    "value": {
+      "metric": "container_uptime",
+      "unit": "s",
+      "value": 1978.223711
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-22971970.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"__name__\": \"container_uptime_seconds\", \"container_name\": \"kafka\", \"host_name\": \"docker-desktop\"}, \"value\": [1792822808.011, \"1978.223711166\"]}]}}"
+}

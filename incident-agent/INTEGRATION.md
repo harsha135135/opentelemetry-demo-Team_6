@@ -30,7 +30,7 @@ See `ACTION_API.md`, `docs/ACTION_API_ARCHITECTURE.md` and `docs/END_TO_END_DEMO
     .venv/bin/python cli.py action-api serve [--executor docker]   # separate terminal; approval codes print here
     .venv/bin/python cli.py action-api health | operations | services | actions | show <action_id>
     .venv/bin/python cli.py investigate ... --respond --action-api            # dry-run + server-side validation
-    .venv/bin/python cli.py investigate ... --respond --action-api --execute  # live: type 'approve <CODE>'
+    .venv/bin/python cli.py investigate ... --respond --action-api --execute  # live: type  approve XXXX-XXXX  (code from the Action API terminal)
     .venv/bin/python cli.py audit [--server] [--incident-id ID]
     .venv/bin/python cli.py report <incident-id> [--json]
 

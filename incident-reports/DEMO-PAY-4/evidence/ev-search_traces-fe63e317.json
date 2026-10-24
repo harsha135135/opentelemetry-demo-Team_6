@@ -1,0 +1,756 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-search_traces-fe63e317",
+    "tool": "search_traces",
+    "source": "jaeger",
+    "service": "checkout",
+    "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"checkout\", \"query.num_traces\": 40, \"query.start_time_min\": \"2026-10-24T06:04:55Z\", \"query.start_time_max\": \"2026-10-24T06:19:55Z\"}",
+    "window_start": "2026-10-24T06:04:55.974823Z",
+    "window_end": "2026-10-24T06:19:55.974823Z",
+    "collected_at": "2026-10-24T06:19:56.193594Z",
+    "value": {
+      "traces_scanned": 40,
+      "error_origin_counts": {
+        "checkout": 40
+      },
+      "edges": {
+        "load-generator -> frontend-proxy": 196,
+        "frontend-proxy -> frontend": 196,
+        "frontend -> cart": 156,
+        "checkout -> currency": 115,
+        "frontend -> product-catalog": 78,
+        "checkout -> product-catalog": 75,
+        "checkout -> shipping": 40,
+        "shipping -> quote": 40,
+        "frontend -> checkout": 40,
+        "checkout -> cart": 40
+      },
+      "traces": [
+        {
+          "trace_id": "ff84a1e57ade8dbbc1b4c96e8ca4956c",
+          "root": "load-generator: user_checkout_single",
+          "duration_ms": 33.4,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 14.0,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            },
+            {
+              "service": "frontend-proxy",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 14.1,
+              "attributes": {
+                "http.method": "POST",
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout",
+                "peer.address": "172.22.0.28"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.PaymentService/Charge",
+              "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+              "duration_ms": 0.1,
+              "attributes": {
+                "rpc.method": "oteldemo.PaymentService/Charge",
+                "rpc.response.status_code": "UNAVAILABLE",
+                "rpc.system.name": "grpc"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.CheckoutService/PlaceOrder",
+              "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+              "duration_ms": 11.4,
+              "attributes": {
+                "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                "rpc.response.status_code": "INTERNAL",
+                "rpc.system.name": "grpc",
+                "server.address": "172.22.0.26",
+                "server.port": "5050"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+            "span_id": "33846b0ed3504b35"
+          }
+        },
+        {
+          "trace_id": "357595a568c8b70c6f327c63fba72168",
+          "root": "load-generator: user_checkout_multi",
+          "duration_ms": 107.3,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 43.2,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            },
+            {
+              "service": "frontend-proxy",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 43.3,
+              "attributes": {
+                "http.method": "POST",
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout",
+                "peer.address": "172.22.0.28"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.PaymentService/Charge",
+              "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+              "duration_ms": 1.6,
+              "attributes": {
+                "rpc.method": "oteldemo.PaymentService/Charge",
+                "rpc.response.status_code": "UNAVAILABLE",
+                "rpc.system.name": "grpc"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.CheckoutService/PlaceOrder",
+              "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+              "duration_ms": 37.3,
+              "attributes": {
+                "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                "rpc.response.status_code": "INTERNAL",
+                "rpc.system.name": "grpc",
+                "server.address": "172.22.0.26",
+                "server.port": "5050"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+            "span_id": "c9363eb550aa6c21"
+          }
+        },
+        {
+          "trace_id": "edb62fffc63112752abcf3b319c1b03e",
+          "root": "load-generator: user_checkout_single",
+          "duration_ms": 53.0,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 34.2,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.PaymentService/Charge",
+              "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+              "duration_ms": 0.1,
+              "attributes": {
+                "rpc.method": "oteldemo.PaymentService/Charge",
+                "rpc.response.status_code": "UNAVAILABLE",
+                "rpc.system.name": "grpc"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.CheckoutService/PlaceOrder",
+              "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+              "duration_ms": 28.6,
+              "attributes": {
+                "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                "rpc.response.status_code": "INTERNAL",
+                "rpc.system.name": "grpc",
+                "server.address": "172.22.0.26",
+                "server.port": "5050"
+              }
+            },
+            {
+              "service": "load-generator",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 35.5,
+              "attributes": {
+                "http.method": "POST",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+            "span_id": "061758460b37c6b2"
+          }
+        },
+        {
+          "trace_id": "9b3f040b7524c3fbb102b74c38f1d27c",
+          "root": "load-generator: user_checkout_multi",
+          "duration_ms": 121.8,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 57.2,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            },
+            {
+              "service": "frontend-proxy",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 57.4,
+              "attributes": {
+                "http.method": "POST",
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout",
+                "peer.address": "172.22.0.28"
+              }
+            },
+            {
+              "service": "load-generator",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 58.8,
+              "attributes": {
+                "http.method": "POST",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.PaymentService/Charge",
+              "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+              "duration_ms": 0.3,
+              "attributes": {
+                "rpc.method": "oteldemo.PaymentService/Charge",
+                "rpc.response.status_code": "UNAVAILABLE",
+                "rpc.system.name": "grpc"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+            "span_id": "10cf0c2251a2db00"
+          }
+        },
+        {
+          "trace_id": "d6635f493cb7bd4b6efbc81c545ddda5",
+          "root": "load-generator: user_checkout_single",
+          "duration_ms": 102.4,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 44.8,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "executing api route (pages) /api/checkout",
+              "error_message": "13: 13 INTERNAL: failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+              "duration_ms": 43.2,
+              "attributes": {
+                "http.status_code": "500"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "POST /api/checkout",
+              "error_message": null,
+              "duration_ms": 44.1,
+              "attributes": {
+                "error.type": "500",
+                "http.method": "POST",
+                "http.route": "/api/checkout",
+                "http.status_code": "500",
+                "http.target": "/api/checkout"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "oteldemo.CheckoutService/PlaceOrder",
+              "error_message": null,
+              "duration_ms": 42.0,
+              "attributes": {
+                "rpc.grpc.status_code": "13",
+                "rpc.method": "PlaceOrder",
+                "rpc.service": "oteldemo.CheckoutService",
+                "rpc.system": "grpc",
+                "server.address": "checkout",
+                "server.port": "5050"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+            "span_id": "6284c780fea3d1f2"
+          }
+        },
+        {
+          "trace_id": "c63a703446653f7b43ab939b3854b61c",
+          "root": "load-generator: user_checkout_multi",
+          "duration_ms": 52.7,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 15.5,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            },
+            {
+              "service": "frontend-proxy",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 15.6,
+              "attributes": {
+                "http.method": "POST",
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout",
+                "peer.address": "172.22.0.28"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "executing api route (pages) /api/checkout",
+              "error_message": "13: 13 INTERNAL: failed to charge card: could not charge the card: rpc error: code = Unavailable desc = name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+              "duration_ms": 14.9,
+              "attributes": {
+                "http.status_code": "500"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "POST /api/checkout",
+              "error_message": null,
+              "duration_ms": 15.1,
+              "attributes": {
+                "error.type": "500",
+                "http.method": "POST",
+                "http.route": "/api/checkout",
+                "http.status_code": "500",
+                "http.target": "/api/checkout"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+            "span_id": "3047dcd30327ebb1"
+          }
+        },
+        {
+          "trace_id": "e869508d4d7d5a36a89b93bc3ea8574b",
+          "root": "load-generator: user_checkout_multi",
+          "duration_ms": 83.9,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "load-generator",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 36.5,
+              "attributes": {
+                "http.method": "POST",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.PaymentService/Charge",
+              "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+              "duration_ms": 0.0,
+              "attributes": {
+                "rpc.method": "oteldemo.PaymentService/Charge",
+                "rpc.response.status_code": "UNAVAILABLE",
+                "rpc.system.name": "grpc"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.CheckoutService/PlaceOrder",
+              "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+              "duration_ms": 31.5,
+              "attributes": {
+                "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                "rpc.response.status_code": "INTERNAL",
+                "rpc.system.name": "grpc",
+                "server.address": "172.22.0.26",
+                "server.port": "5050"
+              }
+            },
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 35.5,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+            "span_id": "a0936ec8aa5f1e81"
+          }
+        },
+        {
+          "trace_id": "a6e30b1a9ef098d59f6c6691b21c7ee1",
+          "root": "load-generator: user_checkout_single",
+          "duration_ms": 60.1,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 34.0,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "executing api route (pages) /api/checkout",
+              "error_message": "13: 13 INTERNAL: failed to charge card: could not charge the card: rpc error: code = Unavailable desc = name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+              "duration_ms": 32.9,
+              "attributes": {
+                "http.status_code": "500"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "POST /api/checkout",
+              "error_message": null,
+              "duration_ms": 33.5,
+              "attributes": {
+                "error.type": "500",
+                "http.method": "POST",
+                "http.route": "/api/checkout",
+                "http.status_code": "500",
+                "http.target": "/api/checkout"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "oteldemo.CheckoutService/PlaceOrder",
+              "error_message": null,
+              "duration_ms": 32.3,
+              "attributes": {
+                "rpc.grpc.status_code": "13",
+                "rpc.method": "PlaceOrder",
+                "rpc.service": "oteldemo.CheckoutService",
+                "rpc.system": "grpc",
+                "server.address": "checkout",
+                "server.port": "5050"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+            "span_id": "2cb4ac9c9192a92e"
+          }
+        },
+        {
+          "trace_id": "421584b12bd1ae16fc956ee53991dc8a",
+          "root": "load-generator: user_checkout_multi",
+          "duration_ms": 57.3,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 26.5,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            },
+            {
+              "service": "frontend-proxy",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 26.6,
+              "attributes": {
+                "http.method": "POST",
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout",
+                "peer.address": "172.22.0.28"
+              }
+            },
+            {
+              "service": "load-generator",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 27.8,
+              "attributes": {
+                "http.method": "POST",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout"
+              }
+            },
+            {
+              "service": "checkout",
+              "name": "oteldemo.PaymentService/Charge",
+              "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+              "duration_ms": 0.4,
+              "attributes": {
+                "rpc.method": "oteldemo.PaymentService/Charge",
+                "rpc.response.status_code": "UNAVAILABLE",
+                "rpc.system.name": "grpc"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+            "span_id": "1730c92671f3b12f"
+          }
+        },
+        {
+          "trace_id": "fbadb14d5f9b0e6094c47e22f5b51800",
+          "root": "load-generator: user_checkout_multi",
+          "duration_ms": 109.2,
+          "services": [
+            "cart",
+            "checkout",
+            "currency",
+            "frontend",
+            "frontend-proxy",
+            "load-generator",
+            "product-catalog",
+            "quote",
+            "shipping"
+          ],
+          "error_spans": [
+            {
+              "service": "frontend-proxy",
+              "name": "router frontend egress",
+              "error_message": null,
+              "duration_ms": 31.3,
+              "attributes": {
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "peer.address": "172.22.0.27:8080"
+              }
+            },
+            {
+              "service": "frontend-proxy",
+              "name": "POST",
+              "error_message": null,
+              "duration_ms": 31.5,
+              "attributes": {
+                "http.method": "POST",
+                "http.protocol": "HTTP/1.1",
+                "http.status_code": "500",
+                "http.url": "http://frontend-proxy:8080/api/checkout",
+                "peer.address": "172.22.0.28"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "executing api route (pages) /api/checkout",
+              "error_message": "13: 13 INTERNAL: failed to charge card: could not charge the card: rpc error: code = Unavailable desc = name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+              "duration_ms": 30.2,
+              "attributes": {
+                "http.status_code": "500"
+              }
+            },
+            {
+              "service": "frontend",
+              "name": "POST /api/checkout",
+              "error_message": null,
+              "duration_ms": 30.7,
+              "attributes": {
+                "error.type": "500",
+                "http.method": "POST",
+                "http.route": "/api/checkout",
+                "http.status_code": "500",
+                "http.target": "/api/checkout"
+              }
+            }
+          ],
+          "suspected_origin": {
+            "service": "checkout",
+            "operation": "oteldemo.PaymentService/Charge",
+            "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+            "span_id": "002f4e9fea04107a"
+          }
+        }
+      ]
+    },
+    "excerpt": null,
+    "trace_ids": [
+      "ff84a1e57ade8dbbc1b4c96e8ca4956c",
+      "357595a568c8b70c6f327c63fba72168",
+      "edb62fffc63112752abcf3b319c1b03e",
+      "9b3f040b7524c3fbb102b74c38f1d27c",
+      "d6635f493cb7bd4b6efbc81c545ddda5",
+      "c63a703446653f7b43ab939b3854b61c",
+      "e869508d4d7d5a36a89b93bc3ea8574b",
+      "a6e30b1a9ef098d59f6c6691b21c7ee1",
+      "421584b12bd1ae16fc956ee53991dc8a",
+      "fbadb14d5f9b0e6094c47e22f5b51800"
+    ],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-search_traces-fe63e317.json",
+    "message": null
+  },
+  "raw": "{\"result\": {\"resourceSpans\": [{\"resource\": {\"attributes\": [{\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"critical\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"frontend-proxy\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"cpp\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"envoy\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"9e5580933739775e8bce696a57a2e1bc99368f23/1.40.0/Clean/RELEASE/BoringSSL\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"envoy\", \"version\": \"9e5580933739775e8bce696a57a2e1bc99368f23/1.40.0/Clean/RELEASE/BoringSSL\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"1659825249dacab7\", \"parentSpanId\": \"0a33af671299486c\", \"flags\": 257, \"name\": \"router frontend egress\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772525512000\", \"endTimeUnixNano\": \"1792822772533293000\", \"attributes\": [{\"key\": \"component\", \"value\": {\"stringValue\": \"proxy\"}}, {\"key\": \"http.protocol\", \"value\": {\"stringValue\": \"HTTP/1.1\"}}, {\"key\": \"http.status_code\", \"value\": {\"stringValue\": \"200\"}}, {\"key\": \"peer.address\", \"value\": {\"stringValue\": \"172.22.0.27:8080\"}}, {\"key\": \"response_flags\", \"value\": {\"stringValue\": \"-\"}}, {\"key\": \"upstream_address\", \"value\": {\"stringValue\": \"172.22.0.27:8080\"}}, {\"key\": \"upstream_cluster\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"upstream_cluster.name\", \"value\": {\"stringValue\": \"frontend\"}}], \"status\": {}}]}]}, {\"resource\": {\"attributes\": [{\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"critical\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"frontend-proxy\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"cpp\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"envoy\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"9e5580933739775e8bce696a57a2e1bc99368f23/1.40.0/Clean/RELEASE/BoringSSL\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"envoy\", \"version\": \"9e5580933739775e8bce696a57a2e1bc99368f23/1.40.0/Clean/RELEASE/BoringSSL\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"0a33af671299486c\", \"parentSpanId\": \"1e7fd23aa812f8b1\", \"flags\": 769, \"name\": \"GET\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772525274000\", \"endTimeUnixNano\": \"1792822772533520000\", \"attributes\": [{\"key\": \"component\", \"value\": {\"stringValue\": \"proxy\"}}, {\"key\": \"downstream_cluster\", \"value\": {\"stringValue\": \"-\"}}, {\"key\": \"guid:x-request-id\", \"value\": {\"stringValue\": \"9c05e94e-0ad7-9a30-aefc-1d288aadd63d\"}}, {\"key\": \"http.method\", \"value\": {\"stringValue\": \"GET\"}}, {\"key\": \"http.protocol\", \"value\": {\"stringValue\": \"HTTP/1.1\"}}, {\"key\": \"http.status_code\", \"value\": {\"stringValue\": \"200\"}}, {\"key\": \"http.url\", \"value\": {\"stringValue\": \"http://frontend-proxy:8080/api/products/0PUK6V6EV0\"}}, {\"key\": \"node_id\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"original_span_name\", \"value\": {\"stringValue\": \"ingress\"}}, {\"key\": \"peer.address\", \"value\": {\"stringValue\": \"172.22.0.28\"}}, {\"key\": \"request_size\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"response_flags\", \"value\": {\"stringValue\": \"-\"}}, {\"key\": \"response_size\", \"value\": {\"stringValue\": \"421\"}}, {\"key\": \"upstream_cluster\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"upstream_cluster.name\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"user_agent\", \"value\": {\"stringValue\": \"python-requests/2.34.2\"}}, {\"key\": \"zone\", \"value\": {\"stringValue\": \"\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"f889aa7122f0d58b\", \"parentSpanId\": \"22aa9ce7d8fedd9a\", \"flags\": 257, \"name\": \"router frontend egress\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772535066000\", \"endTimeUnixNano\": \"1792822772540679000\", \"attributes\": [{\"key\": \"component\", \"value\": {\"stringValue\": \"proxy\"}}, {\"key\": \"http.protocol\", \"value\": {\"stringValue\": \"HTTP/1.1\"}}, {\"key\": \"http.status_code\", \"value\": {\"stringValue\": \"200\"}}, {\"key\": \"peer.address\", \"value\": {\"stringValue\": \"172.22.0.27:8080\"}}, {\"key\": \"response_flags\", \"value\": {\"stringValue\": \"-\"}}, {\"key\": \"upstream_address\", \"value\": {\"stringValue\": \"172.22.0.27:8080\"}}, {\"key\": \"upstream_cluster\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"upstream_cluster.name\", \"value\": {\"stringValue\": \"frontend\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"22aa9ce7d8fedd9a\", \"parentSpanId\": \"e43c4bccbd71ae1d\", \"flags\": 769, \"name\": \"POST\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772534980000\", \"endTimeUnixNano\": \"1792822772540697000\", \"attributes\": [{\"key\": \"component\", \"value\": {\"stringValue\": \"proxy\"}}, {\"key\": \"downstream_cluster\", \"value\": {\"stringValue\": \"-\"}}, {\"key\": \"guid:x-request-id\", \"value\": {\"stringValue\": \"4e5d4ca6-57c0-9d36-939b-d4600702befa\"}}, {\"key\": \"http.method\", \"value\": {\"stringValue\": \"POST\"}}, {\"key\": \"http.protocol\", \"value\": {\"stringValue\": \"HTTP/1.1\"}}, {\"key\": \"http.status_code\", \"value\": {\"stringValue\": \"200\"}}, {\"key\": \"http.url\", \"value\": {\"stringValue\": \"http://frontend-proxy:8080/api/cart\"}}, {\"key\": \"node_id\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"original_span_name\", \"value\": {\"stringValue\": \"ingress\"}}, {\"key\": \"peer.address\", \"value\": {\"stringValue\": \"172.22.0.28\"}}, {\"key\": \"request_size\", \"value\": {\"stringValue\": \"103\"}}, {\"key\": \"response_flags\", \"value\": {\"stringValue\": \"-\"}}, {\"key\": \"response_size\", \"value\": {\"stringValue\": \"100\"}}, {\"key\": \"upstream_cluster\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"upstream_cluster.name\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"user_agent\", \"value\": {\"stringValue\": \"python-requests/2.34.2\"}}, {\"key\": \"zone\", \"value\": {\"stringValue\": \"\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"e88e2171d0b64bb6\", \"parentSpanId\": \"9e1d41eb6d813323\", \"flags\": 257, \"name\": \"router frontend egress\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772542104000\", \"endTimeUnixNano\": \"1792822772556091000\", \"attributes\": [{\"key\": \"component\", \"value\": {\"stringValue\": \"proxy\"}}, {\"key\": \"error\", \"value\": {\"stringValue\": \"true\"}}, {\"key\": \"http.protocol\", \"value\": {\"stringValue\": \"HTTP/1.1\"}}, {\"key\": \"http.status_code\", \"value\": {\"stringValue\": \"500\"}}, {\"key\": \"peer.address\", \"value\": {\"stringValue\": \"172.22.0.27:8080\"}}, {\"key\": \"response_flags\", \"value\": {\"stringValue\": \"-\"}}, {\"key\": \"upstream_address\", \"value\": {\"stringValue\": \"172.22.0.27:8080\"}}, {\"key\": \"upstream_cluster\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"upstream_cluster.name\", \"value\": {\"stringValue\": \"frontend\"}}], \"status\": {\"code\": 2}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"9e1d41eb6d813323\", \"parentSpanId\": \"ab096bb5cf6633b6\", \"flags\": 769, \"name\": \"POST\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772542042000\", \"endTimeUnixNano\": \"1792822772556113000\", \"attributes\": [{\"key\": \"component\", \"value\": {\"stringValue\": \"proxy\"}}, {\"key\": \"downstream_cluster\", \"value\": {\"stringValue\": \"-\"}}, {\"key\": \"error\", \"value\": {\"stringValue\": \"true\"}}, {\"key\": \"guid:x-request-id\", \"value\": {\"stringValue\": \"ae75e337-3297-9a6f-a0b4-867d05d8a595\"}}, {\"key\": \"http.method\", \"value\": {\"stringValue\": \"POST\"}}, {\"key\": \"http.protocol\", \"value\": {\"stringValue\": \"HTTP/1.1\"}}, {\"key\": \"http.status_code\", \"value\": {\"stringValue\": \"500\"}}, {\"key\": \"http.url\", \"value\": {\"stringValue\": \"http://frontend-proxy:8080/api/checkout\"}}, {\"key\": \"node_id\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"original_span_name\", \"value\": {\"stringValue\": \"ingress\"}}, {\"key\": \"peer.address\", \"value\": {\"stringValue\": \"172.22.0.28\"}}, {\"key\": \"request_size\", \"value\": {\"stringValue\": \"395\"}}, {\"key\": \"response_flags\", \"value\": {\"stringValue\": \"-\"}}, {\"key\": \"response_size\", \"value\": {\"stringValue\": \"34\"}}, {\"key\": \"upstream_cluster\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"upstream_cluster.name\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"user_agent\", \"value\": {\"stringValue\": \"python-requests/2.34.2\"}}, {\"key\": \"zone\", \"value\": {\"stringValue\": \"\"}}], \"status\": {\"code\": 2}}]}]}, {\"resource\": {\"attributes\": [{\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"process.command_args\", \"value\": {\"arrayValue\": {\"values\": [{\"stringValue\": \"./shipping\"}]}}}, {\"key\": \"process.pid\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"process.runtime.description\", \"value\": {\"stringValue\": \"rustc 1.99.1 (58cf8f9c3 2026-10-13)\"}}, {\"key\": \"process.runtime.name\", \"value\": {\"stringValue\": \"rustc\"}}, {\"key\": \"process.runtime.version\", \"value\": {\"stringValue\": \"1.99.1\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"high\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"shipping\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"rust\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"opentelemetry\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"0.33.1\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"opentelemetry-instrumentation-actix-web\", \"version\": \"0.25.0\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"a94e3fced3857caa\", \"parentSpanId\": \"b4bd1d1e5bb9d2b7\", \"flags\": 257, \"name\": \"POST\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772552326389\", \"endTimeUnixNano\": \"1792822772553516764\", \"attributes\": [{\"key\": \"http.request.method\", \"value\": {\"stringValue\": \"POST\"}}, {\"key\": \"http.response.status_code\", \"value\": {\"intValue\": \"200\"}}, {\"key\": \"original_span_name\", \"value\": {\"stringValue\": \"POST quote\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"quote\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"8090\"}}, {\"key\": \"url.full\", \"value\": {\"stringValue\": \"http://quote:8090/getquote\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"b4bd1d1e5bb9d2b7\", \"parentSpanId\": \"d3739ab1be49df48\", \"flags\": 769, \"name\": \"POST /get-quote\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772551796722\", \"endTimeUnixNano\": \"1792822772553575305\", \"attributes\": [{\"key\": \"client.address\", \"value\": {\"stringValue\": \"172.22.0.26\"}}, {\"key\": \"demo.shipping.cost.total\", \"value\": {\"stringValue\": \"89.90\"}}, {\"key\": \"http.request.body.size\", \"value\": {\"intValue\": \"189\"}}, {\"key\": \"http.request.method\", \"value\": {\"stringValue\": \"POST\"}}, {\"key\": \"http.response.status_code\", \"value\": {\"intValue\": \"200\"}}, {\"key\": \"http.route\", \"value\": {\"stringValue\": \"/get-quote\"}}, {\"key\": \"network.protocol.version\", \"value\": {\"stringValue\": \"1.1\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"shipping\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"50050\"}}, {\"key\": \"url.path\", \"value\": {\"stringValue\": \"/get-quote\"}}, {\"key\": \"url.scheme\", \"value\": {\"stringValue\": \"http\"}}, {\"key\": \"user_agent.original\", \"value\": {\"stringValue\": \"Go-http-client/1.1\"}}], \"events\": [{\"timeUnixNano\": \"1792822772553555139\", \"name\": \"shipping.quote.received\", \"attributes\": [{\"key\": \"demo.shipping.cost.total\", \"value\": {\"stringValue\": \"89.90\"}}]}], \"status\": {}}]}]}, {\"resource\": {\"attributes\": [{\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"high\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"currency\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"cpp\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"opentelemetry\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"1.28.0\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"currency\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"2da2750ae8d9cea1\", \"parentSpanId\": \"85ec6971659fcf11\", \"flags\": 1, \"name\": \"oteldemo.CurrencyService/Convert\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772549085055\", \"endTimeUnixNano\": \"1792822772549108680\", \"attributes\": [{\"key\": \"demo.exchange.from\", \"value\": {\"stringValue\": \"USD\"}}, {\"key\": \"demo.exchange.to\", \"value\": {\"stringValue\": \"USD\"}}, {\"key\": \"original_span_name\", \"value\": {\"stringValue\": \"Currency/Convert\"}}, {\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.CurrencyService/Convert\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"OK\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}], \"events\": [{\"timeUnixNano\": \"1792822772549100930\", \"name\": \"Conversion successful, response sent back\"}, {\"timeUnixNano\": \"1792822772549087514\", \"name\": \"Processing currency conversion request\"}], \"status\": {\"code\": 1}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"eb0534fc06429ac4\", \"parentSpanId\": \"37958116324e9e76\", \"flags\": 1, \"name\": \"oteldemo.CurrencyService/Convert\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772554319055\", \"endTimeUnixNano\": \"1792822772554337014\", \"attributes\": [{\"key\": \"demo.exchange.from\", \"value\": {\"stringValue\": \"USD\"}}, {\"key\": \"demo.exchange.to\", \"value\": {\"stringValue\": \"USD\"}}, {\"key\": \"original_span_name\", \"value\": {\"stringValue\": \"Currency/Convert\"}}, {\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.CurrencyService/Convert\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"OK\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}], \"events\": [{\"timeUnixNano\": \"1792822772554330055\", \"name\": \"Conversion successful, response sent back\"}, {\"timeUnixNano\": \"1792822772554321430\", \"name\": \"Processing currency conversion request\"}], \"status\": {\"code\": 1}}]}]}, {\"resource\": {\"attributes\": [{\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"process.runtime.version\", \"value\": {\"stringValue\": \"go1.25.10\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"low\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"flagd\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"go\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"opentelemetry\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"1.43.0\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"connectrpc.com/otelconnect\", \"version\": \"semver:0.6.0-dev\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"2f1d6f5209f10847\", \"parentSpanId\": \"b1340ab10bcf4d4a\", \"flags\": 769, \"name\": \"flagd.evaluation.v2.Service/ResolveBoolean\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772539425764\", \"endTimeUnixNano\": \"1792822772539761680\", \"attributes\": [{\"key\": \"rpc.grpc.status_code\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"ResolveBoolean\"}}, {\"key\": \"rpc.service\", \"value\": {\"stringValue\": \"flagd.evaluation.v2.Service\"}}, {\"key\": \"rpc.system\", \"value\": {\"stringValue\": \"grpc\"}}], \"events\": [{\"timeUnixNano\": \"1792822772539430014\", \"name\": \"message\", \"attributes\": [{\"key\": \"message.id\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"message.type\", \"value\": {\"stringValue\": \"RECEIVED\"}}, {\"key\": \"message.uncompressed_size\", \"value\": {\"intValue\": \"33\"}}]}, {\"timeUnixNano\": \"1792822772539752764\", \"name\": \"message\", \"attributes\": [{\"key\": \"message.id\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"message.type\", \"value\": {\"stringValue\": \"SENT\"}}, {\"key\": \"message.uncompressed_size\", \"value\": {\"intValue\": \"17\"}}]}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"3fedb3de35d8908c\", \"parentSpanId\": \"034c629afd3b6c86\", \"flags\": 769, \"name\": \"flagd.evaluation.v2.Service/ResolveBoolean\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772544695180\", \"endTimeUnixNano\": \"1792822772544745638\", \"attributes\": [{\"key\": \"rpc.grpc.status_code\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"ResolveBoolean\"}}, {\"key\": \"rpc.service\", \"value\": {\"stringValue\": \"flagd.evaluation.v2.Service\"}}, {\"key\": \"rpc.system\", \"value\": {\"stringValue\": \"grpc\"}}], \"events\": [{\"timeUnixNano\": \"1792822772544697555\", \"name\": \"message\", \"attributes\": [{\"key\": \"message.id\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"message.type\", \"value\": {\"stringValue\": \"RECEIVED\"}}, {\"key\": \"message.uncompressed_size\", \"value\": {\"intValue\": \"33\"}}]}, {\"timeUnixNano\": \"1792822772544740722\", \"name\": \"message\", \"attributes\": [{\"key\": \"message.id\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"message.type\", \"value\": {\"stringValue\": \"SENT\"}}, {\"key\": \"message.uncompressed_size\", \"value\": {\"intValue\": \"17\"}}]}], \"status\": {}}]}, {\"scope\": {\"name\": \"jsonEvaluator\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"6972774f0815c7d5\", \"parentSpanId\": \"528427e1facd7a60\", \"flags\": 257, \"name\": \"resolveBoolean\", \"kind\": 1, \"startTimeUnixNano\": \"1792822772539457847\", \"endTimeUnixNano\": \"1792822772539713847\", \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"8e8df81dee131ca0\", \"parentSpanId\": \"9ee41c36380f011d\", \"flags\": 257, \"name\": \"resolveBoolean\", \"kind\": 1, \"startTimeUnixNano\": \"1792822772544721889\", \"endTimeUnixNano\": \"1792822772544727389\", \"status\": {}}]}, {\"scope\": {\"name\": \"flagd.evaluation.v2\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"528427e1facd7a60\", \"parentSpanId\": \"2f1d6f5209f10847\", \"flags\": 257, \"name\": \"resolveBoolean\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772539431972\", \"endTimeUnixNano\": \"1792822772539742972\", \"attributes\": [{\"key\": \"feature_flag.key\", \"value\": {\"stringValue\": \"cartMetricCardinalityOverflow\"}}, {\"key\": \"feature_flag.provider.name\", \"value\": {\"stringValue\": \"flagd\"}}, {\"key\": \"feature_flag.result.variant\", \"value\": {\"stringValue\": \"off\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"9ee41c36380f011d\", \"parentSpanId\": \"3fedb3de35d8908c\", \"flags\": 257, \"name\": \"resolveBoolean\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772544699055\", \"endTimeUnixNano\": \"1792822772544737888\", \"attributes\": [{\"key\": \"feature_flag.key\", \"value\": {\"stringValue\": \"cartMetricCardinalityOverflow\"}}, {\"key\": \"feature_flag.provider.name\", \"value\": {\"stringValue\": \"flagd\"}}, {\"key\": \"feature_flag.result.variant\", \"value\": {\"stringValue\": \"off\"}}], \"status\": {}}]}]}, {\"resource\": {\"attributes\": [{\"key\": \"container.id\", \"value\": {\"stringValue\": \"e1a1ecdce194932442e2185bca5c06129576dad274aa27b03aaca1bd02854d55\"}}, {\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.name\", \"value\": {\"stringValue\": \"Linux\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"os.version\", \"value\": {\"stringValue\": \"#1 SMP Tue Jul 21 14:38:37 UTC 2026\"}}, {\"key\": \"process.args_count\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"process.command\", \"value\": {\"stringValue\": \"public/index.php\"}}, {\"key\": \"process.executable.path\", \"value\": {\"stringValue\": \"/usr/local/bin/php\"}}, {\"key\": \"process.owner\", \"value\": {\"stringValue\": \"www-data\"}}, {\"key\": \"process.pid\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"process.runtime.name\", \"value\": {\"stringValue\": \"cli\"}}, {\"key\": \"process.runtime.version\", \"value\": {\"stringValue\": \"8.5.11\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"low\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"quote\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.distro.name\", \"value\": {\"stringValue\": \"opentelemetry-php-instrumentation\"}}, {\"key\": \"telemetry.distro.version\", \"value\": {\"stringValue\": \"1.4.2\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"php\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"opentelemetry\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"1.15.0\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"manual-instrumentation\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"2d8d01bf6bdd855c\", \"parentSpanId\": \"2a7625fa5a22f951\", \"flags\": 257, \"name\": \"calculate-quote\", \"kind\": 1, \"startTimeUnixNano\": \"1792822772652381006\", \"endTimeUnixNano\": \"1792822772652393381\", \"attributes\": [{\"key\": \"demo.shipping.quote.cost.total\", \"value\": {\"doubleValue\": 89.9}}, {\"key\": \"demo.shipping.quote.items_count\", \"value\": {\"intValue\": \"10\"}}], \"events\": [{\"timeUnixNano\": \"1792822772652384881\", \"name\": \"Calculating quote\"}, {\"timeUnixNano\": \"1792822772652388048\", \"name\": \"Quote calculated, returning its value\"}], \"status\": {}}]}, {\"scope\": {\"name\": \"io.opentelemetry.contrib.php.slim\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"2a7625fa5a22f951\", \"parentSpanId\": \"7346cbf53fb2d7c1\", \"flags\": 257, \"name\": \"{closure}\", \"kind\": 1, \"startTimeUnixNano\": \"1792822772652336840\", \"endTimeUnixNano\": \"1792822772652470048\", \"attributes\": [{\"key\": \"code.file.path\", \"value\": {\"stringValue\": \"/var/www/vendor/php-di/slim-bridge/src/ControllerInvoker.php\"}}, {\"key\": \"code.function.name\", \"value\": {\"stringValue\": \"DI\\\\Bridge\\\\Slim\\\\ControllerInvoker::__invoke\"}}, {\"key\": \"code.line.number\", \"value\": {\"intValue\": \"29\"}}], \"events\": [{\"timeUnixNano\": \"1792822772652411715\", \"name\": \"Quote processed, response sent back\", \"attributes\": [{\"key\": \"demo.shipping.quote.cost.total\", \"value\": {\"doubleValue\": 89.9}}]}, {\"timeUnixNano\": \"1792822772652360631\", \"name\": \"Received get quote request, processing it\"}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"7346cbf53fb2d7c1\", \"parentSpanId\": \"a94e3fced3857caa\", \"flags\": 769, \"name\": \"POST /getquote\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772652247423\", \"endTimeUnixNano\": \"1792822772652488590\", \"attributes\": [{\"key\": \"code.file.path\", \"value\": {\"stringValue\": \"/var/www/vendor/slim/slim/Slim/App.php\"}}, {\"key\": \"code.function.name\", \"value\": {\"stringValue\": \"Slim\\\\App::handle\"}}, {\"key\": \"code.line.number\", \"value\": {\"intValue\": \"207\"}}, {\"key\": \"http.request.body.size\", \"value\": {\"stringValue\": \"20\"}}, {\"key\": \"http.request.method\", \"value\": {\"stringValue\": \"POST\"}}, {\"key\": \"http.response.body.size\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"http.response.status_code\", \"value\": {\"intValue\": \"200\"}}, {\"key\": \"http.route\", \"value\": {\"stringValue\": \"/getquote\"}}, {\"key\": \"network.protocol.version\", \"value\": {\"stringValue\": \"1.1\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"quote\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"8090\"}}, {\"key\": \"url.full\", \"value\": {\"stringValue\": \"http://quote:8090/getquote\"}}, {\"key\": \"url.path\", \"value\": {\"stringValue\": \"/getquote\"}}, {\"key\": \"url.scheme\", \"value\": {\"stringValue\": \"http\"}}, {\"key\": \"user_agent.original\", \"value\": {\"stringValue\": \"\"}}], \"status\": {}}]}]}, {\"resource\": {\"attributes\": [{\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"high\"}}, {\"key\": \"service.instance.id\", \"value\": {\"stringValue\": \"c76b5bfa707a5f72f4d825ead39fc989\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"product-catalog\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"go\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"opentelemetry\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"1.47.0\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"github.com/XSAM/otelsql\", \"version\": \"0.44.0\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"ae4e6288901e5f5f\", \"parentSpanId\": \"c143d19b0c4852b2\", \"flags\": 257, \"name\": \"astronomy-db\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772530737347\", \"endTimeUnixNano\": \"1792822772532199181\", \"attributes\": [{\"key\": \"db.query.text\", \"value\": {\"stringValue\": \"\\n\\t\\tSELECT p.id, p.name, p.description, p.picture, \\n\\t\\t       p.price_currency_code, p.price_units, p.price_nanos, p.categories\\n\\t\\tFROM catalog.products p\\n\\t\\tWHERE p.id = $1\\n\\t\"}}, {\"key\": \"db.system.name\", \"value\": {\"stringValue\": \"postgresql\"}}, {\"key\": \"original_span_name\", \"value\": {\"stringValue\": \"sql.conn.query\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"astronomy-db\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"d85d0e6c62ee59c3\", \"parentSpanId\": \"d7c40c932ee08317\", \"flags\": 257, \"name\": \"astronomy-db\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772547389472\", \"endTimeUnixNano\": \"1792822772548076305\", \"attributes\": [{\"key\": \"db.query.text\", \"value\": {\"stringValue\": \"\\n\\t\\tSELECT p.id, p.name, p.description, p.picture, \\n\\t\\t       p.price_currency_code, p.price_units, p.price_nanos, p.categories\\n\\t\\tFROM catalog.products p\\n\\t\\tWHERE p.id = $1\\n\\t\"}}, {\"key\": \"db.system.name\", \"value\": {\"stringValue\": \"postgresql\"}}, {\"key\": \"original_span_name\", \"value\": {\"stringValue\": \"sql.conn.query\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"astronomy-db\"}}], \"status\": {}}]}, {\"scope\": {\"name\": \"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc\", \"version\": \"0.72.0\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"c143d19b0c4852b2\", \"parentSpanId\": \"006eb8fc6fe9e4e1\", \"flags\": 769, \"name\": \"oteldemo.ProductCatalogService/GetProduct\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772528561514\", \"endTimeUnixNano\": \"1792822772532341306\", \"attributes\": [{\"key\": \"demo.product.id\", \"value\": {\"stringValue\": \"0PUK6V6EV0\"}}, {\"key\": \"demo.product.name\", \"value\": {\"stringValue\": \"Solar System Color Imager\"}}, {\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.ProductCatalogService/GetProduct\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"OK\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"172.22.0.22\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"3550\"}}], \"events\": [{\"timeUnixNano\": \"1792822772532279847\", \"name\": \"Product Found\"}, {\"timeUnixNano\": \"1792822772530563680\", \"name\": \"feature_flag.evaluation\", \"attributes\": [{\"key\": \"feature_flag.context.id\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"feature_flag.key\", \"value\": {\"stringValue\": \"productCatalogFailure\"}}, {\"key\": \"feature_flag.provider.name\", \"value\": {\"stringValue\": \"flagd\"}}, {\"key\": \"feature_flag.result.reason\", \"value\": {\"stringValue\": \"targeting_match\"}}, {\"key\": \"feature_flag.result.value\", \"value\": {\"boolValue\": false}}, {\"key\": \"feature_flag.result.variant\", \"value\": {\"stringValue\": \"off\"}}]}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"d7c40c932ee08317\", \"parentSpanId\": \"0600029a83afc3f0\", \"flags\": 769, \"name\": \"oteldemo.ProductCatalogService/GetProduct\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772545935430\", \"endTimeUnixNano\": \"1792822772548154639\", \"attributes\": [{\"key\": \"demo.product.id\", \"value\": {\"stringValue\": \"0PUK6V6EV0\"}}, {\"key\": \"demo.product.name\", \"value\": {\"stringValue\": \"Solar System Color Imager\"}}, {\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.ProductCatalogService/GetProduct\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"OK\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"172.22.0.22\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"3550\"}}], \"events\": [{\"timeUnixNano\": \"1792822772548121014\", \"name\": \"Product Found\"}, {\"timeUnixNano\": \"1792822772547365889\", \"name\": \"feature_flag.evaluation\", \"attributes\": [{\"key\": \"feature_flag.context.id\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"feature_flag.key\", \"value\": {\"stringValue\": \"productCatalogFailure\"}}, {\"key\": \"feature_flag.provider.name\", \"value\": {\"stringValue\": \"flagd\"}}, {\"key\": \"feature_flag.result.reason\", \"value\": {\"stringValue\": \"targeting_match\"}}, {\"key\": \"feature_flag.result.value\", \"value\": {\"boolValue\": false}}, {\"key\": \"feature_flag.result.variant\", \"value\": {\"stringValue\": \"off\"}}]}], \"status\": {}}]}]}, {\"resource\": {\"attributes\": [{\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"process.command_args\", \"value\": {\"arrayValue\": {\"values\": [{\"stringValue\": \"./checkout\"}]}}}, {\"key\": \"process.executable.name\", \"value\": {\"stringValue\": \"checkout\"}}, {\"key\": \"process.executable.path\", \"value\": {\"stringValue\": \"/usr/src/app/checkout\"}}, {\"key\": \"process.owner\", \"value\": {\"stringValue\": \"nonroot\"}}, {\"key\": \"process.pid\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"process.runtime.description\", \"value\": {\"stringValue\": \"go version go1.27.2 linux/arm64\"}}, {\"key\": \"process.runtime.name\", \"value\": {\"stringValue\": \"go\"}}, {\"key\": \"process.runtime.version\", \"value\": {\"stringValue\": \"go1.27.2\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"critical\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"checkout\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"go\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"opentelemetry\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"1.47.0\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc\", \"version\": \"0.72.0\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"a497619ffa80b599\", \"parentSpanId\": \"0b0bd99a7da66dbc\", \"flags\": 257, \"name\": \"oteldemo.CartService/GetCart\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772544118764\", \"endTimeUnixNano\": \"1792822772545408889\", \"attributes\": [{\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.CartService/GetCart\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"OK\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"172.22.0.24\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"7070\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"0600029a83afc3f0\", \"parentSpanId\": \"0b0bd99a7da66dbc\", \"flags\": 257, \"name\": \"oteldemo.ProductCatalogService/GetProduct\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772545567889\", \"endTimeUnixNano\": \"1792822772548597680\", \"attributes\": [{\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.ProductCatalogService/GetProduct\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"OK\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"172.22.0.22\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"3550\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"85ec6971659fcf11\", \"parentSpanId\": \"0b0bd99a7da66dbc\", \"flags\": 257, \"name\": \"oteldemo.CurrencyService/Convert\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772548636972\", \"endTimeUnixNano\": \"1792822772549470389\", \"attributes\": [{\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.CurrencyService/Convert\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"OK\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"172.22.0.16\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"7001\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"37958116324e9e76\", \"parentSpanId\": \"0b0bd99a7da66dbc\", \"flags\": 257, \"name\": \"oteldemo.CurrencyService/Convert\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772553778639\", \"endTimeUnixNano\": \"1792822772554478973\", \"attributes\": [{\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.CurrencyService/Convert\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"OK\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"172.22.0.16\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"7001\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"33846b0ed3504b35\", \"parentSpanId\": \"66a32155cf8ff6ac\", \"flags\": 257, \"name\": \"oteldemo.PaymentService/Charge\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772554603972\", \"endTimeUnixNano\": \"1792822772554709680\", \"attributes\": [{\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.PaymentService/Charge\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"UNAVAILABLE\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}], \"status\": {\"message\": \"connection error: desc = \\\"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\\\"\", \"code\": 2}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"66a32155cf8ff6ac\", \"parentSpanId\": \"98f86596bc96a14f\", \"flags\": 769, \"name\": \"oteldemo.CheckoutService/PlaceOrder\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772543756639\", \"endTimeUnixNano\": \"1792822772555112514\", \"attributes\": [{\"key\": \"demo.user_context.selected_currency\", \"value\": {\"stringValue\": \"USD\"}}, {\"key\": \"rpc.method\", \"value\": {\"stringValue\": \"oteldemo.CheckoutService/PlaceOrder\"}}, {\"key\": \"rpc.response.status_code\", \"value\": {\"stringValue\": \"INTERNAL\"}}, {\"key\": \"rpc.system.name\", \"value\": {\"stringValue\": \"grpc\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"172.22.0.26\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"5050\"}}, {\"key\": \"user.id\", \"value\": {\"stringValue\": \"e0850eb0-cf72-11f1-b285-52bb40d90cca\"}}, {\"key\": \"user_agent.synthetic.type\", \"value\": {\"stringValue\": \"test\"}}], \"events\": [{\"timeUnixNano\": \"1792822772555102430\", \"name\": \"exception\", \"attributes\": [{\"key\": \"exception.message\", \"value\": {\"stringValue\": \"could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \\\"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\\\"\"}}, {\"key\": \"exception.type\", \"value\": {\"stringValue\": \"*errors.errorString\"}}]}, {\"timeUnixNano\": \"1792822772544042764\", \"name\": \"feature_flag.evaluation\", \"attributes\": [{\"key\": \"feature_flag.context.id\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"feature_flag.key\", \"value\": {\"stringValue\": \"emitRawPii\"}}, {\"key\": \"feature_flag.provider.name\", \"value\": {\"stringValue\": \"flagd\"}}, {\"key\": \"feature_flag.result.reason\", \"value\": {\"stringValue\": \"cached\"}}, {\"key\": \"feature_flag.result.value\", \"value\": {\"boolValue\": false}}, {\"key\": \"feature_flag.result.variant\", \"value\": {\"stringValue\": \"off\"}}]}, {\"timeUnixNano\": \"1792822772554532680\", \"name\": \"feature_flag.evaluation\", \"attributes\": [{\"key\": \"feature_flag.context.id\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"feature_flag.key\", \"value\": {\"stringValue\": \"paymentUnreachable\"}}, {\"key\": \"feature_flag.provider.name\", \"value\": {\"stringValue\": \"flagd\"}}, {\"key\": \"feature_flag.result.reason\", \"value\": {\"stringValue\": \"cached\"}}, {\"key\": \"feature_flag.result.value\", \"value\": {\"boolValue\": false}}, {\"key\": \"feature_flag.result.variant\", \"value\": {\"stringValue\": \"off\"}}]}, {\"timeUnixNano\": \"1792822772554514889\", \"name\": \"prepared\"}], \"status\": {\"message\": \"failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \\\"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\\\"\", \"code\": 2}}]}, {\"scope\": {\"name\": \"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp\", \"version\": \"0.72.0\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"d3739ab1be49df48\", \"parentSpanId\": \"0b0bd99a7da66dbc\", \"flags\": 257, \"name\": \"POST\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772550112805\", \"endTimeUnixNano\": \"1792822772553740430\", \"attributes\": [{\"key\": \"http.request.method\", \"value\": {\"stringValue\": \"POST\"}}, {\"key\": \"http.response.status_code\", \"value\": {\"intValue\": \"200\"}}, {\"key\": \"network.protocol.version\", \"value\": {\"stringValue\": \"1.1\"}}, {\"key\": \"original_span_name\", \"value\": {\"stringValue\": \"HTTP POST\"}}, {\"key\": \"server.address\", \"value\": {\"stringValue\": \"shipping\"}}, {\"key\": \"server.port\", \"value\": {\"intValue\": \"50050\"}}, {\"key\": \"url.full\", \"value\": {\"stringValue\": \"http://shipping:50050/get-quote\"}}], \"status\": {}}]}, {\"scope\": {\"name\": \"checkout\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"0b0bd99a7da66dbc\", \"parentSpanId\": \"66a32155cf8ff6ac\", \"flags\": 257, \"name\": \"prepareOrderItemsAndShippingQuoteFromCart\", \"kind\": 1, \"startTimeUnixNano\": \"1792822772544091389\", \"endTimeUnixNano\": \"1792822772554503930\", \"attributes\": [{\"key\": \"demo.cart.items.count\", \"value\": {\"intValue\": \"10\"}}, {\"key\": \"demo.order.items.count\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"demo.shipping.amount\", \"value\": {\"doubleValue\": 89.9}}], \"status\": {}}]}]}, {\"resource\": {\"attributes\": [{\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"low\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"load-generator\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"python\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"opentelemetry\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"1.42.0\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"opentelemetry.instrumentation.requests\", \"version\": \"0.63b0\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"1e7fd23aa812f8b1\", \"parentSpanId\": \"9199dd8c4ffec614\", \"flags\": 256, \"name\": \"GET\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772524616305\", \"endTimeUnixNano\": \"1792822772534117639\", \"attributes\": [{\"key\": \"http.method\", \"value\": {\"stringValue\": \"GET\"}}, {\"key\": \"http.status_code\", \"value\": {\"intValue\": \"200\"}}, {\"key\": \"http.url\", \"value\": {\"stringValue\": \"http://frontend-proxy:8080/api/products/0PUK6V6EV0\"}}, {\"key\": \"user_agent.original\", \"value\": {\"stringValue\": \"python-requests/2.34.2\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"e43c4bccbd71ae1d\", \"parentSpanId\": \"9199dd8c4ffec614\", \"flags\": 256, \"name\": \"POST\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772534625222\", \"endTimeUnixNano\": \"1792822772541245597\", \"attributes\": [{\"key\": \"http.method\", \"value\": {\"stringValue\": \"POST\"}}, {\"key\": \"http.status_code\", \"value\": {\"intValue\": \"200\"}}, {\"key\": \"http.url\", \"value\": {\"stringValue\": \"http://frontend-proxy:8080/api/cart\"}}, {\"key\": \"user_agent.original\", \"value\": {\"stringValue\": \"python-requests/2.34.2\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"ab096bb5cf6633b6\", \"parentSpanId\": \"8ecbbee246e5a06d\", \"flags\": 256, \"name\": \"POST\", \"kind\": 3, \"startTimeUnixNano\": \"1792822772541683180\", \"endTimeUnixNano\": \"1792822772556783139\", \"attributes\": [{\"key\": \"http.method\", \"value\": {\"stringValue\": \"POST\"}}, {\"key\": \"http.status_code\", \"value\": {\"intValue\": \"500\"}}, {\"key\": \"http.url\", \"value\": {\"stringValue\": \"http://frontend-proxy:8080/api/checkout\"}}, {\"key\": \"user_agent.original\", \"value\": {\"stringValue\": \"python-requests/2.34.2\"}}], \"status\": {\"code\": 2}}]}, {\"scope\": {\"name\": \"locustfile\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"9199dd8c4ffec614\", \"parentSpanId\": \"8ecbbee246e5a06d\", \"flags\": 256, \"name\": \"user_add_to_cart\", \"kind\": 1, \"startTimeUnixNano\": \"1792822772523806514\", \"endTimeUnixNano\": \"1792822772541368555\", \"attributes\": [{\"key\": \"demo.product.id\", \"value\": {\"stringValue\": \"0PUK6V6EV0\"}}, {\"key\": \"demo.product.quantity\", \"value\": {\"intValue\": \"10\"}}, {\"key\": \"user.id\", \"value\": {\"stringValue\": \"e0850eb0-cf72-11f1-b285-52bb40d90cca\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"8ecbbee246e5a06d\", \"flags\": 256, \"name\": \"user_checkout_single\", \"kind\": 1, \"startTimeUnixNano\": \"1792822772523680722\", \"endTimeUnixNano\": \"1792822772557046847\", \"attributes\": [{\"key\": \"user.id\", \"value\": {\"stringValue\": \"e0850eb0-cf72-11f1-b285-52bb40d90cca\"}}], \"status\": {}}]}]}, {\"resource\": {\"attributes\": [{\"key\": \"container.id\", \"value\": {\"stringValue\": \"4eba98671a5d22ccc36764ae7914a1fc1de53e09328e10113ff8c1282c055dbf\"}}, {\"key\": \"host.arch\", \"value\": {\"stringValue\": \"arm64\"}}, {\"key\": \"host.cpu.cache.l2.size\", \"value\": {\"intValue\": \"0\"}}, {\"key\": \"host.cpu.family\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.model.id\", \"value\": {\"stringValue\": \"0x000\"}}, {\"key\": \"host.cpu.model.name\", \"value\": {\"stringValue\": \"\"}}, {\"key\": \"host.cpu.stepping\", \"value\": {\"stringValue\": \"0\"}}, {\"key\": \"host.cpu.vendor.id\", \"value\": {\"stringValue\": \"Apple\"}}, {\"key\": \"host.name\", \"value\": {\"stringValue\": \"docker-desktop\"}}, {\"key\": \"os.description\", \"value\": {\"stringValue\": \"Linux c0afc8ffbfa2 6.12.76-linuxkit #1 SMP Tue Jul 21 14:38:37 UTC 2026 aarch64\"}}, {\"key\": \"os.type\", \"value\": {\"stringValue\": \"linux\"}}, {\"key\": \"os.version\", \"value\": {\"stringValue\": \"6.12.76-linuxkit\"}}, {\"key\": \"process.command\", \"value\": {\"stringValue\": \"/app/server.js\"}}, {\"key\": \"process.command_args\", \"value\": {\"arrayValue\": {\"values\": [{\"stringValue\": \"/nodejs/bin/node\"}, {\"stringValue\": \"--require=./Instrumentation.js\"}, {\"stringValue\": \"/app/server.js\"}]}}}, {\"key\": \"process.executable.name\", \"value\": {\"stringValue\": \"/nodejs/bin/node\"}}, {\"key\": \"process.executable.path\", \"value\": {\"stringValue\": \"/nodejs/bin/node\"}}, {\"key\": \"process.owner\", \"value\": {\"stringValue\": \"nonroot\"}}, {\"key\": \"process.pid\", \"value\": {\"intValue\": \"1\"}}, {\"key\": \"process.runtime.description\", \"value\": {\"stringValue\": \"Node.js\"}}, {\"key\": \"process.runtime.name\", \"value\": {\"stringValue\": \"nodejs\"}}, {\"key\": \"process.runtime.version\", \"value\": {\"stringValue\": \"24.22.0\"}}, {\"key\": \"service.criticality\", \"value\": {\"stringValue\": \"critical\"}}, {\"key\": \"service.name\", \"value\": {\"stringValue\": \"frontend\"}}, {\"key\": \"service.namespace\", \"value\": {\"stringValue\": \"opentelemetry-demo\"}}, {\"key\": \"service.version\", \"value\": {\"stringValue\": \"3.1.0\"}}, {\"key\": \"telemetry.sdk.language\", \"value\": {\"stringValue\": \"nodejs\"}}, {\"key\": \"telemetry.sdk.name\", \"value\": {\"stringValue\": \"opentelemetry\"}}, {\"key\": \"telemetry.sdk.version\", \"value\": {\"stringValue\": \"2.12.0\"}}]}, \"scopeSpans\": [{\"scope\": {\"name\": \"next.js\", \"version\": \"16.4.2\"}, \"spans\": [{\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"df6fd922451be918\", \"parentSpanId\": \"586cdd0a16405187\", \"flags\": 257, \"name\": \"prepare route module\", \"kind\": 1, \"startTimeUnixNano\": \"1792822772526000000\", \"endTimeUnixNano\": \"1792822772526343458\", \"attributes\": [{\"key\": \"next.span_category\", \"value\": {\"stringValue\": \"nextjs\"}}, {\"key\": \"next.span_name\", \"value\": {\"stringValue\": \"prepare route module\"}}, {\"key\": \"next.span_type\", \"value\": {\"stringValue\": \"RouteModule.prepare\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"610e33f61f6afa76\", \"parentSpanId\": \"586cdd0a16405187\", \"flags\": 257, \"name\": \"executing api route (pages) /api/products/[productId]/index\", \"kind\": 1, \"startTimeUnixNano\": \"1792822772527000000\", \"endTimeUnixNano\": \"1792822772532889791\", \"attributes\": [{\"key\": \"http.status_code\", \"value\": {\"intValue\": \"200\"}}, {\"key\": \"next.span_category\", \"value\": {\"stringValue\": \"nextjs\"}}, {\"key\": \"next.span_name\", \"value\": {\"stringValue\": \"executing api route (pages) /api/products/[productId]/index\"}}, {\"key\": \"next.span_type\", \"value\": {\"stringValue\": \"Node.runHandler\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"586cdd0a16405187\", \"parentSpanId\": \"50d58ad98d9d2b94\", \"flags\": 257, \"name\": \"GET /api/products/[productId]/index\", \"kind\": 2, \"startTimeUnixNano\": \"1792822772526000000\", \"endTimeUnixNano\": \"1792822772532694292\", \"attributes\": [{\"key\": \"http.method\", \"value\": {\"stringValue\": \"GET\"}}, {\"key\": \"http.route\", \"value\": {\"stringValue\": \"/api/products/[productId]/index\"}}, {\"key\": \"http.status_code\", \"value\": {\"intValue\": \"200\"}}, {\"key\": \"http.target\", \"value\": {\"stringValue\": \"/api/products/0PUK6V6EV0\"}}, {\"key\": \"next.route\", \"value\": {\"stringValue\": \"/api/products/[productId]/index\"}}, {\"key\": \"next.rsc\", \"value\": {\"boolValue\": false}}, {\"key\": \"next.span_category\", \"value\": {\"stringValue\": \"nextjs\"}}, {\"key\": \"next.span_name\", \"value\": {\"stringValue\": \"GET /api/products/[productId]/index\"}}, {\"key\": \"next.span_type\", \"value\": {\"stringValue\": \"BaseServer.handleRequest\"}}], \"status\": {}}, {\"traceId\": \"ff84a1e57ade8dbbc1b4c96e8ca4956c\", \"spanId\": \"b43bfa106fc7d3be\", \"parentSpanId\": \"b8f71d010481404e\", \"flags\": 2...(truncated)"
+}

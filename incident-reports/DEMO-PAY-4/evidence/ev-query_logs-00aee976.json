@@ -1,0 +1,20 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_logs-00aee976",
+    "tool": "query_logs",
+    "source": "opensearch",
+    "service": "fraud-detection",
+    "query": "source=otel-logs-* | where resource.service.name = 'fraud-detection' and `@timestamp` >= '2026-10-24 06:09:57' and `severity.number` >= 13 | sort - `@timestamp` | head 40 | fields `@timestamp`, severity, body, traceId, _id",
+    "window_start": "2026-10-24T06:09:57.132127Z",
+    "window_end": "2026-10-24T06:19:57.132127Z",
+    "collected_at": "2026-10-24T06:19:57.152425Z",
+    "value": null,
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_logs-00aee976.json",
+    "message": "no WARN+ logs in window"
+  },
+  "raw": "{\"schema\": [{\"name\": \"@timestamp\", \"type\": \"timestamp\"}, {\"name\": \"severity\", \"type\": \"struct\"}, {\"name\": \"body\", \"type\": \"string\"}, {\"name\": \"traceId\", \"type\": \"string\"}, {\"name\": \"_id\", \"type\": \"string\"}], \"datarows\": [], \"total\": 0, \"size\": 0}"
+}

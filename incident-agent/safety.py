@@ -80,6 +80,40 @@ def _evidence_text(e: Evidence) -> str:
     return f"{e.service or ''} {e.query} {json.dumps(e.observed_value, default=str)}"
 
 
+# Signals that the target's *process* is broken (so a restart can plausibly help). Deliberately excludes generic
+# UNAVAILABLE/timeout/unreachable wording, which application, network and flag-driven faults also produce.
+_PROCESS_TEXT = re.compile(r"connection refused|no such host|no route to host|connection reset|out of memory|\boom\b|"
+                           r"crash|killed", re.IGNORECASE)
+
+
+def process_level_evidence(target: str, evidence: list[Evidence]) -> bool:
+    """True if any cited evidence shows a process-level problem for the target: container not running, unhealthy or
+    restarting; flagged by resource_overview (silent, CPU, memory, restarts); stopped reporting; or callers getting
+    refused connections / failed name resolution for it. A restart does not fix code, configuration or flag faults."""
+    for e in evidence:
+        v = (e.observed_value or {}).get("value") if isinstance(e.observed_value, dict) else None
+        v = v if isinstance(v, dict) else {}
+        if e.tool == "container_state":
+            for r in v.get("services") or []:
+                if r.get("service") == target and (r.get("state") not in (None, "running") or r.get("health") == "unhealthy"
+                                                   or (r.get("restart_count") or 0) > 0):
+                    return True
+        if e.tool == "resource_overview" and any(f.get("container") == target for f in v.get("flagged") or []):
+            return True
+        if e.tool == "service_health" and e.service == target:
+            summary = v.get("summary") or {}
+            if summary.get("stopped_reporting") or summary.get("recently_restarted"):
+                return True
+        if (e.tool == "query_metrics" and e.service == target and v.get("metric") == "container_last_seen_age_s"
+                and isinstance(v.get("value"), (int, float)) and v["value"] > 150):
+            return True
+        if e.tool in ("search_traces", "query_logs"):
+            text = json.dumps(e.observed_value, default=str)
+            if _mentions(target, text) and _PROCESS_TEXT.search(text):
+                return True
+    return False
+
+
 def default_checks(op: Operation, target: Optional[str], affected: Optional[str]) -> list[VerificationCheck]:
     checks: list[VerificationCheck] = []
     for svc in [s for s in (affected, target if op.target_kind == "service" else None) if s]:
@@ -129,6 +163,11 @@ def evaluate(plan: PlannedAction, *, catalog: Catalog, diagnosis: Diagnosis, evi
         errors.append(f"no cited evidence mentions the target '{target}'")
     if diagnosis.confidence_label == ConfidenceLabel.LOW:
         errors.append("diagnosis confidence is low: escalate instead of acting")
+    if op.name == "restart_service" and target and cited and not process_level_evidence(target, cited):
+        errors.append(f"restart_service needs process-level evidence for '{target}' (container stopped/unhealthy/"
+                      "restarting, stopped reporting, CPU or memory anomaly, or refused connections / failed name "
+                      "resolution). A restart does not fix application errors, configuration, latency or flag-driven "
+                      "faults: escalate with steps for a human instead")
     if target and op.target_kind == "service" and not _mentions(target, diagnosis.suspected_component):
         errors.append(f"target '{target}' is not implicated by the accepted diagnosis ({diagnosis.suspected_component})")
 
@@ -243,6 +282,48 @@ class DispatchLock:
             self.path.unlink(missing_ok=True)
 
 
+MAX_APPROVAL_ATTEMPTS = 3
+_REJECT_WORDS = {"", "reject", "no", "n", "deny"}
+_SERVER_CODE = re.compile(r"^[A-Z2-9]{4}-?[A-Z2-9]{4}$")
+
+
+def _read_decision(instructions: str, check_code: Callable[[str], Optional[str]], *, ttl_s: float,
+                   input_fn: Callable[[str], str], print_fn: Callable[[str], None],
+                   clock: Callable[[], float]) -> tuple[str, Optional[str]]:
+    """Ask until the human approves with a valid code, rejects, runs out of attempts or the TTL passes.
+
+    Returns ('approved', CODE) | ('rejected', None) | ('expired', None). Angle brackets, quotes and case are forgiven;
+    the word 'approve' plus a code is still required. The typed answer is never logged.
+    """
+    print_fn(instructions)
+    started = clock()
+    for attempt in range(1, MAX_APPROVAL_ATTEMPTS + 1):
+        try:
+            raw = input_fn("> ")
+        except (EOFError, KeyboardInterrupt):
+            raw = ""
+        if clock() - started > ttl_s:
+            return "expired", None
+        parts = re.sub(r"[<>\"'`]", " ", raw or "").split()
+        if " ".join(parts).lower() in _REJECT_WORDS:
+            return "rejected", None
+        if len(parts) == 2 and parts[0].lower() == "approve":
+            code = parts[1].upper()
+            problem = check_code(code)
+            if problem is None:
+                return "approved", code
+        elif len(parts) == 1 and parts[0].lower() == "approve":
+            problem = "the code is missing; type the word approve AND the code, e.g.  approve XXXX-XXXX"
+        elif len(parts) == 1:
+            problem = "type the word approve before the code, e.g.  approve XXXX-XXXX"
+        else:
+            problem = "not understood; expected  approve XXXX-XXXX"
+        if attempt < MAX_APPROVAL_ATTEMPTS:
+            print_fn(f"Not approved yet: {problem}. Try again ({MAX_APPROVAL_ATTEMPTS - attempt} left), "
+                     "or press Enter to reject.")
+    return "rejected", None
+
+
 def request_approval(summary: str, digest: str, *, approver: str, ttl_s: float, input_fn: Callable[[str], str],
                      interactive: bool, print_fn: Callable[[str], None] = print,
                      clock: Callable[[], float] = time.monotonic) -> Approval:
@@ -252,19 +333,12 @@ def request_approval(summary: str, digest: str, *, approver: str, ttl_s: float, 
     if not interactive:
         return Approval(proposal_digest=digest, decision="rejected", approver="none (non-interactive session)", expiry=expiry)
     print_fn(summary)
-    print_fn(f"\nTo APPROVE this exact action type:  approve {code}\nAnything else rejects. Expires in {ttl_s:.0f}s.")
-    started = clock()
-    try:
-        answer = input_fn("> ").strip()
-    except (EOFError, KeyboardInterrupt):
-        answer = ""
-    if clock() - started > ttl_s:
-        return Approval(proposal_digest=digest, decision="expired", approver=approver, expiry=expiry)
-    decision = "approved" if answer == f"approve {code}" else "rejected"
+    decision, _ = _read_decision(
+        f"\n>>> To APPROVE this exact action, type:   approve {code}\n"
+        f">>> To REJECT: press Enter or type reject.   Expires in {ttl_s:.0f}s.",
+        lambda c: None if c.lower() == code else "that code does not match this proposal (it is shown above)",
+        ttl_s=ttl_s, input_fn=input_fn, print_fn=print_fn, clock=clock)
     return Approval(proposal_digest=digest, decision=decision, approver=approver, expiry=expiry)
-
-
-_SERVER_ANSWER = re.compile(r"^approve\s+([A-Za-z2-9]{4}-?[A-Za-z2-9]{4})$")
 
 
 def request_server_approval(summary: str, digest: str, approval_id: str, *, approver: str, ttl_s: float,
@@ -276,16 +350,10 @@ def request_server_approval(summary: str, digest: str, approval_id: str, *, appr
     if not interactive:
         return Approval(proposal_digest=digest, decision="rejected", approver="none (non-interactive session)", expiry=expiry), None
     print_fn(summary)
-    print_fn(f"\nThe Action API printed a one-time approval code for {approval_id} on ITS console.\n"
-             f"To APPROVE this exact action type:  approve <CODE>\nAnything else rejects. Expires in {ttl_s:.0f}s.")
-    started = clock()
-    try:
-        answer = input_fn("> ").strip()
-    except (EOFError, KeyboardInterrupt):
-        answer = ""
-    if clock() - started > ttl_s:
-        return Approval(proposal_digest=digest, decision="expired", approver=approver, expiry=expiry), None
-    m = _SERVER_ANSWER.match(answer)
-    if not m:
-        return Approval(proposal_digest=digest, decision="rejected", approver=approver, expiry=expiry), None
-    return Approval(proposal_digest=digest, decision="approved", approver=approver, expiry=expiry), m.group(1).upper()
+    decision, code = _read_decision(
+        f"\n>>> To APPROVE: find  ONE-TIME APPROVAL CODE: XXXX-XXXX  for {approval_id} in the Action API terminal\n"
+        ">>>             (terminal 1), check the action there matches, then type here:   approve XXXX-XXXX\n"
+        f">>> To REJECT: press Enter or type reject.   Expires in {ttl_s:.0f}s.",
+        lambda c: None if _SERVER_CODE.match(c) else "codes look like XXXX-XXXX (letters and digits 2-9)",
+        ttl_s=ttl_s, input_fn=input_fn, print_fn=print_fn, clock=clock)
+    return Approval(proposal_digest=digest, decision=decision, approver=approver, expiry=expiry), code

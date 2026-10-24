@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-8ae7d6e5",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "fraud-detection",
+    "query": "(sum(rate(traces_span_metrics_calls_total{service_name=\"fraud-detection\",status_code=\"STATUS_CODE_ERROR\"}[5m])) or vector(0)) / sum(rate(traces_span_metrics_calls_total{service_name=\"fraud-detection\"}[5m]))",
+    "window_start": "2026-10-24T06:14:59.640533Z",
+    "window_end": "2026-10-24T06:19:59.640533Z",
+    "collected_at": "2026-10-24T06:19:59.644992Z",
+    "value": {
+      "metric": "error_rate",
+      "unit": "ratio 0-1",
+      "value": 1.0
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-8ae7d6e5.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {}, \"value\": [1792822799.64, \"1\"]}]}}"
+}

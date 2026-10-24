@@ -265,7 +265,9 @@ METRIC_TEMPLATES: dict[str, tuple[str, str, str]] = {
         "ms", "span_name"),
     # Container resource telemetry from the collector's docker_stats receiver.
     # Exact metric names are matched by pattern; confirm with `python telemetry.py names container`.
-    "container_cpu": ('{__name__=~"container_cpu_utilization.*",container_name="{s}"}', "ratio/percent", "__name__"),
+    # CPU-time rate (percent of one core); container_cpu_utilization_ratio is a lifetime average in this setup.
+    "container_cpu": ('sum(rate(container_cpu_usage_nanoseconds_total{container_name="{s}"}[{w}m])) / 1e7',
+                      "percent of one core", ""),
     "container_memory": ('{__name__=~"container_memory_(usage_total|percent|rss).*",container_name="{s}"}',
                          "bytes/percent", "__name__"),
     "container_memory_trend": ('deriv({__name__=~"container_memory_usage_total.*",container_name="{s}"}[{w}m])',

@@ -1,0 +1,2474 @@
+{
+  "schema_version": "team6.incident-report/1.0",
+  "incident_id": "DEMO-PAY-4",
+  "status": "REJECTED",
+  "incident": {
+    "id": "DEMO-PAY-4",
+    "source": "manual-cli",
+    "symptom": "Users report checkout failing",
+    "affected_service": "checkout",
+    "detection_time": "2026-10-24T06:19:51.554753Z",
+    "observation_window": {
+      "start_time": "2026-10-24T06:04:51.554753Z",
+      "end_time": "2026-10-24T06:19:51.554753Z"
+    },
+    "recovery_condition": "not provided - diagnosis only (CP0-CP2, no remediation)"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-10-24T06:19:51.625630Z",
+      "status": "RECEIVED",
+      "description": "Incident received from manual-cli",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T06:19:51.625637Z",
+      "status": "INVESTIGATING",
+      "description": "Investigation started",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T06:19:53.529953Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 2 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T06:19:53.546962Z",
+      "status": "INVESTIGATING",
+      "description": "overview({'window_minutes': 5}) -> ok [ev-overview-94ed4d45]",
+      "metadata": {
+        "window_start": "2026-10-24T06:14:53.530188+00:00",
+        "window_end": "2026-10-24T06:19:53.530188+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:19:53.566618Z",
+      "status": "INVESTIGATING",
+      "description": "resource_overview({'window_minutes': 5}) -> ok [ev-resource_overview-7e23fb72]",
+      "metadata": {
+        "window_start": "2026-10-24T06:14:53.547201+00:00",
+        "window_end": "2026-10-24T06:19:53.547201+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:19:55.764910Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 5 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T06:19:55.974604Z",
+      "status": "INVESTIGATING",
+      "description": "container_state({'service': 'payment'}) -> ok [ev-container_state-367a03e6]",
+      "metadata": {
+        "window_start": "2026-10-24T06:19:55.765274+00:00",
+        "window_end": "2026-10-24T06:19:55.765274+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:19:56.232759Z",
+      "status": "INVESTIGATING",
+      "description": "search_traces({'service': 'checkout', 'window_minutes': 15, 'errors_only': True, 'limit': 10}) -> ok [ev-search_traces-fe63e317]",
+      "metadata": {
+        "window_start": "2026-10-24T06:04:55.974823+00:00",
+        "window_end": "2026-10-24T06:19:55.974823+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:19:57.131844Z",
+      "status": "INVESTIGATING",
+      "description": "query_logs({'service': 'checkout', 'window_minutes': 10, 'min_severity': 'WARN', 'limit': 20}) -> empty [ev-query_logs-db4ee4e3]",
+      "metadata": {
+        "window_start": "2026-10-24T06:09:56.233098+00:00",
+        "window_end": "2026-10-24T06:19:56.233098+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:19:57.153228Z",
+      "status": "INVESTIGATING",
+      "description": "query_logs({'service': 'fraud-detection', 'window_minutes': 10, 'min_severity': 'WARN', 'limit': 20}) -> empty [ev-query_logs-00aee976]",
+      "metadata": {
+        "window_start": "2026-10-24T06:09:57.132127+00:00",
+        "window_end": "2026-10-24T06:19:57.132127+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:19:57.175107Z",
+      "status": "INVESTIGATING",
+      "description": "service_health({'service': 'payment', 'window_minutes': 5}) -> ok [ev-service_health-fc934d3c]",
+      "metadata": {
+        "window_start": "2026-10-24T06:14:57.153520+00:00",
+        "window_end": "2026-10-24T06:19:57.153520+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:19:59.613915Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 2 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T06:19:59.637182Z",
+      "status": "INVESTIGATING",
+      "description": "search_traces({'service': 'fraud-detection', 'window_minutes': 15, 'errors_only': True, 'limit': 3}) -> ok [ev-search_traces-5a26539e]",
+      "metadata": {
+        "window_start": "2026-10-24T06:04:59.614393+00:00",
+        "window_end": "2026-10-24T06:19:59.614393+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:19:59.658568Z",
+      "status": "INVESTIGATING",
+      "description": "service_health({'service': 'fraud-detection', 'window_minutes': 5}) -> ok [ev-service_health-b766b7dc]",
+      "metadata": {
+        "window_start": "2026-10-24T06:14:59.637437+00:00",
+        "window_end": "2026-10-24T06:19:59.637437+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:20:05.905619Z",
+      "status": "INVESTIGATING",
+      "description": "Finish deferred: unresolved resource anomalies ['grafana', 'kafka', 'opensearch']",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T06:20:07.966139Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 3 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T06:20:07.997219Z",
+      "status": "INVESTIGATING",
+      "description": "service_health({'service': 'grafana', 'window_minutes': 5}) -> ok [ev-service_health-4d9a885b]",
+      "metadata": {
+        "window_start": "2026-10-24T06:15:07.966766+00:00",
+        "window_end": "2026-10-24T06:20:07.966766+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:20:08.018587Z",
+      "status": "INVESTIGATING",
+      "description": "service_health({'service': 'kafka', 'window_minutes': 5}) -> ok [ev-service_health-2adfe85b]",
+      "metadata": {
+        "window_start": "2026-10-24T06:15:07.997555+00:00",
+        "window_end": "2026-10-24T06:20:07.997555+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:20:08.036724Z",
+      "status": "INVESTIGATING",
+      "description": "service_health({'service': 'opensearch', 'window_minutes': 5}) -> ok [ev-service_health-11addd2e]",
+      "metadata": {
+        "window_start": "2026-10-24T06:15:08.018967+00:00",
+        "window_end": "2026-10-24T06:20:08.018967+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:20:14.094872Z",
+      "status": "DIAGNOSED",
+      "description": "Diagnosis validated: payment",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T06:20:14.094897Z",
+      "status": "DIAGNOSED",
+      "description": "Finished: diagnosed; 6 model calls, 12 tool calls, 22.5s",
+      "metadata": {
+        "model_calls": 6,
+        "tool_calls": 12,
+        "tool_requests_rejected": 0,
+        "tokens": 53067,
+        "elapsed_s": 22.47,
+        "terminal_reason": "diagnosed",
+        "evidence_count": 12,
+        "rejected_diagnosis_errors": []
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:20:22.613222Z",
+      "status": "ACTION_PROPOSED",
+      "description": "Proposal passed policy: restart_service on payment",
+      "metadata": {
+        "request": {
+          "method": "POST",
+          "url": "http://127.0.0.1:8787/v1/actions/execute",
+          "json": {
+            "grace_period_seconds": 10,
+            "target": "payment"
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:20:23.099492Z",
+      "status": "ACTION_PROPOSED",
+      "description": "Baseline captured",
+      "metadata": {
+        "baseline": {
+          "payment.container_last_seen_age_s": 1756.592,
+          "checkout.error_rate": 0.25,
+          "payment.error_rate": null
+        },
+        "evidence": [
+          "ev-query_metrics-d4459ed9",
+          "ev-query_metrics-1238f2f7",
+          "ev-query_metrics-6a48de4a",
+          "ev-query_metrics-b7ae778c",
+          "ev-query_metrics-79358894",
+          "ev-container_state-c5699fb8",
+          "ev-query_metrics-19bb7705",
+          "ev-search_traces-46941c73",
+          "ev-query_logs-bbc787fb",
+          "ev-container_state-2f7da053",
+          "ev-query_metrics-6b3f12d8",
+          "ev-search_traces-3adf4e31",
+          "ev-query_logs-d33fa795"
+        ],
+        "symptomatic": {
+          "payment.container_last_seen_age_s": true,
+          "checkout.error_rate": true,
+          "payment.error_rate": null
+        }
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:20:23.100190Z",
+      "status": "AWAITING_APPROVAL",
+      "description": "Awaiting human approval (digest defa1aea177ed492)",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T06:20:23.111496Z",
+      "status": "AWAITING_APPROVAL",
+      "description": "Action API approval apr-0d92f6c9817c428e opened; code shown only on the Action API console",
+      "metadata": {
+        "payload_digest": "3fe0bf890866abba59f762af29992c326f21df4aab87ad7e397129bdbf07f373",
+        "expires_at": "2026-10-24T06:22:23.109013+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T06:21:49.018123Z",
+      "status": "REJECTED",
+      "description": "Remediation finished: ESCALATED (Human approval rejected: no action executed.)",
+      "metadata": {}
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "ev-overview-94ed4d45",
+      "status": "ok",
+      "source": "prometheus",
+      "service": null,
+      "event_time_window": {
+        "start_time": "2026-10-24T06:14:53.530188Z",
+        "end_time": "2026-10-24T06:19:53.530188Z"
+      },
+      "collection_time": "2026-10-24T06:19:53.545276Z",
+      "tool": "overview",
+      "query": "{\"request_rate\": \"sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))\", \"error_rate\": \"(sum by (service_name) (rate(traces_span_metrics_calls_total{status_code=\\\"STATUS_CODE_ERROR\\\"}[5m])) or sum by (service_name) (rate(traces_span_metrics_calls_total[5m])) * 0) / sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))\", \"p95_ms\": \"histogram_quantile(0.95, sum by (le, service_name) (rate(traces_span_metrics_duration_milliseconds_bucket[5m])))\"}",
+      "observed_value": {
+        "value": {
+          "services": [
+            {
+              "service": "fraud-detection",
+              "request_rate": 0.004167,
+              "error_rate": 1.0,
+              "p95_ms": 15000.0
+            },
+            {
+              "service": "checkout",
+              "request_rate": 0.358339,
+              "error_rate": 0.209302,
+              "p95_ms": 45.619048
+            },
+            {
+              "service": "load-generator",
+              "request_rate": 1.766696,
+              "error_rate": 0.066038,
+              "p95_ms": 4348.387097
+            },
+            {
+              "service": "ad",
+              "request_rate": 0.775013,
+              "error_rate": 0.037634,
+              "p95_ms": 16.8
+            },
+            {
+              "service": "frontend",
+              "request_rate": 28.77548,
+              "error_rate": 0.008688,
+              "p95_ms": 41.915416
+            },
+            {
+              "service": "frontend-proxy",
+              "request_rate": 27.275455,
+              "error_rate": 0.004583,
+              "p95_ms": 41.995354
+            },
+            {
+              "service": "frontend-web",
+              "request_rate": 10.296005,
+              "error_rate": 0.002023,
+              "p95_ms": 195.678733
+            },
+            {
+              "service": "recommendation",
+              "request_rate": 2.487541,
+              "error_rate": 0.0,
+              "p95_ms": 34.873239
+            },
+            {
+              "service": "product-catalog",
+              "request_rate": 10.058501,
+              "error_rate": 0.0,
+              "p95_ms": 32.939929
+            },
+            {
+              "service": "shipping",
+              "request_rate": 0.333339,
+              "error_rate": 0.0,
+              "p95_ms": 9.0
+            },
+            {
+              "service": "cart",
+              "request_rate": 5.500092,
+              "error_rate": 0.0,
+              "p95_ms": 3.9125
+            },
+            {
+              "service": "quote",
+              "request_rate": 0.500008,
+              "error_rate": 0.0,
+              "p95_ms": 1.982609
+            },
+            {
+              "service": "currency",
+              "request_rate": 0.954183,
+              "error_rate": 0.0,
+              "p95_ms": 1.9
+            },
+            {
+              "service": "telemetry-docs",
+              "request_rate": 0.195837,
+              "error_rate": 0.0,
+              "p95_ms": 1.9
+            },
+            {
+              "service": "image-provider",
+              "request_rate": 3.870898,
+              "error_rate": 0.0,
+              "p95_ms": 1.9
+            },
+            {
+              "service": "email",
+              "request_rate": 0.0
+            },
+            {
+              "service": "accounting",
+              "request_rate": 0.0
+            },
+            {
+              "service": "payment",
+              "request_rate": 0.0
+            }
+          ],
+          "units": {
+            "request_rate": "req/s",
+            "error_rate": "ratio 0-1",
+            "p95_ms": "ms"
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-overview-94ed4d45.json"
+    },
+    {
+      "evidence_id": "ev-resource_overview-7e23fb72",
+      "status": "ok",
+      "source": "prometheus",
+      "service": null,
+      "event_time_window": {
+        "start_time": "2026-10-24T06:14:53.547201Z",
+        "end_time": "2026-10-24T06:19:53.547201Z"
+      },
+      "collection_time": "2026-10-24T06:19:53.565742Z",
+      "tool": "resource_overview",
+      "query": "cpu: container_cpu_utilization_ratio; cpu_prior: avg_over_time(container_cpu_utilization_ratio[5m] offset 10m); mem: container_memory_percent_ratio; mem_growth: deriv(container_memory_usage_total_bytes[5m]) * 300 / container_memory_usage_total_bytes; uptime: container_uptime_seconds; last_seen_age: time() - max_over_time(timestamp(container_uptime_seconds)[60m:30s])",
+      "observed_value": {
+        "value": {
+          "fleet": {
+            "cpu_median_pct": 0.15064705211473983,
+            "uptime_median_s": 1942.182868579,
+            "containers": 21
+          },
+          "flagged": [
+            {
+              "container": "grafana",
+              "reasons": [
+                "memory 89% of limit"
+              ],
+              "severity": 3
+            },
+            {
+              "container": "kafka",
+              "reasons": [
+                "memory 94% of limit"
+              ],
+              "severity": 3
+            },
+            {
+              "container": "opensearch",
+              "reasons": [
+                "memory 91% of limit"
+              ],
+              "severity": 3
+            },
+            {
+              "container": "payment",
+              "kind": "silent",
+              "severity": 3,
+              "reasons": [
+                "stopped reporting metrics 1728s ago while others still report: container may be stopped, crashed or removed, or only its metrics are missing"
+              ]
+            }
+          ],
+          "flagged_total": 4,
+          "restart_clusters": [],
+          "telemetry_silence": null,
+          "note": "Flags are anomalies to investigate, not proven causes. High CPU may be effect or load; clustered restarts may be a cause, a side effect or environmental.",
+          "containers": [
+            {
+              "container": "ad",
+              "cpu_pct": 0.17846536430477788,
+              "cpu_prior_window_pct": 0.14216712342063334,
+              "memory_pct": 75.85026041666667,
+              "memory_growth_frac": 0.004700310075677438,
+              "uptime_s": 1942.182868579
+            },
+            {
+              "container": "astronomy-db",
+              "cpu_pct": 0.17871611214297606,
+              "cpu_prior_window_pct": 0.11207376403991444,
+              "memory_pct": 68.701171875,
+              "memory_growth_frac": -0.0015307232597657494,
+              "uptime_s": 1958.180207837
+            },
+            {
+              "container": "checkout",
+              "cpu_pct": 0.15064705211473983,
+              "cpu_prior_window_pct": 0.09087274731478583,
+              "memory_pct": 65.8984375,
+              "memory_growth_frac": 0.024345539116390924,
+              "uptime_s": 1935.571214659
+            },
+            {
+              "container": "currency",
+              "cpu_pct": 0.054837100282442396,
+              "cpu_prior_window_pct": 0.03438168541258852,
+              "memory_pct": 18.96484375,
+              "memory_growth_frac": 0.06028016773156978,
+              "uptime_s": 1942.143237663
+            },
+            {
+              "container": "email",
+              "cpu_pct": 0.1403607468741924,
+              "cpu_prior_window_pct": 0.09196302154720955,
+              "memory_pct": 64.90625,
+              "memory_growth_frac": 0.041545311787579274,
+              "uptime_s": 1942.150546829
+            },
+            {
+              "container": "frontend",
+              "cpu_pct": 0.4892165685104614,
+              "cpu_prior_window_pct": 0.31217021146004054,
+              "memory_pct": 46.331250000000004,
+              "memory_growth_frac": 0.03225391220759112,
+              "uptime_s": 1930.394033005
+            },
+            {
+              "container": "frontend-proxy",
+              "cpu_pct": 0.21953717955861923,
+              "cpu_prior_window_pct": 0.13783166153389292,
+              "memory_pct": 42.82118055555556,
+              "memory_growth_frac": 0.014011922406690124,
+              "uptime_s": 1924.092658418
+            },
+            {
+              "container": "grafana",
+              "cpu_pct": 0.4451347660598006,
+              "cpu_prior_window_pct": 0.23080489160437093,
+              "memory_pct": 89.10234375,
+              "memory_growth_frac": -0.07814635860579142,
+              "uptime_s": 1958.219283212
+            },
+            {
+              "container": "image-provider",
+              "cpu_pct": 0.04154538819275766,
+              "cpu_prior_window_pct": 0.026149069478671683,
+              "memory_pct": 6.383463541666666,
+              "memory_growth_frac": 0.028884927115350227,
+              "uptime_s": 1942.155955496
+            },
+            {
+              "container": "jaeger",
+              "cpu_pct": 0.10032892182371102,
+              "cpu_prior_window_pct": 0.055017569591802526,
+              "memory_pct": 32.24869791666667,
+              "memory_growth_frac": 0.006522169391165561,
+              "uptime_s": 1958.187640837
+            },
+            {
+              "container": "kafka",
+              "cpu_pct": 0.4433635851250707,
+              "cpu_prior_window_pct": 0.35140208434763415,
+              "memory_pct": 94.36617943548387,
+              "memory_growth_frac": 0.011739817692939306,
+              "uptime_s": 1958.225429962
+            },
+            {
+              "container": "load-generator",
+              "cpu_pct": 5.2184506344654835,
+              "cpu_prior_window_pct": 3.2710322140483727,
+              "memory_pct": 38.39661458333333,
+              "memory_growth_frac": 0.08802963633793968,
+              "uptime_s": 1924.718688085
+            },
+            {
+              "container": "opamp-server",
+              "cpu_pct": 0.0271297442305463,
+              "cpu_prior_window_pct": 0.017002597301976077,
+              "memory_pct": 25.697115384615383,
+              "memory_growth_frac": 0.027126008820047558,
+              "uptime_s": 1958.227158795
+            },
+            {
+              "container": "opensearch",
+              "cpu_pct": 0.7447549623139104,
+              "cpu_prior_window_pct": 0.6016395930471706,
+              "memory_pct": 90.55709838867188,
+              "memory_growth_frac": 0.0005188004132066591,
+              "uptime_s": 1958.195096462
+            },
+            {
+              "container": "otel-collector",
+              "cpu_pct": 0.5861818991337951,
+              "cpu_prior_window_pct": 0.3672700435104713,
+              "memory_pct": 37.94921875,
+              "memory_growth_frac": 0.025096477409611063,
+              "uptime_s": 1942.332167538
+            },
+            {
+              "container": "prometheus",
+              "cpu_pct": 0.10120851264409185,
+              "cpu_prior_window_pct": 0.06133440815707699,
+              "memory_pct": 63.490234375,
+              "memory_growth_frac": -0.07373390553771712,
+              "uptime_s": 1958.175082962
+            },
+            {
+              "container": "quote",
+              "cpu_pct": 0.05688971740544461,
+              "cpu_prior_window_pct": 0.03608531960412671,
+              "memory_pct": 52.75390625000001,
+              "memory_growth_frac": 0.011556842640933125,
+              "uptime_s": 1942.145835829
+            },
+            {
+              "container": "recommendation",
+              "cpu_pct": 0.17676305295980604,
+              "cpu_prior_window_pct": 0.13698897498523294,
+              "memory_pct": 40.904687499999994,
+              "memory_growth_frac": 0.004230138418553849,
+              "uptime_s": 1941.087201495
+            },
+            {
+              "container": "shipping",
+              "cpu_pct": 0.04353001080021036,
+              "cpu_prior_window_pct": 0.026766274136306906,
+              "memory_pct": 32.32421875,
+              "memory_growth_frac": 0.025817347749314587,
+              "uptime_s": 1942.140361746
+            },
+            {
+              "container": "telemetry-docs",
+              "cpu_pct": 0.03783813998134741,
+              "cpu_prior_window_pct": 0.024220165136283594,
+              "memory_pct": 5.43359375,
+              "memory_growth_frac": 5.2778179917462705e-05,
+              "uptime_s": 1958.224386795
+            },
+            {
+              "container": "valkey-cart",
+              "cpu_pct": 0.044548656167177715,
+              "cpu_prior_window_pct": 0.027157023624432345,
+              "memory_pct": 62.24609375,
+              "memory_growth_frac": 0.002590530147568858,
+              "uptime_s": 1958.176330045
+            }
+          ]
+        },
+        "excerpt": "grafana: memory 89% of limit; kafka: memory 94% of limit; opensearch: memory 91% of limit; payment: stopped reporting metrics 1728s ago while others still report: container may be stopped, crashed or removed, or only its metrics are missing",
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-resource_overview-7e23fb72.json"
+    },
+    {
+      "evidence_id": "ev-container_state-367a03e6",
+      "status": "ok",
+      "source": "health",
+      "service": "payment",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:19:55.765274Z",
+        "end_time": "2026-10-24T06:19:55.765274Z"
+      },
+      "collection_time": "2026-10-24T06:19:55.973861Z",
+      "tool": "container_state",
+      "query": "GET /v1/services (service=payment)",
+      "observed_value": {
+        "value": {
+          "services": [
+            {
+              "service": "payment",
+              "state": "exited",
+              "health": "unhealthy",
+              "restart_count": 0,
+              "uptime_s": null
+            }
+          ],
+          "source": "docker inspect (read-only)"
+        },
+        "excerpt": null,
+        "message": "not running: payment"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-container_state-367a03e6.json"
+    },
+    {
+      "evidence_id": "ev-search_traces-fe63e317",
+      "status": "ok",
+      "source": "jaeger",
+      "service": "checkout",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:04:55.974823Z",
+        "end_time": "2026-10-24T06:19:55.974823Z"
+      },
+      "collection_time": "2026-10-24T06:19:56.193594Z",
+      "tool": "search_traces",
+      "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"checkout\", \"query.num_traces\": 40, \"query.start_time_min\": \"2026-10-24T06:04:55Z\", \"query.start_time_max\": \"2026-10-24T06:19:55Z\"}",
+      "observed_value": {
+        "value": {
+          "traces_scanned": 40,
+          "error_origin_counts": {
+            "checkout": 40
+          },
+          "edges": {
+            "load-generator -> frontend-proxy": 196,
+            "frontend-proxy -> frontend": 196,
+            "frontend -> cart": 156,
+            "checkout -> currency": 115,
+            "frontend -> product-catalog": 78,
+            "checkout -> product-catalog": 75,
+            "checkout -> shipping": 40,
+            "shipping -> quote": 40,
+            "frontend -> checkout": 40,
+            "checkout -> cart": 40
+          },
+          "traces": [
+            {
+              "trace_id": "ff84a1e57ade8dbbc1b4c96e8ca4956c",
+              "root": "load-generator: user_checkout_single",
+              "duration_ms": 33.4,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 14.0,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 14.1,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.PaymentService/Charge",
+                  "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 0.1,
+                  "attributes": {
+                    "rpc.method": "oteldemo.PaymentService/Charge",
+                    "rpc.response.status_code": "UNAVAILABLE",
+                    "rpc.system.name": "grpc"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.CheckoutService/PlaceOrder",
+                  "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 11.4,
+                  "attributes": {
+                    "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                    "rpc.response.status_code": "INTERNAL",
+                    "rpc.system.name": "grpc",
+                    "server.address": "172.22.0.26",
+                    "server.port": "5050"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                "span_id": "33846b0ed3504b35"
+              }
+            },
+            {
+              "trace_id": "357595a568c8b70c6f327c63fba72168",
+              "root": "load-generator: user_checkout_multi",
+              "duration_ms": 107.3,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 43.2,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 43.3,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.PaymentService/Charge",
+                  "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 1.6,
+                  "attributes": {
+                    "rpc.method": "oteldemo.PaymentService/Charge",
+                    "rpc.response.status_code": "UNAVAILABLE",
+                    "rpc.system.name": "grpc"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.CheckoutService/PlaceOrder",
+                  "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 37.3,
+                  "attributes": {
+                    "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                    "rpc.response.status_code": "INTERNAL",
+                    "rpc.system.name": "grpc",
+                    "server.address": "172.22.0.26",
+                    "server.port": "5050"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                "span_id": "c9363eb550aa6c21"
+              }
+            },
+            {
+              "trace_id": "edb62fffc63112752abcf3b319c1b03e",
+              "root": "load-generator: user_checkout_single",
+              "duration_ms": 53.0,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 34.2,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.PaymentService/Charge",
+                  "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 0.1,
+                  "attributes": {
+                    "rpc.method": "oteldemo.PaymentService/Charge",
+                    "rpc.response.status_code": "UNAVAILABLE",
+                    "rpc.system.name": "grpc"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.CheckoutService/PlaceOrder",
+                  "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 28.6,
+                  "attributes": {
+                    "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                    "rpc.response.status_code": "INTERNAL",
+                    "rpc.system.name": "grpc",
+                    "server.address": "172.22.0.26",
+                    "server.port": "5050"
+                  }
+                },
+                {
+                  "service": "load-generator",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 35.5,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                "span_id": "061758460b37c6b2"
+              }
+            },
+            {
+              "trace_id": "9b3f040b7524c3fbb102b74c38f1d27c",
+              "root": "load-generator: user_checkout_multi",
+              "duration_ms": 121.8,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 57.2,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 57.4,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "load-generator",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 58.8,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.PaymentService/Charge",
+                  "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 0.3,
+                  "attributes": {
+                    "rpc.method": "oteldemo.PaymentService/Charge",
+                    "rpc.response.status_code": "UNAVAILABLE",
+                    "rpc.system.name": "grpc"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                "span_id": "10cf0c2251a2db00"
+              }
+            },
+            {
+              "trace_id": "d6635f493cb7bd4b6efbc81c545ddda5",
+              "root": "load-generator: user_checkout_single",
+              "duration_ms": 102.4,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 44.8,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "executing api route (pages) /api/checkout",
+                  "error_message": "13: 13 INTERNAL: failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 43.2,
+                  "attributes": {
+                    "http.status_code": "500"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "POST /api/checkout",
+                  "error_message": null,
+                  "duration_ms": 44.1,
+                  "attributes": {
+                    "error.type": "500",
+                    "http.method": "POST",
+                    "http.route": "/api/checkout",
+                    "http.status_code": "500",
+                    "http.target": "/api/checkout"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "oteldemo.CheckoutService/PlaceOrder",
+                  "error_message": null,
+                  "duration_ms": 42.0,
+                  "attributes": {
+                    "rpc.grpc.status_code": "13",
+                    "rpc.method": "PlaceOrder",
+                    "rpc.service": "oteldemo.CheckoutService",
+                    "rpc.system": "grpc",
+                    "server.address": "checkout",
+                    "server.port": "5050"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                "span_id": "6284c780fea3d1f2"
+              }
+            },
+            {
+              "trace_id": "c63a703446653f7b43ab939b3854b61c",
+              "root": "load-generator: user_checkout_multi",
+              "duration_ms": 52.7,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 15.5,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 15.6,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "executing api route (pages) /api/checkout",
+                  "error_message": "13: 13 INTERNAL: failed to charge card: could not charge the card: rpc error: code = Unavailable desc = name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                  "duration_ms": 14.9,
+                  "attributes": {
+                    "http.status_code": "500"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "POST /api/checkout",
+                  "error_message": null,
+                  "duration_ms": 15.1,
+                  "attributes": {
+                    "error.type": "500",
+                    "http.method": "POST",
+                    "http.route": "/api/checkout",
+                    "http.status_code": "500",
+                    "http.target": "/api/checkout"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                "span_id": "3047dcd30327ebb1"
+              }
+            },
+            {
+              "trace_id": "e869508d4d7d5a36a89b93bc3ea8574b",
+              "root": "load-generator: user_checkout_multi",
+              "duration_ms": 83.9,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "load-generator",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 36.5,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.PaymentService/Charge",
+                  "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                  "duration_ms": 0.0,
+                  "attributes": {
+                    "rpc.method": "oteldemo.PaymentService/Charge",
+                    "rpc.response.status_code": "UNAVAILABLE",
+                    "rpc.system.name": "grpc"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.CheckoutService/PlaceOrder",
+                  "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                  "duration_ms": 31.5,
+                  "attributes": {
+                    "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                    "rpc.response.status_code": "INTERNAL",
+                    "rpc.system.name": "grpc",
+                    "server.address": "172.22.0.26",
+                    "server.port": "5050"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 35.5,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                "span_id": "a0936ec8aa5f1e81"
+              }
+            },
+            {
+              "trace_id": "a6e30b1a9ef098d59f6c6691b21c7ee1",
+              "root": "load-generator: user_checkout_single",
+              "duration_ms": 60.1,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 34.0,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "executing api route (pages) /api/checkout",
+                  "error_message": "13: 13 INTERNAL: failed to charge card: could not charge the card: rpc error: code = Unavailable desc = name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                  "duration_ms": 32.9,
+                  "attributes": {
+                    "http.status_code": "500"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "POST /api/checkout",
+                  "error_message": null,
+                  "duration_ms": 33.5,
+                  "attributes": {
+                    "error.type": "500",
+                    "http.method": "POST",
+                    "http.route": "/api/checkout",
+                    "http.status_code": "500",
+                    "http.target": "/api/checkout"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "oteldemo.CheckoutService/PlaceOrder",
+                  "error_message": null,
+                  "duration_ms": 32.3,
+                  "attributes": {
+                    "rpc.grpc.status_code": "13",
+                    "rpc.method": "PlaceOrder",
+                    "rpc.service": "oteldemo.CheckoutService",
+                    "rpc.system": "grpc",
+                    "server.address": "checkout",
+                    "server.port": "5050"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                "span_id": "2cb4ac9c9192a92e"
+              }
+            },
+            {
+              "trace_id": "421584b12bd1ae16fc956ee53991dc8a",
+              "root": "load-generator: user_checkout_multi",
+              "duration_ms": 57.3,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 26.5,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 26.6,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "load-generator",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 27.8,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.PaymentService/Charge",
+                  "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                  "duration_ms": 0.4,
+                  "attributes": {
+                    "rpc.method": "oteldemo.PaymentService/Charge",
+                    "rpc.response.status_code": "UNAVAILABLE",
+                    "rpc.system.name": "grpc"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                "span_id": "1730c92671f3b12f"
+              }
+            },
+            {
+              "trace_id": "fbadb14d5f9b0e6094c47e22f5b51800",
+              "root": "load-generator: user_checkout_multi",
+              "duration_ms": 109.2,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 31.3,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 31.5,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "executing api route (pages) /api/checkout",
+                  "error_message": "13: 13 INTERNAL: failed to charge card: could not charge the card: rpc error: code = Unavailable desc = name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                  "duration_ms": 30.2,
+                  "attributes": {
+                    "http.status_code": "500"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "POST /api/checkout",
+                  "error_message": null,
+                  "duration_ms": 30.7,
+                  "attributes": {
+                    "error.type": "500",
+                    "http.method": "POST",
+                    "http.route": "/api/checkout",
+                    "http.status_code": "500",
+                    "http.target": "/api/checkout"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                "span_id": "002f4e9fea04107a"
+              }
+            }
+          ]
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [
+        "ff84a1e57ade8dbbc1b4c96e8ca4956c",
+        "357595a568c8b70c6f327c63fba72168",
+        "edb62fffc63112752abcf3b319c1b03e",
+        "9b3f040b7524c3fbb102b74c38f1d27c",
+        "d6635f493cb7bd4b6efbc81c545ddda5",
+        "c63a703446653f7b43ab939b3854b61c",
+        "e869508d4d7d5a36a89b93bc3ea8574b",
+        "a6e30b1a9ef098d59f6c6691b21c7ee1",
+        "421584b12bd1ae16fc956ee53991dc8a",
+        "fbadb14d5f9b0e6094c47e22f5b51800"
+      ],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-search_traces-fe63e317.json"
+    },
+    {
+      "evidence_id": "ev-query_logs-db4ee4e3",
+      "status": "empty",
+      "source": "opensearch",
+      "service": "checkout",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:09:56.233098Z",
+        "end_time": "2026-10-24T06:19:56.233098Z"
+      },
+      "collection_time": "2026-10-24T06:19:57.130996Z",
+      "tool": "query_logs",
+      "query": "source=otel-logs-* | where resource.service.name = 'checkout' and `@timestamp` >= '2026-10-24 06:09:56' and `severity.number` >= 13 | sort - `@timestamp` | head 40 | fields `@timestamp`, severity, body, traceId, _id",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no WARN+ logs in window"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_logs-db4ee4e3.json"
+    },
+    {
+      "evidence_id": "ev-query_logs-00aee976",
+      "status": "empty",
+      "source": "opensearch",
+      "service": "fraud-detection",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:09:57.132127Z",
+        "end_time": "2026-10-24T06:19:57.132127Z"
+      },
+      "collection_time": "2026-10-24T06:19:57.152425Z",
+      "tool": "query_logs",
+      "query": "source=otel-logs-* | where resource.service.name = 'fraud-detection' and `@timestamp` >= '2026-10-24 06:09:57' and `severity.number` >= 13 | sort - `@timestamp` | head 40 | fields `@timestamp`, severity, body, traceId, _id",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no WARN+ logs in window"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_logs-00aee976.json"
+    },
+    {
+      "evidence_id": "ev-service_health-fc934d3c",
+      "status": "ok",
+      "source": "derived",
+      "service": "payment",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:14:57.153520Z",
+        "end_time": "2026-10-24T06:19:57.153520Z"
+      },
+      "collection_time": "2026-10-24T06:19:57.174375Z",
+      "tool": "service_health",
+      "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+      "observed_value": {
+        "value": {
+          "summary": {
+            "request_rate": 0.0,
+            "error_rate": "empty",
+            "p95_latency_ms": "empty",
+            "container_cpu": "empty",
+            "container_memory": "empty",
+            "container_memory_trend": "empty",
+            "container_uptime": "empty",
+            "container_last_seen_age_s": 1731.143,
+            "stopped_reporting": true
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-service_health-fc934d3c.json"
+    },
+    {
+      "evidence_id": "ev-search_traces-5a26539e",
+      "status": "ok",
+      "source": "jaeger",
+      "service": "fraud-detection",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:04:59.614393Z",
+        "end_time": "2026-10-24T06:19:59.614393Z"
+      },
+      "collection_time": "2026-10-24T06:19:59.635796Z",
+      "tool": "search_traces",
+      "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"fraud-detection\", \"query.num_traces\": 12, \"query.start_time_min\": \"2026-10-24T06:04:59Z\", \"query.start_time_max\": \"2026-10-24T06:19:59Z\"}",
+      "observed_value": {
+        "value": {
+          "traces_scanned": 1,
+          "error_origin_counts": {
+            "fraud-detection": 1
+          },
+          "edges": {},
+          "traces": [
+            {
+              "trace_id": "628e8465704b400e7672c95131714007",
+              "root": "fraud-detection: flagd.evaluation.v2.Service/EventStream",
+              "duration_ms": 600013.4,
+              "services": [
+                "fraud-detection"
+              ],
+              "error_spans": [
+                {
+                  "service": "fraud-detection",
+                  "name": "flagd.evaluation.v2.Service/EventStream",
+                  "error_message": null,
+                  "duration_ms": 600013.4,
+                  "attributes": {
+                    "network.peer.address": "172.22.0.11",
+                    "network.peer.port": "8013",
+                    "network.type": "ipv4",
+                    "rpc.grpc.status_code": "4",
+                    "rpc.method": "EventStream",
+                    "rpc.service": "flagd.evaluation.v2.Service",
+                    "rpc.system": "grpc",
+                    "server.address": "flagd",
+                    "server.port": "8013"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "fraud-detection",
+                "operation": "flagd.evaluation.v2.Service/EventStream",
+                "error_message": null,
+                "span_id": "72e18dbaaacdb8b8"
+              }
+            }
+          ]
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": "628e8465704b400e7672c95131714007",
+      "trace_ids": [
+        "628e8465704b400e7672c95131714007"
+      ],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-search_traces-5a26539e.json"
+    },
+    {
+      "evidence_id": "ev-service_health-b766b7dc",
+      "status": "ok",
+      "source": "derived",
+      "service": "fraud-detection",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:14:59.637437Z",
+        "end_time": "2026-10-24T06:19:59.637437Z"
+      },
+      "collection_time": "2026-10-24T06:19:59.657729Z",
+      "tool": "service_health",
+      "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+      "observed_value": {
+        "value": {
+          "summary": {
+            "request_rate": 0.004167,
+            "error_rate": 1.0,
+            "p95_latency_ms": 15000.0,
+            "container_cpu": "empty",
+            "container_memory": "empty",
+            "container_memory_trend": "empty",
+            "container_uptime": "empty",
+            "container_last_seen_age_s": "empty"
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-service_health-b766b7dc.json"
+    },
+    {
+      "evidence_id": "ev-service_health-4d9a885b",
+      "status": "ok",
+      "source": "derived",
+      "service": "grafana",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:15:07.966766Z",
+        "end_time": "2026-10-24T06:20:07.966766Z"
+      },
+      "collection_time": "2026-10-24T06:20:07.996328Z",
+      "tool": "service_health",
+      "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+      "observed_value": {
+        "value": {
+          "summary": {
+            "request_rate": "empty",
+            "error_rate": "empty",
+            "p95_latency_ms": "empty",
+            "container_cpu": [
+              {
+                "__name__": "container_cpu_utilization_ratio",
+                "value": 0.448221
+              }
+            ],
+            "container_memory": [
+              {
+                "__name__": "container_memory_percent_ratio",
+                "value": 69.977344
+              },
+              {
+                "__name__": "container_memory_usage_total_bytes",
+                "value": 366882816.0
+              }
+            ],
+            "container_memory_trend": -157057.011353,
+            "container_uptime": 1978.217564,
+            "container_last_seen_age_s": 12.066,
+            "recently_restarted": false,
+            "stopped_reporting": false
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-service_health-4d9a885b.json"
+    },
+    {
+      "evidence_id": "ev-service_health-2adfe85b",
+      "status": "ok",
+      "source": "derived",
+      "service": "kafka",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:15:07.997555Z",
+        "end_time": "2026-10-24T06:20:07.997555Z"
+      },
+      "collection_time": "2026-10-24T06:20:08.017735Z",
+      "tool": "service_health",
+      "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+      "observed_value": {
+        "value": {
+          "summary": {
+            "request_rate": "empty",
+            "error_rate": "empty",
+            "p95_latency_ms": "empty",
+            "container_cpu": [
+              {
+                "__name__": "container_cpu_utilization_ratio",
+                "value": 0.445114
+              }
+            ],
+            "container_memory": [
+              {
+                "__name__": "container_memory_percent_ratio",
+                "value": 94.37122
+              },
+              {
+                "__name__": "container_memory_usage_total_bytes",
+                "value": 613523456.0
+              }
+            ],
+            "container_memory_trend": 21036.744277,
+            "container_uptime": 1978.223711,
+            "container_last_seen_age_s": 12.088,
+            "recently_restarted": false,
+            "stopped_reporting": false
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-service_health-2adfe85b.json"
+    },
+    {
+      "evidence_id": "ev-service_health-11addd2e",
+      "status": "ok",
+      "source": "derived",
+      "service": "opensearch",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:15:08.018967Z",
+        "end_time": "2026-10-24T06:20:08.018967Z"
+      },
+      "collection_time": "2026-10-24T06:20:08.033917Z",
+      "tool": "service_health",
+      "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+      "observed_value": {
+        "value": {
+          "summary": {
+            "request_rate": "empty",
+            "error_rate": "empty",
+            "p95_latency_ms": "empty",
+            "container_cpu": [
+              {
+                "__name__": "container_cpu_utilization_ratio",
+                "value": 0.754752
+              }
+            ],
+            "container_memory": [
+              {
+                "__name__": "container_memory_percent_ratio",
+                "value": 90.557861
+              },
+              {
+                "__name__": "container_memory_usage_total_bytes",
+                "value": 972357632.0
+              }
+            ],
+            "container_memory_trend": 1929.471689,
+            "container_uptime": 1978.193378,
+            "container_last_seen_age_s": 12.105,
+            "recently_restarted": false,
+            "stopped_reporting": false
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-service_health-11addd2e.json"
+    },
+    {
+      "evidence_id": "ev-query_metrics-d4459ed9",
+      "status": "ok",
+      "source": "prometheus",
+      "service": "payment",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:22.613352Z",
+        "end_time": "2026-10-24T06:20:22.613352Z"
+      },
+      "collection_time": "2026-10-24T06:20:22.624145Z",
+      "tool": "query_metrics",
+      "query": "time() - max_over_time(timestamp({__name__=~\"container_uptime.*\",container_name=\"payment\"})[60m:30s])",
+      "observed_value": {
+        "value": {
+          "metric": "container_last_seen_age_s",
+          "unit": "s since last sample",
+          "value": 1756.592
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-d4459ed9.json"
+    },
+    {
+      "evidence_id": "ev-query_metrics-1238f2f7",
+      "status": "ok",
+      "source": "prometheus",
+      "service": "checkout",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:22.625208Z",
+        "end_time": "2026-10-24T06:20:22.625208Z"
+      },
+      "collection_time": "2026-10-24T06:20:22.628293Z",
+      "tool": "query_metrics",
+      "query": "(sum(rate(traces_span_metrics_calls_total{service_name=\"checkout\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) / sum(rate(traces_span_metrics_calls_total{service_name=\"checkout\"}[2m]))",
+      "observed_value": {
+        "value": {
+          "metric": "error_rate",
+          "unit": "ratio 0-1",
+          "value": 0.25
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-1238f2f7.json"
+    },
+    {
+      "evidence_id": "ev-query_metrics-6a48de4a",
+      "status": "empty",
+      "source": "prometheus",
+      "service": "payment",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:22.628921Z",
+        "end_time": "2026-10-24T06:20:22.628921Z"
+      },
+      "collection_time": "2026-10-24T06:20:22.631144Z",
+      "tool": "query_metrics",
+      "query": "(sum(rate(traces_span_metrics_calls_total{service_name=\"payment\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) / sum(rate(traces_span_metrics_calls_total{service_name=\"payment\"}[2m]))",
+      "observed_value": {
+        "value": {
+          "metric": "error_rate",
+          "unit": "ratio 0-1"
+        },
+        "excerpt": null,
+        "message": "no requests in window - cannot judge error rate"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-6a48de4a.json"
+    },
+    {
+      "evidence_id": "ev-query_metrics-b7ae778c",
+      "status": "ok",
+      "source": "prometheus",
+      "service": "checkout",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:22.631618Z",
+        "end_time": "2026-10-24T06:20:22.631618Z"
+      },
+      "collection_time": "2026-10-24T06:20:22.633282Z",
+      "tool": "query_metrics",
+      "query": "sum(rate(traces_span_metrics_calls_total{service_name=\"checkout\"}[2m]))",
+      "observed_value": {
+        "value": {
+          "metric": "request_rate",
+          "unit": "requests/s",
+          "value": 0.133338
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-b7ae778c.json"
+    },
+    {
+      "evidence_id": "ev-query_metrics-79358894",
+      "status": "ok",
+      "source": "prometheus",
+      "service": "payment",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:22.633899Z",
+        "end_time": "2026-10-24T06:20:22.633899Z"
+      },
+      "collection_time": "2026-10-24T06:20:22.635356Z",
+      "tool": "query_metrics",
+      "query": "sum(rate(traces_span_metrics_calls_total{service_name=\"payment\"}[2m]))",
+      "observed_value": {
+        "value": {
+          "metric": "request_rate",
+          "unit": "requests/s",
+          "value": 0.0
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-79358894.json"
+    },
+    {
+      "evidence_id": "ev-container_state-c5699fb8",
+      "status": "ok",
+      "source": "health",
+      "service": "checkout",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:20:22.636089Z",
+        "end_time": "2026-10-24T06:20:22.636089Z"
+      },
+      "collection_time": "2026-10-24T06:20:22.794590Z",
+      "tool": "container_state",
+      "query": "GET /v1/services (service=checkout)",
+      "observed_value": {
+        "value": {
+          "services": [
+            {
+              "service": "checkout",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 1973
+            }
+          ],
+          "source": "docker inspect (read-only)"
+        },
+        "excerpt": null,
+        "message": "all listed containers running"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-container_state-c5699fb8.json"
+    },
+    {
+      "evidence_id": "ev-query_metrics-19bb7705",
+      "status": "ok",
+      "source": "prometheus",
+      "service": "checkout",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:22.795116Z",
+        "end_time": "2026-10-24T06:20:22.795116Z"
+      },
+      "collection_time": "2026-10-24T06:20:22.797199Z",
+      "tool": "query_metrics",
+      "query": "histogram_quantile(0.95, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name=\"checkout\"}[2m])))",
+      "observed_value": {
+        "value": {
+          "metric": "p95_latency_ms",
+          "unit": "ms",
+          "value": 42.0
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-19bb7705.json"
+    },
+    {
+      "evidence_id": "ev-search_traces-46941c73",
+      "status": "ok",
+      "source": "jaeger",
+      "service": "checkout",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:22.797574Z",
+        "end_time": "2026-10-24T06:20:22.797574Z"
+      },
+      "collection_time": "2026-10-24T06:20:22.925304Z",
+      "tool": "search_traces",
+      "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"checkout\", \"query.num_traces\": 20, \"query.start_time_min\": \"2026-10-24T06:18:22Z\", \"query.start_time_max\": \"2026-10-24T06:20:22Z\"}",
+      "observed_value": {
+        "value": {
+          "traces_scanned": 4,
+          "error_origin_counts": {
+            "checkout": 4
+          },
+          "edges": {
+            "load-generator -> frontend-proxy": 24,
+            "frontend-proxy -> frontend": 24,
+            "frontend -> cart": 20,
+            "checkout -> currency": 13,
+            "frontend -> product-catalog": 10,
+            "checkout -> product-catalog": 9,
+            "checkout -> cart": 4,
+            "checkout -> shipping": 4,
+            "shipping -> quote": 4,
+            "frontend -> checkout": 4
+          },
+          "traces": [
+            {
+              "trace_id": "57347627df437691b02ea252a39ca46d",
+              "root": "load-generator: user_checkout_multi",
+              "duration_ms": 72.3,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 29.2,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 29.3,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "executing api route (pages) /api/checkout",
+                  "error_message": "13: 13 INTERNAL: failed to charge card: could not charge the card: rpc error: code = Unavailable desc = name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                  "duration_ms": 28.6,
+                  "attributes": {
+                    "http.status_code": "500"
+                  }
+                },
+                {
+                  "service": "frontend",
+                  "name": "POST /api/checkout",
+                  "error_message": null,
+                  "duration_ms": 28.9,
+                  "attributes": {
+                    "error.type": "500",
+                    "http.method": "POST",
+                    "http.route": "/api/checkout",
+                    "http.status_code": "500",
+                    "http.target": "/api/checkout"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "name resolver error: dns: A record lookup error: lookup payment on 127.0.0.11:53: server misbehaving",
+                "span_id": "f04680ed64e45cdb"
+              }
+            },
+            {
+              "trace_id": "ff84a1e57ade8dbbc1b4c96e8ca4956c",
+              "root": "load-generator: user_checkout_single",
+              "duration_ms": 33.4,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 14.0,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 14.1,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.PaymentService/Charge",
+                  "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 0.1,
+                  "attributes": {
+                    "rpc.method": "oteldemo.PaymentService/Charge",
+                    "rpc.response.status_code": "UNAVAILABLE",
+                    "rpc.system.name": "grpc"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.CheckoutService/PlaceOrder",
+                  "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 11.4,
+                  "attributes": {
+                    "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                    "rpc.response.status_code": "INTERNAL",
+                    "rpc.system.name": "grpc",
+                    "server.address": "172.22.0.26",
+                    "server.port": "5050"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                "span_id": "33846b0ed3504b35"
+              }
+            },
+            {
+              "trace_id": "357595a568c8b70c6f327c63fba72168",
+              "root": "load-generator: user_checkout_multi",
+              "duration_ms": 107.3,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 43.2,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 43.3,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.PaymentService/Charge",
+                  "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 1.6,
+                  "attributes": {
+                    "rpc.method": "oteldemo.PaymentService/Charge",
+                    "rpc.response.status_code": "UNAVAILABLE",
+                    "rpc.system.name": "grpc"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.CheckoutService/PlaceOrder",
+                  "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 37.3,
+                  "attributes": {
+                    "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                    "rpc.response.status_code": "INTERNAL",
+                    "rpc.system.name": "grpc",
+                    "server.address": "172.22.0.26",
+                    "server.port": "5050"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                "span_id": "c9363eb550aa6c21"
+              }
+            },
+            {
+              "trace_id": "edb62fffc63112752abcf3b319c1b03e",
+              "root": "load-generator: user_checkout_single",
+              "duration_ms": 53.0,
+              "services": [
+                "cart",
+                "checkout",
+                "currency",
+                "frontend",
+                "frontend-proxy",
+                "load-generator",
+                "product-catalog",
+                "quote",
+                "shipping"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 34.2,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.PaymentService/Charge",
+                  "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 0.1,
+                  "attributes": {
+                    "rpc.method": "oteldemo.PaymentService/Charge",
+                    "rpc.response.status_code": "UNAVAILABLE",
+                    "rpc.system.name": "grpc"
+                  }
+                },
+                {
+                  "service": "checkout",
+                  "name": "oteldemo.CheckoutService/PlaceOrder",
+                  "error_message": "failed to charge card: could not charge the card: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                  "duration_ms": 28.6,
+                  "attributes": {
+                    "rpc.method": "oteldemo.CheckoutService/PlaceOrder",
+                    "rpc.response.status_code": "INTERNAL",
+                    "rpc.system.name": "grpc",
+                    "server.address": "172.22.0.26",
+                    "server.port": "5050"
+                  }
+                },
+                {
+                  "service": "load-generator",
+                  "name": "POST",
+                  "error_message": null,
+                  "duration_ms": 35.5,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/checkout"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "checkout",
+                "operation": "oteldemo.PaymentService/Charge",
+                "error_message": "connection error: desc = \"transport: Error while dialing: dial tcp 172.22.0.18:50051: connect: no route to host\"",
+                "span_id": "061758460b37c6b2"
+              }
+            }
+          ]
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [
+        "57347627df437691b02ea252a39ca46d",
+        "ff84a1e57ade8dbbc1b4c96e8ca4956c",
+        "357595a568c8b70c6f327c63fba72168",
+        "edb62fffc63112752abcf3b319c1b03e"
+      ],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-search_traces-46941c73.json"
+    },
+    {
+      "evidence_id": "ev-query_logs-bbc787fb",
+      "status": "empty",
+      "source": "opensearch",
+      "service": "checkout",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:22.930622Z",
+        "end_time": "2026-10-24T06:20:22.930622Z"
+      },
+      "collection_time": "2026-10-24T06:20:22.980322Z",
+      "tool": "query_logs",
+      "query": "source=otel-logs-* | where resource.service.name = 'checkout' and `@timestamp` >= '2026-10-24 06:18:22' and `severity.number` >= 17 | sort - `@timestamp` | head 10 | fields `@timestamp`, severity, body, traceId, _id",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no ERROR+ logs in window"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_logs-bbc787fb.json"
+    },
+    {
+      "evidence_id": "ev-container_state-2f7da053",
+      "status": "ok",
+      "source": "health",
+      "service": "payment",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:20:22.980776Z",
+        "end_time": "2026-10-24T06:20:22.980776Z"
+      },
+      "collection_time": "2026-10-24T06:20:23.062782Z",
+      "tool": "container_state",
+      "query": "GET /v1/services (service=payment)",
+      "observed_value": {
+        "value": {
+          "services": [
+            {
+              "service": "payment",
+              "state": "exited",
+              "health": "unhealthy",
+              "restart_count": 0,
+              "uptime_s": null
+            }
+          ],
+          "source": "docker inspect (read-only)"
+        },
+        "excerpt": null,
+        "message": "not running: payment"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-container_state-2f7da053.json"
+    },
+    {
+      "evidence_id": "ev-query_metrics-6b3f12d8",
+      "status": "empty",
+      "source": "prometheus",
+      "service": "payment",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:23.063403Z",
+        "end_time": "2026-10-24T06:20:23.063403Z"
+      },
+      "collection_time": "2026-10-24T06:20:23.065304Z",
+      "tool": "query_metrics",
+      "query": "histogram_quantile(0.95, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name=\"payment\"}[2m])))",
+      "observed_value": {
+        "value": {
+          "metric": "p95_latency_ms",
+          "unit": "ms"
+        },
+        "excerpt": null,
+        "message": "no data in window (no traffic, no errors recorded, or metric not exported)"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-6b3f12d8.json"
+    },
+    {
+      "evidence_id": "ev-search_traces-3adf4e31",
+      "status": "empty",
+      "source": "jaeger",
+      "service": "payment",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:23.065594Z",
+        "end_time": "2026-10-24T06:20:23.065594Z"
+      },
+      "collection_time": "2026-10-24T06:20:23.078881Z",
+      "tool": "search_traces",
+      "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"payment\", \"query.num_traces\": 20, \"query.start_time_min\": \"2026-10-24T06:18:23Z\", \"query.start_time_max\": \"2026-10-24T06:20:23Z\"}",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no traces in window"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-search_traces-3adf4e31.json"
+    },
+    {
+      "evidence_id": "ev-query_logs-d33fa795",
+      "status": "empty",
+      "source": "opensearch",
+      "service": "payment",
+      "event_time_window": {
+        "start_time": "2026-10-24T06:18:23.079268Z",
+        "end_time": "2026-10-24T06:20:23.079268Z"
+      },
+      "collection_time": "2026-10-24T06:20:23.099044Z",
+      "tool": "query_logs",
+      "query": "source=otel-logs-* | where resource.service.name = 'payment' and `@timestamp` >= '2026-10-24 06:18:23' and `severity.number` >= 17 | sort - `@timestamp` | head 10 | fields `@timestamp`, severity, body, traceId, _id",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no ERROR+ logs in window"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_logs-d33fa795.json"
+    }
+  ],
+  "diagnosis": {
+    "suspected_component": "payment",
+    "suspected_cause": "The payment container has exited (Docker state: exited, unhealthy). Checkout's PaymentService/Charge calls fail with \"no route to host\" to 172.22.0.18:50051, so PlaceOrder fails and users can't check out.",
+    "supporting_evidence_ids": [
+      "ev-container_state-367a03e6",
+      "ev-search_traces-fe63e317",
+      "ev-service_health-fc934d3c",
+      "ev-resource_overview-7e23fb72",
+      "ev-overview-94ed4d45"
+    ],
+    "conflicting_evidence_ids": [
+      "ev-search_traces-5a26539e",
+      "ev-service_health-b766b7dc",
+      "ev-query_logs-db4ee4e3",
+      "ev-query_logs-00aee976",
+      "ev-service_health-4d9a885b",
+      "ev-service_health-2adfe85b",
+      "ev-service_health-11addd2e"
+    ],
+    "alternatives": [
+      "fraud-detection failure. It looks like an unrelated EventStream artifact and doesn't explain the checkout errors.",
+      "Kafka, opensearch or grafana memory pressure. All are stable, have not restarted, and have no link to the checkout errors.",
+      "A network or DNS fault that makes payment unreachable. Docker shows payment as exited, which makes this unlikely."
+    ],
+    "uncertainty": "The reason payment exited is unknown. I had no payment logs or exit code, so I can't tell an OOM kill from a crash. The incident window is historical and I only saw live data. The fraud-detection 100% error rate comes from a single long-lived EventStream span ending with gRPC status 4. It looks like a streaming artifact, not a checkout cause, and I did not investigate it further. Kafka (94%), opensearch (91%) and grafana (70%, down from 89%) have high but stable memory. None has restarted, and all are still reporting. They look unrelated, but I could not rule out a minor contribution. Checkout errors are about 21% because only checkout flows reach the payment call.",
+    "confidence_label": "high",
+    "next_step": "Get the payment container's exit code and last logs (docker inspect and docker logs). Check for an OOM kill or a startup crash. Then restart it and confirm checkout recovers. Separately, keep watching kafka and opensearch memory."
+  },
+  "proposals": [
+    {
+      "incident_id": "DEMO-PAY-4",
+      "revision": 1,
+      "runbook_id": "restart_service",
+      "action": "restart_service",
+      "target_service": "payment",
+      "parameters": {
+        "grace_period_seconds": 10
+      },
+      "reason": "The payment container is in Docker state exited/unhealthy with restart_count 0. It stopped reporting about 1731 s ago. Checkout traces show errors originating in checkout, and the diagnosis links them to PaymentService/Charge failing with no route to host. A restart addresses a stopped process, which is the diagnosed cause.",
+      "risk": "The exit cause (OOM, crash or config) is unknown. If it is a persistent fault, payment may exit again. Restarting changes the container's IP, which may matter if the address is cached. A restart will not fix bad code or configuration. The exit code and logs should be captured first (docker inspect / docker logs) before the restart overwrites the context. | catalog: In-flight requests to the service fail while it restarts (typically 5-20s). Does not fix bad code, configuration, dependencies or network faults.",
+      "expected_effect": "The payment container starts and resumes reporting. Checkout's Charge calls succeed again and the checkout error rate falls from about 21% to baseline.",
+      "verification_plan": "payment.container_last_seen_age_s <= 120.0; checkout.error_rate <= 0.1; payment.error_rate <= 0.05",
+      "supporting_evidence_ids": [
+        "ev-container_state-367a03e6",
+        "ev-service_health-fc934d3c",
+        "ev-search_traces-fe63e317",
+        "ev-resource_overview-7e23fb72"
+      ],
+      "rollback": "None available (restart is not reversible). If payment exits again, escalate with the exit code and logs.",
+      "catalog_provenance": "team",
+      "verification_checks": [
+        {
+          "service": "payment",
+          "metric": "container_last_seen_age_s",
+          "max_value": 120.0,
+          "min_value": null
+        },
+        {
+          "service": "checkout",
+          "metric": "error_rate",
+          "max_value": 0.1,
+          "min_value": null
+        },
+        {
+          "service": "payment",
+          "metric": "error_rate",
+          "max_value": null,
+          "min_value": null
+        }
+      ]
+    }
+  ],
+  "approval": {
+    "proposal_digest": "defa1aea177ed492f1b54ed1b33ccd0cee6b499d9eb0cba844375100374bec69",
+    "decision": "rejected",
+    "approver": "harshamac",
+    "expiry": "2026-10-24T06:22:23.111503Z",
+    "single_use_consumed": false,
+    "request_id": null,
+    "dispatch_time": null,
+    "response": null,
+    "outcome": "unknown"
+  },
+  "verification": null,
+  "limitations": [
+    "No recovery condition supplied; recovery is out of scope for CP0-CP2.",
+    "Confidence labels are model-reported and not calibrated; no evaluation was run.",
+    "Telemetry tools are live-only; queried windows are recorded per evidence item.",
+    "Human approval rejected: no action executed."
+  ],
+  "remediation_outcome": "ESCALATED",
+  "execution_mode": "live",
+  "escalation_reason": "Human approval rejected: no action executed."
+}

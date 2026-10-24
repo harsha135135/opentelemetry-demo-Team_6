@@ -65,9 +65,11 @@ The model never sees feature-flag state, fault configuration or evaluator data.
    `medium` unless 2 or more sources support it. An unexamined resource anomaly defers the finish once; after that
    it is recorded as a limitation.
 5. **Plan:** only for an accepted diagnosis that isn't low confidence. The planner restarts the diagnosed component
-   or escalates. Code, configuration, network and load faults escalate.
+   or escalates. Code, configuration, network, load and feature-flag faults escalate.
 6. **Policy:** the operation must be allowlisted with strict arguments. The target must be in the inventory, named
-   by the diagnosis and present in cited `ok` evidence. A symptom must be present in the baseline.
+   by the diagnosis and present in cited `ok` evidence. A symptom must be present in the baseline. A restart also
+   needs **process-level evidence**: the container is stopped, unhealthy or restarting; it stopped reporting; it shows
+   a CPU or memory anomaly; or its callers get refused connections.
 
 **Not supported:** feature-flag toggles, load-generator throttling and scaling (Kubernetes only).
 
@@ -76,12 +78,13 @@ The model never sees feature-flag state, fault configuration or evaluator data.
 | Control | How it works |
 | --- | --- |
 | No direct mutation | The LLM has no state-changing tool. Only the Action API can restart a container: fixed argv, allowlist, compose-label identity check, hard-deny list (flagd, load-generator, collector, observability). |
-| Approval gate | A single-use code bound to the SHA-256 of the exact action, printed on **the Action API console only**. The human types `approve <CODE>`, and the server verifies it. The TTL defaults to 120 s, 5 wrong attempts lock it, and any change voids it. Non-interactive sessions are rejected. |
+| Approval gate | A single-use code bound to the SHA-256 of the exact action, printed on **the Action API console only**. The human types `approve XXXX-XXXX` and the server verifies it. An incomplete answer gets a hint and up to 3 prompts; an empty line rejects. The TTL defaults to 120 s, 5 wrong codes lock it on the server, and any change voids it. Non-interactive sessions are rejected. |
 | Kill switch | `cli.py kill-switch on` (the `incident-agent/KILL_SWITCH` file) or `INCIDENT_AGENT_KILL_SWITCH=1`. The agent checks it before approval and dispatch; the server checks it at execute and in its worker. |
 | Dry-run default | Nothing is executed without `--execute`. Dry-run asks the server only to validate. |
 | One action per incident | The agent journal and the server both enforce it. Idempotency keys are used, and unknown outcomes are never retried. |
 | Verification | API success is not recovery. The agent compares error rate and availability with the baseline. Missing data gives `UNVERIFIED`, and simulated actions never verify. |
 | Audit | `runs/audit.jsonl` (agent) and `runs/action_api/audit.jsonl` (API). Tokens and codes are never logged. |
+| Navigation | Grafana index → per-incident root cause (cited evidence with Explore links to the exact PromQL, log query or trace) → verification (exact Action API request JSON, approval ID, per-check results). |
 
 Details: [Action API design](../incident-agent/docs/ACTION_API_ARCHITECTURE.md) ·
 [end-to-end demo](../incident-agent/docs/END_TO_END_DEMO.md) · [evaluation](EVALUATION_NOTE.md).

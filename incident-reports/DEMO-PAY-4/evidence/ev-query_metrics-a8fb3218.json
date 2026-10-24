@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-a8fb3218",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "grafana",
+    "query": "{__name__=~\"container_uptime.*\",container_name=\"grafana\"}",
+    "window_start": "2026-10-24T06:15:07.991097Z",
+    "window_end": "2026-10-24T06:20:07.991097Z",
+    "collected_at": "2026-10-24T06:20:07.992645Z",
+    "value": {
+      "metric": "container_uptime",
+      "unit": "s",
+      "value": 1978.217564
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-a8fb3218.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"__name__\": \"container_uptime_seconds\", \"container_name\": \"grafana\", \"host_name\": \"docker-desktop\"}, \"value\": [1792822807.99, \"1978.217564416\"]}]}}"
+}

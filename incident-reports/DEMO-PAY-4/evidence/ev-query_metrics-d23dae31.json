@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-d23dae31",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "fraud-detection",
+    "query": "histogram_quantile(0.95, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name=\"fraud-detection\"}[5m])))",
+    "window_start": "2026-10-24T06:14:59.645516Z",
+    "window_end": "2026-10-24T06:19:59.645516Z",
+    "collected_at": "2026-10-24T06:19:59.647802Z",
+    "value": {
+      "metric": "p95_latency_ms",
+      "unit": "ms",
+      "value": 15000.0
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-d23dae31.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {}, \"value\": [1792822799.646, \"15000\"]}]}}"
+}

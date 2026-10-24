@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-bd832470",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "opensearch",
+    "query": "deriv({__name__=~\"container_memory_usage_total.*\",container_name=\"opensearch\"}[5m])",
+    "window_start": "2026-10-24T06:15:08.029308Z",
+    "window_end": "2026-10-24T06:20:08.029308Z",
+    "collected_at": "2026-10-24T06:20:08.030636Z",
+    "value": {
+      "metric": "container_memory_trend",
+      "unit": "bytes/s (positive = growing)",
+      "value": 1929.471689
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/DEMO-PAY-4/evidence/ev-query_metrics-bd832470.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"container_name\": \"opensearch\", \"host_name\": \"docker-desktop\"}, \"value\": [1792822808.028, \"1929.4716890200125\"]}]}}"
+}
