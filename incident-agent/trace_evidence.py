@@ -57,12 +57,14 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     run_tool, policy, _ = make_telemetry_runner(run_dir / "evidence")
     n = 0
+    results = []
 
     def call(name: str, **args) -> dict:
         nonlocal n
         n += 1
         t0 = time.time()
         res = run_tool(name, args)
+        results.append(res)
         return show(n, name, args, res, out, time.time() - t0)
 
     print(f"=== {a.id}: STEP 1, fleet-wide (what the model sees first) ===")
@@ -120,6 +122,13 @@ def main() -> None:
         s = h.get("summary") or {}
         print("       health: " + ", ".join(f"{k}={v}" for k, v in s.items() if not isinstance(v, (dict, list))))
 
+    import candidates
+    from integration import to_evidence  # noqa: F401  (evidence objects come from the saved results below)
+    evs = [to_evidence(r) for r in results]
+    picture = candidates.summary(evs, known=set(policy.approved_services))
+    (out / "evidence_picture.txt").write_text(picture, encoding="utf-8")
+    print("\n=== EVIDENCE PICTURE (what the LLM is shown each round) ===")
+    print(picture or "(no candidates)")
     print("\n=== WHAT THE EVIDENCE ALONE POINTS AT (before any LLM) ===")
     print(f"  trace error origins (all suspects): {origins or 'none'}")
     print(f"  trace slow-path origins:            {slow or 'none'}")

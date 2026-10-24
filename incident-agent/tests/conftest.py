@@ -11,3 +11,4 @@ def _no_real_llm(monkeypatch):
     for var in ("LLM_PROVIDER", "LLM_MODEL", "LLM_FALLBACK_MODEL", "LLM_THINKING_BUDGET",
                 "GOOGLE_API_KEY", "GROQ_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
         monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("GRAFANA_URL", "")  # never post test results to a running Grafana

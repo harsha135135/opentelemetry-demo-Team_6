@@ -1,0 +1,7 @@
+apiVersion: 1
+datasources:
+  # Built-in Grafana data source: carries the agent's report data as embedded CSV (no plugin, no network).
+  - name: Agent reports (embedded)
+    uid: agent-testdata
+    type: grafana-testdata-datasource
+    editable: false

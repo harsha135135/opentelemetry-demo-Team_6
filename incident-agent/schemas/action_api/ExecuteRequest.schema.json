@@ -1,0 +1,116 @@
+﻿{
+  "$defs": {
+    "ActionPayload": {
+      "additionalProperties": false,
+      "description": "The exact action. Approval is bound to the SHA-256 digest of this object's canonical JSON.",
+      "properties": {
+        "arguments": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "maxProperties": 10,
+          "title": "Arguments",
+          "type": "object"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "incident_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "operation": {
+          "pattern": "^[a-z][a-z0-9_]{0,47}$",
+          "title": "Operation",
+          "type": "string"
+        },
+        "proposal_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "agent-side proposal digest, for audit correlation",
+          "title": "Proposal Digest"
+        },
+        "reason": {
+          "maxLength": 1500,
+          "minLength": 10,
+          "pattern": "^[^\\x00-\\x08\\x0b-\\x1f\\x7f-\\x9f]*$",
+          "title": "Reason",
+          "type": "string"
+        },
+        "target": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,62}$",
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "incident_id",
+        "operation",
+        "target",
+        "evidence_ids",
+        "reason"
+      ],
+      "title": "ActionPayload",
+      "type": "object"
+    }
+  },
+  "$id": "https://incident-zero.team6.local/schemas/action_api/ExecuteRequest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "approval_code": {
+      "pattern": "^[A-Z2-9]{4}-?[A-Z2-9]{4}$",
+      "title": "Approval Code",
+      "type": "string"
+    },
+    "approval_id": {
+      "pattern": "^apr-[a-f0-9]{16}$",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$",
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/ActionPayload"
+    }
+  },
+  "required": [
+    "payload",
+    "approval_id",
+    "approval_code",
+    "idempotency_key"
+  ],
+  "title": "ExecuteRequest",
+  "type": "object"
+}

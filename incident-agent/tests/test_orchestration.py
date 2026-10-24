@@ -17,7 +17,7 @@ from reasoning import LLMReasoner, llm_tools
 from report_io import write_report
 
 NOW = datetime.now(timezone.utc)
-POLICY = ToolPolicy(approved_services=["checkout", "cart", "ad"], arg_models={n: s[1] for n, s in telemetry.TOOLS.items()})
+POLICY = ToolPolicy(approved_services=["checkout", "cart", "ad", "payment"], arg_models={n: s[1] for n, s in telemetry.TOOLS.items()})
 
 
 def incident(**kw):
@@ -426,8 +426,12 @@ def test_component_phrase_with_no_matching_word_still_rejected(tmp_path):
 
 def test_prompt_requires_resource_checks():
     from reasoning import SYSTEM_PROMPT
-    assert all(w in SYSTEM_PROMPT for w in ("resource_overview", "service_health", "in parallel", "not causes", "flagd"))
-    assert "container_cpu" not in SYSTEM_PROMPT and "adHighCpu" not in SYSTEM_PROMPT  # no fault-specific hints
+    assert all(w in SYSTEM_PROMPT for w in ("resource_overview", "service_health", "several tools at once",
+                                            "feature flags", "inconclusive", "allowlist", "also active"))
+    # generic: no demo service, fault or flag names (hidden test cases must not depend on them)
+    for name in ("checkout", "payment", "cart", "product-catalog", "recommendation", "frontend", "adHighCpu",
+                 "paymentFailure", "container_cpu", "valkey", "redis"):
+        assert name not in SYSTEM_PROMPT, name
 
 
 # ---- resource_overview, anomaly follow-up, eval harness
@@ -617,7 +621,7 @@ def test_older_ongoing_problem_is_sent_back_for_the_newest_one(tmp_path):
                          FinishDecision(diagnosis=diag(["ev-overview-0001"], "cart")),
                          FinishDecision(diagnosis=diag(["ev-overview-0001"], "payment")), runner=run_tool)
     rejection = script.contexts[2].rejection
-    assert "payment (first seen 1.1 min ago)" in rejection and "old" in rejection
+    assert "ranks payment" in rejection and "began before the current incident" in rejection
     assert rep.status == IncidentStatus.DIAGNOSED
 
 
@@ -659,5 +663,33 @@ def test_strong_resource_flag_checked_but_ignored_is_sent_back(tmp_path):
                          FinishDecision(diagnosis=diag(["ev-query_metrics-0002"], "checkout")),
                          FinishDecision(diagnosis=diag(["ev-service_health-0003"], "checkout")),
                          runner=overview_runner(tmp_path))
-    assert "strongly flagged ad (cpu high)" in script.contexts[2].rejection
+    assert "ranks ad (tier 3: resources: cpu high)" in script.contexts[2].rejection
     assert rep.status == IncidentStatus.DIAGNOSED
+
+
+def test_confidence_is_capped_to_the_evidence_tier(tmp_path):
+    # live INC-PIC-1: nothing injected, only latency drifts from one source; the model said medium
+    base = Runner(tmp_path)
+
+    def run_tool(name, args):
+        res = base(name, args)
+        if name == "overview":
+            res.value = {"operations_changed": ['checkout "GET /x": p95 up 500 -> 2000 ms'],
+                         "changed_since_previous_window": ["cart: error_rate up 0.020 -> 0.070"]}
+        return res
+    d = diag(["ev-overview-0001"], "checkout").model_copy(update={"confidence_label": ConfidenceLabel.MEDIUM})
+    rep, *_ = run(tmp_path, CallToolDecision(calls=[call_ov(1)]), FinishDecision(diagnosis=d), runner=run_tool)
+    assert rep.diagnosis.confidence_label == ConfidenceLabel.LOW and "evidence for this component is weak" in rep.diagnosis.uncertainty
+
+
+def test_only_the_newest_message_carries_the_evidence_picture(tmp_path):
+    # live INC-DEMO-20: re-sending every older picture pushed the run past the 60k token budget
+    from contracts import ToolOutcome
+    chat = FakeChat(ai(("c1", "overview", {})), ai(("c2", "overview", {})), ai(("c3", "overview", {})))
+    r = LLMReasoner("m", chat_model=chat)
+    for i in range(3):
+        outs = [] if i == 0 else [ToolOutcome(call_id=f"c{i}", tool_name="overview", status="ok", text="{}")]
+        r.next_step(rctx(tmp_path, outs).model_copy(update={"evidence_picture": f"EVIDENCE PICTURE round {i}"}))
+    humans = [m.content for m in chat.requests[-1] if isinstance(m, HumanMessage)]
+    assert sum("EVIDENCE PICTURE" in h for h in humans) == 1 and "round 2" in humans[-1]
+    assert "older evidence picture removed" in humans[0]

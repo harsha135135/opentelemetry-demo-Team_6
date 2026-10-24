@@ -1,11 +1,13 @@
 """Incident Zero CLI: alert -> bounded LLM tool loop (LangChain) -> evidence-backed report (read-only).
 
+    python cli.py watch                         # step 1: detect threshold alerts and investigate automatically
     python cli.py check-llm                     # one tiny request: is the key/model in .env working?
     python cli.py investigate --incident-id INC-001 --symptom "..." [--service checkout] [--model <id>]
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from datetime import datetime, timedelta, timezone
@@ -24,6 +26,9 @@ from orchestrator import (  # noqa: E402
 )
 from reasoning import DEFAULT_PROVIDER, LLMReasoner, _text as reply_text, make_chat_model  # noqa: E402
 from report_io import write_report  # noqa: E402
+from runbooks import action_payload  # noqa: E402
+from grafana_publish import publish as publish_to_grafana, reload_dashboards as reload_grafana_dashboards  # noqa: E402
+from grafana_dashboards import build as build_grafana_dashboards  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -50,7 +55,45 @@ def build_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("check-llm", help="send one tiny request to the configured LLM (verifies key and model)")
     c.add_argument("--provider", default=os.getenv("LLM_PROVIDER", DEFAULT_PROVIDER))
     c.add_argument("--model", default=os.getenv("LLM_MODEL", ""))
+    r = sub.add_parser("reset-dashboard", help="start the Grafana demo clean: archive old runs (not deleted), "
+                                               "remove the agent's old annotations, rebuild empty pages")
+    r.add_argument("--out", default="runs")
+    w = sub.add_parser("watch", help="step 1: watch the demo's metrics and start an investigation on a threshold alert")
+    w.add_argument("--interval-s", type=float, default=15)
+    w.add_argument("--once", action="store_true", help="one check: print what is over threshold now, then exit")
+    w.add_argument("--provider", default=os.getenv("LLM_PROVIDER", DEFAULT_PROVIDER))
+    w.add_argument("--model", default=os.getenv("LLM_MODEL", ""))
     return p
+
+
+def reset_dashboard(out: str) -> int:
+    import shutil
+
+    from grafana_publish import clear_annotations
+
+    runs = Path(out).resolve()
+    archive = runs / "_archive" / datetime.now().strftime("%Y%m%d-%H%M%S")
+    moved = 0
+    for d in sorted(runs.glob("*")) if runs.is_dir() else []:
+        if d.is_dir() and d.name != "_archive":
+            archive.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(d), str(archive / d.name))
+            moved += 1
+    print(f"Archived {moved} run folder(s) to {archive}" if moved else "No runs to archive")
+    print(clear_annotations())
+    print(build_grafana_dashboards(runs))
+    print(reload_grafana_dashboards())
+    return 0
+
+
+def watch(args) -> int:
+    import detector
+    from grafana_publish import post_alert
+
+    def run(incident_id: str, symptom: str) -> None:
+        main(["investigate", "--incident-id", incident_id, "--symptom", symptom, "--source", "threshold-alert",
+              "--provider", args.provider, "--model", args.model])
+    return detector.watch(run, interval_s=args.interval_s, once=args.once, post_alert=post_alert)
 
 
 def check_llm(provider: str, model: str) -> int:
@@ -67,11 +110,15 @@ def check_llm(provider: str, model: str) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.cmd == "reset-dashboard":  # no LLM needed
+        return reset_dashboard(args.out)
     if not args.model:
         print("error: model identifier missing (use --model or set LLM_MODEL in .env)", file=sys.stderr)
         return 2
     if args.cmd == "check-llm":
         return check_llm(args.provider, args.model)
+    if args.cmd == "watch":
+        return watch(args)
     now = datetime.now(timezone.utc)
     run_dir = Path(args.out).resolve() / args.incident_id
     try:
@@ -95,6 +142,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     report, art = write_report(report, run_dir)
+    for p in report.proposals:  # step 4 output for steps 5-6: the exact Action API request body (not sent)
+        payload = action_payload(p, report.diagnosis.supporting_evidence_ids if report.diagnosis else [])
+        (run_dir / "action_payload.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     meta = report.timeline[-1].metadata
     print(f"Incident: {report.incident_id}   Status: {report.status.value}")
     if report.diagnosis:
@@ -111,6 +161,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"VALIDATION/EXPORT ERROR: {e}")
     for lim in report.limitations:
         print(f"limitation: {lim}")
+    print(publish_to_grafana(report))
+    try:
+        print(build_grafana_dashboards(run_dir.parent))
+        print(reload_grafana_dashboards())
+    except OSError as exc:  # dashboards are a view; the report files stay the record
+        print(f"Grafana dashboards not rebuilt: {exc}")
     return 0 if not art.export_errors else 1
 
 

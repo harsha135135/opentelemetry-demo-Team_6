@@ -1,0 +1,31 @@
+﻿# Team 6's own Grafana for the incident agent. Separate from the organisers' demo (their Grafana, compose files
+# and provisioning are untouched). It reads the demo's Prometheus read-only through the host port, and the agent
+# posts each diagnosis to it as an annotation.
+#
+#   docker compose -f grafana/compose.yaml up -d        (from incident-agent/)
+#   open http://localhost:3001  -> dashboard "Incident Agent"
+name: incident-agent-grafana
+services:
+  agent-grafana:
+    image: grafana/grafana:13.2.1   # same image the demo already pulled: no extra download
+    container_name: agent-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-incident-agent}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"          # viewers (interviewer) can watch without logging in
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/incident-agent.json
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: Asia/Kolkata   # show Indian Standard Time everywhere
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"     # no background plugin downloads (built-in panels only)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ./dashboards:/etc/grafana/dashboards:ro
+      - agent-grafana-data:/var/lib/grafana   # keeps the diagnosis history (annotations) across restarts
+volumes:
+  agent-grafana-data:

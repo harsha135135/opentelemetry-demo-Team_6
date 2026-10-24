@@ -69,6 +69,9 @@ EXCERPT_CHARS = 300       # max chars per log body / error message
 INVENTORY_TTL_S = 60
 
 EXCLUDED_SERVICES = {"flagd", "flagd-ui"}   # flag state is out of bounds
+# Team 6's own containers (e.g. our Grafana): not part of the shop, never suspects. Restarting them while
+# working must not look like a crash loop. Extend with OWN_TOOLING_CONTAINERS=a,b in .env.
+OWN_TOOLING = {"agent-grafana"} | {s.strip() for s in os.getenv("OWN_TOOLING_CONTAINERS", "").split(",") if s.strip()}
 # "feature flag" in any spelling (space, _, ., -, plural): demo services put it in error messages,
 # e.g. "Product Catalog Fail Feature Flag Enabled", which would hand the model the answer.
 _FLAG_PATTERN = re.compile(r"feature[\s_.-]*flags?|flagd|openfeature", re.IGNORECASE)
@@ -239,7 +242,7 @@ def service_inventory(refresh: bool = False) -> list[str]:
             names.update(r.json().get("services") or [])
     except httpx.HTTPError:
         pass
-    found = sorted(n for n in names if n and n not in EXCLUDED_SERVICES)
+    found = sorted(n for n in names if n and n not in EXCLUDED_SERVICES and n not in OWN_TOOLING)
     if found:
         _inventory = (time.time(), found)
     return found
@@ -695,6 +698,36 @@ def _is_timeout(span: dict) -> bool:
             or bool(_TIMEOUT_TEXT.search(str(span.get("error_message") or ""))))
 
 
+EXAMPLE_TRACES = 3
+
+
+def _patterns(summaries: list[dict]) -> list[dict]:
+    """Group traces by how they fail: where the failure starts, what it says, where the time went."""
+    groups: dict[tuple, dict] = {}
+    for t in summaries:
+        o, slow = t.get("suspected_origin") or {}, t.get("latency_origin") or {}
+        key = (o.get("service"), o.get("operation"), o.get("error_message"), bool(o.get("timed_out_waiting")),
+               slow.get("service"), slow.get("operation"), slow.get("certainty"))
+        g = groups.setdefault(key, {
+            "count": 0, "origin_service": o.get("service"), "origin_operation": o.get("operation"),
+            "error_message": o.get("error_message"),
+            **({"origin_certainty": o["certainty"]} if o.get("certainty") else {}),
+            **({"timed_out_waiting": True} if o.get("timed_out_waiting") else {}),
+            **({"latency_origin": {k: slow.get(k) for k in ("service", "operation", "duration_ms", "certainty") if slow.get(k)}}
+               if slow else {}),
+            "error_services": set(), "newest_age_s": None, "example_trace_ids": []})
+        g["count"] += 1
+        g["error_services"].update(s["service"] for s in t.get("error_spans") or [])
+        if t.get("age_s") is not None:
+            g["newest_age_s"] = t["age_s"] if g["newest_age_s"] is None else min(g["newest_age_s"], t["age_s"])
+        if len(g["example_trace_ids"]) < 3:
+            g["example_trace_ids"].append(t["trace_id"])
+    out = sorted(groups.values(), key=lambda g: -g["count"])
+    for g in out:
+        g["error_services"] = sorted(g["error_services"])
+    return out
+
+
 def search_traces(service: str, window_minutes: int = 3, errors_only: bool = True,
                   limit: int = 10) -> ToolResult:
     """Recent traces for a service: error spans, suspected error origin per trace,
@@ -788,6 +821,7 @@ def search_traces(service: str, window_minutes: int = 3, errors_only: bool = Tru
     for t in summaries:
         t.pop("_start")
     summaries = summaries[:limit]
+    patterns = _patterns(summaries)
 
     if not summaries:
         msg = ("traces found but none with errors or slow steps in window" if errors_only and traces
@@ -802,7 +836,12 @@ def search_traces(service: str, window_minutes: int = 3, errors_only: bool = Tru
         **({"calls_with_no_response_from": dict(sorted(unanswered.items(), key=lambda kv: -kv[1]))}
            if unanswered else {}),
         "edges": dict(sorted(edges.items(), key=lambda kv: -kv[1])[:20]),
-        "traces": summaries,
+        # Traces that fail the same way are one pattern (with a count and example ids); only the newest few are
+        # shown in full. Same facts, without repeating near-identical traces (they are re-sent every request).
+        "patterns": patterns,
+        "traces": summaries[:EXAMPLE_TRACES],
+        **({"more_traces": f"{len(summaries) - EXAMPLE_TRACES} more traces summarised in patterns"}
+           if len(summaries) > EXAMPLE_TRACES else {}),
     }
     return _result("search_traces", "jaeger", service, query, start, end, ToolStatus.OK,
                    raw=raw, value=value, trace_ids=[t["trace_id"] for t in summaries])

@@ -1,0 +1,19 @@
+{
+  "provenance": "team",
+  "source": "Team 6 Action API (feature/harsha: action_server.py, schemas/action_api/OperationList.schema.json). Not an organiser contract: none was supplied.",
+  "operations": [
+    {
+      "name": "restart_service",
+      "description": "Restart one allowlisted application or worker container (docker restart).",
+      "use_when": "the diagnosed service's own process is crashed, crash-looping, hung or starved of CPU/memory",
+      "allowed_targets": ["accounting", "ad", "cart", "checkout", "currency", "email", "fraud-detection", "frontend",
+                          "image-provider", "payment", "product-catalog", "quote", "recommendation", "shipping"],
+      "parameters": {"grace_period_seconds": {"type": "integer", "minimum": 0, "maximum": 30, "default": 10}},
+      "risk": "In-flight requests to the service fail while it restarts (typically 5-20s). Does not fix bad code, configuration, dependencies or network faults.",
+      "reversible": false,
+      "idempotent": false,
+      "expected_effect": "The container restarts and resumes reporting; faults caused by a crashed, stopped or hung process clear.",
+      "verification_plan": "Compare the service's error rate, p95 latency, CPU/memory and restarts with the pre-incident baseline for 3-5 min after the restart; if they do not return to baseline, escalate."
+    }
+  ]
+}

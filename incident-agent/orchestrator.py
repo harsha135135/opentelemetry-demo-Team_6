@@ -1,4 +1,4 @@
-"""Bounded investigation loop. Owns state, budgets, dispatch and evidence registration (Harsha, Member 1)."""
+﻿"""Bounded investigation loop. Owns state, budgets, dispatch and evidence registration (Harsha, Member 1)."""
 from __future__ import annotations
 
 import re
@@ -15,6 +15,8 @@ from contracts import (
     ReasoningModel, ToolOutcome, ToolPolicy, ToolRequest,
 )
 from guardrails import validate_diagnosis as default_validate_diagnosis, validate_tool_request as default_validate_tool_request
+import candidates
+import runbooks
 from telemetry_executor import run_with_deadline
 from integration import EvidenceConflict, EvidenceRegistry, to_evidence
 from models import ConfidenceLabel, Incident, IncidentReport, IncidentStatus, TimelineEvent
@@ -93,8 +95,9 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
     repairs = 0
     nudges = 0
     corrections = 0
-    stale_checks = 0
-    ignored_checks = 0
+    consistency_checks = 0
+    proposals: list = []
+    known = set(deps.policy.approved_services)  # live inventory from telemetry
     rejection: str | None = None
     rejected_diag_errors: list[str] = []
     try:
@@ -114,6 +117,7 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
                 tool_specs=_specs(deps), allow_tools=allow_tools, remaining_tool_calls=tools_left,
                 remaining_model_calls=models_left, remaining_seconds=remaining_s,
                 request_timeout_s=config.request_timeout_s, live_only_note=live_note, rejection=rejection,
+                services=sorted(known), evidence_picture=candidates.summary(deps.registry.all(), known=known),
             )
             pending, rejection = [], None
             stats["model_calls"] += 1  # counted before the request so failures and retries consume budget
@@ -131,25 +135,19 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
                     unresolved, uncited = anomaly_follow_up(deps.registry, decision.diagnosis)
                     # a follow-up needs one request for the tools and one more to finish: never defer the last chance
                     can_follow_up = tools_left > 0 and models_left > 2 and remaining_s > 2 * config.tool_worst_case_s
-                    stale = stale_component(deps.registry, decision.diagnosis)
-                    if stale and stale_checks < 1 and models_left > 1:
-                        stale_checks += 1
-                        rejection = ("Not accepted: " + stale + " Diagnose what changed NOW (or call inconclusive); "
-                                     "if you still name this component, explain with current evidence why it is the new problem.")
-                        log(IncidentStatus.INVESTIGATING, f"Finish returned: stale component ({stale})")
+                    # One evidence-based consistency check (replaces separate stale / newest / ignored-flag overrides):
+                    # fires only if another candidate has clearly stronger evidence (a higher tier). The model may
+                    # keep its answer if it explains why; ties and concurrent problems are accepted.
+                    inconsistent = candidates.consistency(decision.diagnosis, deps.registry.all(), known)
+                    if inconsistent and consistency_checks < 1 and models_left > 1:
+                        consistency_checks += 1
+                        rejection = ("Please re-check before finishing: " + inconsistent + " Compare the two with the "
+                                     "evidence picture. Diagnose the better-supported one, or keep yours and say in "
+                                     "uncertainty which evidence makes it more likely. Name the other under alternatives.")
+                        log(IncidentStatus.INVESTIGATING, f"Finish returned for re-check: {inconsistent}")
                         continue
-                    if stale:
-                        limitations.append(f"Diagnosed component may be an earlier or older incident: {stale}")
-                    strong_uncited = strong_flags_ignored(deps.registry, decision.diagnosis, uncited)
-                    if strong_uncited and ignored_checks < 1 and models_left > 1:
-                        ignored_checks += 1
-                        rejection = ("Not accepted yet: resource_overview strongly flagged " + "; ".join(strong_uncited) +
-                                     ". You checked it, but the diagnosis neither names it nor cites its evidence. Decide "
-                                     "explicitly: is it the cause (a container that suddenly uses far more CPU or memory "
-                                     "slows its own requests and can slow other services on the same machine), an effect, "
-                                     "or unrelated? Cite its evidence as supporting or conflicting, then finish again.")
-                        log(IncidentStatus.INVESTIGATING, f"Finish returned: strong resource flag ignored ({strong_uncited})")
-                        continue
+                    if inconsistent:
+                        limitations.append(f"Evidence picture disagrees with the diagnosis: {inconsistent}")
                     if unresolved and nudges < config.max_follow_up_nudges and can_follow_up:
                         nudges += 1
                         rejection = ("Not accepted yet: resource_overview flagged " + ", ".join(unresolved) +
@@ -158,6 +156,7 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
                         log(IncidentStatus.INVESTIGATING, f"Finish deferred: unresolved resource anomalies {unresolved}")
                         continue
                     diagnosis = _cap_latency_only(_cap_confidence(decision.diagnosis, deps.registry), deps.registry)
+                    diagnosis = _cap_to_evidence_tier(diagnosis, deps.registry, known)
                     if unresolved:
                         diagnosis = diagnosis.model_copy(update={
                             "confidence_label": ConfidenceLabel.LOW,
@@ -166,6 +165,14 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
                     if uncited:
                         limitations.append(f"Follow-up evidence exists for flagged services but the diagnosis cites none of it: {', '.join(uncited)}")
                     status, terminal_reason = IncidentStatus.DIAGNOSED, "diagnosed"
+                    # Step 4: an allowlisted remedy, proposed only (never executed here).
+                    proposal, refused = runbooks.to_proposal(incident.id, decision.fix, diagnosis, known, deps.registry.all())
+                    if proposal:
+                        proposals.append(proposal)
+                        log(IncidentStatus.ACTION_PROPOSED, f"Proposed {proposal.runbook_id} on {proposal.target_service}: "
+                            f"{proposal.reason} (awaiting human approval; not executed)")
+                    elif refused:
+                        limitations.append(f"No fix proposed: {refused}")
                     log(IncidentStatus.DIAGNOSED, f"Diagnosis validated: {decision.diagnosis.suspected_component}")
                 elif corrections < config.max_diagnosis_corrections and models_left > 1:
                     corrections += 1
@@ -223,7 +230,7 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
     log(status, f"Finished: {terminal_reason}; {stats['model_calls']} model calls, {stats['tool_calls']} tool calls, {elapsed:.1f}s", **stats)
     return IncidentReport(
         incident_id=incident.id, status=status, incident=incident, timeline=timeline, evidence=evidence,
-        diagnosis=diagnosis, proposals=[], approval=None, verification=None, limitations=limitations,
+        diagnosis=diagnosis, proposals=proposals, approval=None, verification=None, limitations=limitations,
     )
 
 
@@ -270,86 +277,30 @@ def _cap_latency_only(diagnosis, registry):
     return diagnosis
 
 
+WEAK_TIER = 1  # current change from one source only, or less
+
+
+def _cap_to_evidence_tier(diagnosis, registry, known):
+    """Confidence cannot exceed what the evidence supports: a component whose best evidence is weak (tier <= 1 in
+    the evidence picture: no direct evidence, no second source) is capped to low."""
+    ranked = candidates.rank(registry.all(), known)
+    named = candidates.mentioned(diagnosis.suspected_component, ranked)
+    if not named or diagnosis.confidence_label == ConfidenceLabel.LOW:
+        return diagnosis
+    best = max(x.tier for x in named)
+    if best > WEAK_TIER:
+        return diagnosis
+    return diagnosis.model_copy(update={
+        "confidence_label": ConfidenceLabel.LOW,
+        "uncertainty": f"{diagnosis.uncertainty} [Capped to low: the evidence for this component is weak "
+                       f"(tier {best}: one source, no direct failure evidence).]".strip()})
+
+
 def _specs(deps: Dependencies) -> list[dict]:
     from integration import all_tool_specs  # only registered, read-only tools
 
     allowed = set(deps.policy.arg_models)
     return [s for s in all_tool_specs() if s["function"]["name"] in allowed]
-
-
-def _lead_service(text: str) -> str:
-    """'cart "POST /x": ...' or 'checkout: error_rate ...' -> the service name."""
-    return re.split(r'[\s:"]', str(text).strip(), maxsplit=1)[0]
-
-
-def stale_component(registry: EvidenceRegistry, diagnosis) -> str | None:
-    """The diagnosed component is an earlier incident that is ending: the fleet-wide tools list it only as
-    recovering (metrics) or as a log message that stopped, and nowhere as changing now. Returns why, or None."""
-    active, ended = set(), set()
-    old_logs: set[str] = set()                # services whose current log messages started long ago
-    new_logs: dict[str, float] = {}           # service -> minutes since its newest message first appeared
-    for ev in registry.all():
-        v = (ev.observed_value or {}).get("value") or {}
-        if ev.status.value != "ok" or not isinstance(v, dict):
-            continue
-        if ev.tool == "overview":
-            for key, bucket in (("changed_since_previous_window", active), ("operations_changed", active),
-                                ("recovering_since_previous_window", ended), ("operations_recovering", ended)):
-                bucket.update(_lead_service(x) for x in v.get(key) or [] if isinstance(x, str))
-        elif ev.tool == "resource_overview":  # a restart / crash loop is current even while callers look "recovering"
-            active.update(f.get("container") for f in v.get("flagged") or [] if isinstance(f, dict))
-        elif ev.tool == "log_overview":
-            now = v.get("logging_now") if isinstance(v.get("logging_now"), list) else []
-            active.update(m["service"] for m in now if m.get("started_recently"))
-            ended.update(m["service"] for m in v.get("stopped_earlier") or [])
-            old_logs.update(m["service"] for m in v.get("stopped_earlier") or [])  # its error messages stopped
-            for m in now:
-                if m.get("started_recently"):
-                    first = m.get("first_seen_min_ago") or 0
-                    new_logs[m["service"]] = min(new_logs.get(m["service"], first), first)
-                else:
-                    old_logs.add(m["service"])
-    component = diagnosis.suspected_component.lower()
-
-    def mentions(services) -> set[str]:
-        return {s for s in services if s and re.search(rf"(?<![\w-]){re.escape(s.lower())}(?![\w-])", component)}
-
-    named = mentions(ended | active)
-    if named and named <= ended and not named & active:
-        return (f"{', '.join(sorted(named))} is listed only as recovering / stopped (an earlier incident ending), never as "
-                f"changing now. Changing now: {', '.join(sorted(active)) or 'nothing clear'}.")
-    # An older, still-ongoing problem chosen over one that just started: the newest change is the incident.
-    named_old = mentions(old_logs) - set(new_logs)
-    newest = {s: m for s, m in new_logs.items() if m <= NEW_INCIDENT_MIN and s not in mentions(new_logs)}
-    if named_old and newest:
-        lead = ", ".join(f"{s} (first seen {m} min ago)" for s, m in sorted(newest.items(), key=lambda kv: kv[1]))
-        return (f"{', '.join(sorted(named_old))}'s error messages are old: going on for a long time or already stopped "
-                f"(an earlier problem, possibly with a few leftover slow or failed calls), while new errors started "
-                f"only minutes ago in: {lead}. The alert is about the newest change: diagnose that and list the older "
-                f"problem under alternatives.")
-    return None
-
-
-NEW_INCIDENT_MIN = 5  # a log message first seen this recently is the freshest lead
-
-
-STRONG_FLAG_SEVERITY = 3  # sudden CPU/memory jump or crash loop (restart-only flags are 1-2)
-
-
-def strong_flags_ignored(registry: EvidenceRegistry, diagnosis, uncited: list[str]) -> list[str]:
-    """Strongly flagged containers that were followed up but that the diagnosis neither names nor cites."""
-    component = diagnosis.suspected_component.lower()
-    out = []
-    for ev in registry.all():
-        v = (ev.observed_value or {}).get("value") or {}
-        if ev.tool != "resource_overview" or ev.status.value != "ok" or not isinstance(v, dict):
-            continue
-        for f in v.get("flagged") or []:
-            svc = f.get("container")
-            if (svc in uncited and (f.get("severity") or 0) >= STRONG_FLAG_SEVERITY
-                    and not re.search(rf"(?<![\w-]){re.escape(svc.lower())}(?![\w-])", component)):
-                out.append(f'{svc} ({"; ".join(f.get("reasons") or [])})')
-    return out
 
 
 FOLLOW_UP_TOOLS = {"service_health", "query_metrics", "search_traces", "query_logs"}

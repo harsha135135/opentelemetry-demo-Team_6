@@ -5,3 +5,6 @@ __pycache__/
 .pytest_cache/
 runs/
 evals/cases*.json
+
+evals/*.local.json
+grafana/dashboards/generated/

@@ -206,7 +206,7 @@ def resource_overview(window_minutes: int = telemetry.NOW_WINDOW_MIN) -> ToolRes
     except Exception as exc:
         return build(ToolStatus.ERROR, message=f"prometheus error: {type(exc).__name__}: {str(exc)[:200]}")
     for d in data.values():
-        for ex in telemetry.EXCLUDED_SERVICES:
+        for ex in telemetry.EXCLUDED_SERVICES | telemetry.OWN_TOOLING:
             d.pop(ex, None)
     if not data["cpu"] and not data["mem"] and not data["uptime"]:
         return build(ToolStatus.EMPTY, message="no container resource metrics in window (docker_stats not reporting?)")

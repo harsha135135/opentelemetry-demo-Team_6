@@ -1,0 +1,348 @@
+﻿{
+  "$defs": {
+    "ActionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "pattern": "^act-[a-f0-9]{16}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "arguments": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Arguments",
+          "type": "object"
+        },
+        "audit": {
+          "$ref": "#/$defs/AuditInfo"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "executor": {
+          "enum": [
+            "docker",
+            "simulate"
+          ],
+          "title": "Executor",
+          "type": "string"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finished At"
+        },
+        "idempotency_key": {
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "incident_id": {
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "operation": {
+          "title": "Operation",
+          "type": "string"
+        },
+        "payload_digest": {
+          "title": "Payload Digest",
+          "type": "string"
+        },
+        "proposal_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposal Digest"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExecutionResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Started At"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "running",
+            "succeeded",
+            "failed",
+            "simulated",
+            "blocked",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VerificationReport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action_id",
+        "incident_id",
+        "operation",
+        "target",
+        "arguments",
+        "evidence_ids",
+        "reason",
+        "payload_digest",
+        "idempotency_key",
+        "status",
+        "executor",
+        "created_at",
+        "audit"
+      ],
+      "title": "ActionRecord",
+      "type": "object"
+    },
+    "AuditInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "approved_by_code_holder": {
+          "default": true,
+          "title": "Approved By Code Holder",
+          "type": "boolean"
+        },
+        "remote_addr": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Remote Addr"
+        },
+        "requested_by": {
+          "title": "Requested By",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_id",
+        "requested_by"
+      ],
+      "title": "AuditInfo",
+      "type": "object"
+    },
+    "ExecutionResult": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "duration_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration S"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "simulated": {
+          "default": false,
+          "title": "Simulated",
+          "type": "boolean"
+        },
+        "status_after": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status After"
+        },
+        "status_before": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status Before"
+        },
+        "success": {
+          "title": "Success",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "success",
+        "detail"
+      ],
+      "title": "ExecutionResult",
+      "type": "object"
+    },
+    "VerificationReport": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Baseline Evidence Ids",
+          "type": "array"
+        },
+        "details": {
+          "maxLength": 6000,
+          "title": "Details",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "VERIFIED_RECOVERY",
+            "PARTIAL_RECOVERY",
+            "NOT_RECOVERED",
+            "UNVERIFIED",
+            "ACTION_FAILED",
+            "ESCALATED",
+            "DRY_RUN"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "post_action_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Post Action Evidence Ids",
+          "type": "array"
+        },
+        "recorded_by": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Recorded By",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcome",
+        "details",
+        "recorded_by"
+      ],
+      "title": "VerificationReport",
+      "type": "object"
+    }
+  },
+  "$id": "https://incident-zero.team6.local/schemas/action_api/ActionList.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "items": {
+        "$ref": "#/$defs/ActionRecord"
+      },
+      "title": "Actions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "actions"
+  ],
+  "title": "ActionList",
+  "type": "object"
+}

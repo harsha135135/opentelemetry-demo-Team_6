@@ -28,6 +28,7 @@ class CallToolDecision(_Decision):
 class FinishDecision(_Decision):
     kind: Literal["finish"] = "finish"
     diagnosis: Diagnosis
+    fix: Optional[dict[str, Any]] = None  # step 4: the model's requested remedy, validated by runbooks.to_proposal
 
 
 class InconclusiveDecision(_Decision):
@@ -69,6 +70,8 @@ class ReasoningContext(BaseModel):
     request_timeout_s: float
     live_only_note: str = ""
     rejection: Optional[str] = None  # set when the orchestrator refuses the model's finish and asks for follow-up
+    services: list[str] = Field(default_factory=list)  # live inventory from telemetry (not a hardcoded list)
+    evidence_picture: str = ""  # ranked candidates computed from the evidence so far (candidates.summary)
 
 
 class ModelError(RuntimeError):
