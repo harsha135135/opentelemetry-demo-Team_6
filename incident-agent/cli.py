@@ -5,6 +5,10 @@ human-approved remediation through the Action API and measured verification.
     python cli.py investigate --incident-id INC-001 --symptom "..." [--service checkout] --model <id>
     python cli.py investigate ... --respond [--action-catalog catalog.json] [--execute]
     python cli.py kill-switch on|off|status
+    python cli.py action-api init-token | serve [--executor docker|simulate] | health | operations | actions | show <id>
+    python cli.py investigate ... --respond --action-api [--execute]     # use the team Action API
+    python cli.py audit [--server] [--incident-id ID]
+    python cli.py report <incident-id>
 """
 from __future__ import annotations
 
@@ -33,6 +37,8 @@ from reasoning import AnthropicReasoner  # noqa: E402
 from report_io import write_report  # noqa: E402
 
 KILL_SWITCH_FILE = Path(os.getenv("KILL_SWITCH_FILE", HERE / "KILL_SWITCH"))
+DEFAULT_ACTION_API_URL = "http://127.0.0.1:8787"
+ACTION_API_STATE_DIR = Path(os.getenv("ACTION_API_STATE_DIR", HERE / "runs" / "action_api"))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -56,7 +62,9 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--respond", action="store_true", help="plan a remediation, ask for approval, then dry-run or execute")
     r.add_argument("--execute", action="store_true", help="LIVE: send the approved request (default is dry-run)")
     r.add_argument("--action-catalog", default=os.getenv("ACTION_API_CATALOG", ""),
-                   help="Action API catalog JSON written from the official contract")
+                   help="Action API catalog JSON written from an official contract")
+    r.add_argument("--action-api", action="store_true",
+                   help="use the team Action API (ACTION_API_URL, ACTION_API_TOKEN): catalog, validation, server-issued approval")
     r.add_argument("--approver", default=os.getenv("INCIDENT_AGENT_APPROVER", ""), help="name recorded with the approval")
     r.add_argument("--approval-ttl-s", type=float, default=120)
     r.add_argument("--settle-s", type=float, default=120, help="wait after dispatch before the first verification sample")
@@ -68,7 +76,142 @@ def build_parser() -> argparse.ArgumentParser:
     k.add_argument("state", choices=["on", "off", "status"])
     c = sub.add_parser("catalog", help="validate and show the Action API catalog")
     c.add_argument("--action-catalog", default=os.getenv("ACTION_API_CATALOG", ""))
+    a = sub.add_parser("action-api", help="run or query the team Action API")
+    asub = a.add_subparsers(dest="api_cmd", required=True)
+    s = asub.add_parser("serve", help="start the Action API (the only process that can restart containers)")
+    s.add_argument("--host", default=os.getenv("ACTION_API_HOST", "127.0.0.1"))
+    s.add_argument("--port", type=int, default=int(os.getenv("ACTION_API_PORT", "8787")))
+    s.add_argument("--executor", choices=["simulate", "docker"], default=os.getenv("ACTION_API_EXECUTOR", "simulate"))
+    s.add_argument("--state-dir", default=str(ACTION_API_STATE_DIR))
+    s.add_argument("--bind-all", action="store_true", help="allow a non-loopback host (not recommended)")
+    asub.add_parser("init-token", help="add ACTION_API_TOKEN/ACTION_API_URL to .env if absent (never overwrites)")
+    asub.add_parser("health")
+    asub.add_parser("operations")
+    asub.add_parser("actions")
+    sh = asub.add_parser("show")
+    sh.add_argument("action_id")
+    asub.add_parser("export-schemas", help="regenerate schemas/action_api/*.json and docs/action_api.openapi.json")
+    au = sub.add_parser("audit", help="show the agent audit journal (or the Action API audit with --server)")
+    au.add_argument("--server", action="store_true")
+    au.add_argument("--incident-id")
+    au.add_argument("--tail", type=int, default=50)
+    au.add_argument("--out", default="runs")
+    rp = sub.add_parser("report", help="print an incident report")
+    rp.add_argument("incident_id")
+    rp.add_argument("--json", action="store_true")
+    rp.add_argument("--out", default="runs")
     return p
+
+
+def _team_client():
+    from action_api_client import TeamActionApiClient
+
+    return TeamActionApiClient(os.getenv("ACTION_API_URL", DEFAULT_ACTION_API_URL), os.getenv("ACTION_API_TOKEN", ""))
+
+
+def cmd_action_api(args) -> int:
+    import json
+
+    import httpx
+
+    from action_api_client import ActionApiError
+
+    if args.api_cmd == "init-token":
+        import secrets
+
+        import endpoints
+        values = {}
+        if not os.getenv("ACTION_API_TOKEN"):
+            values["ACTION_API_TOKEN"] = secrets.token_urlsafe(32)
+        if not os.getenv("ACTION_API_URL"):
+            values["ACTION_API_URL"] = DEFAULT_ACTION_API_URL
+        if not values:
+            print("ACTION_API_TOKEN and ACTION_API_URL already set; nothing changed")
+            return 0
+        endpoints.write_env(HERE / ".env", values)
+        print(f"added {', '.join(values)} to {HERE / '.env'} (token not printed)")
+        return 0
+    if args.api_cmd == "export-schemas":
+        import action_api_models
+        for path in action_api_models.export(HERE):
+            print(path.relative_to(HERE))
+        return 0
+    if args.api_cmd == "serve":
+        return _serve(args)
+    try:
+        client = _team_client()
+        if args.api_cmd == "health":
+            data = client.health()
+        elif args.api_cmd == "operations":
+            data = client.operations().model_dump(mode="json")
+        elif args.api_cmd == "actions":
+            data = client.list_actions()
+        else:
+            data = client._call("GET", f"/v1/actions/{args.action_id}")[1]
+    except (ActionApiError, httpx.HTTPError) as exc:
+        print(f"error: Action API: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(data, indent=2, default=str))
+    return 0
+
+
+def _serve(args) -> int:
+    from action_executor import DockerExecutor, SimulatedExecutor, allowed_targets
+    from action_server import ActionApiService, build_server
+    from safety import KillSwitch
+
+    if args.host not in ("127.0.0.1", "localhost", "::1") and not args.bind_all:
+        print("error: refusing to bind a non-loopback address without --bind-all", file=sys.stderr)
+        return 2
+    token = os.getenv("ACTION_API_TOKEN", "")
+    if len(token) < 24:
+        print("error: ACTION_API_TOKEN missing or shorter than 24 characters (run: python cli.py action-api init-token)", file=sys.stderr)
+        return 2
+    try:
+        targets = allowed_targets(os.getenv("ACTION_API_EXTRA_TARGETS", ""))
+        executor = (DockerExecutor(os.getenv("ACTION_API_COMPOSE_PROJECT", "opentelemetry-demo-team_6"))
+                    if args.executor == "docker" else SimulatedExecutor())
+    except (ValueError, RuntimeError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    service = ActionApiService(executor=executor, targets=targets, state_dir=Path(args.state_dir),
+                               kill_switch=KillSwitch(KILL_SWITCH_FILE).active)
+    server = build_server(service, token, args.host, args.port)
+    print(f"Team Action API {args.host}:{args.port}  executor={executor.mode}  targets={', '.join(targets)}\n"
+          f"state/audit: {args.state_dir}  kill switch: {KILL_SWITCH_FILE}\n"
+          "Approval codes for this API are printed ONLY in this terminal. Ctrl+C to stop.", file=sys.stderr, flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
+
+
+def cmd_audit(args) -> int:
+    import json
+
+    path = ACTION_API_STATE_DIR / "audit.jsonl" if args.server else Path(args.out).resolve() / "audit.jsonl"
+    if not path.exists():
+        print(f"no audit log at {path}")
+        return 0
+    lines = [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
+    if args.incident_id:
+        lines = [l for l in lines if l.get("incident_id") == args.incident_id]
+    for rec in lines[-args.tail:]:
+        extra = {k: v for k, v in rec.items() if k not in ("time", "event")}
+        print(f"{rec.get('time', '')[:19]}  {rec.get('event', ''):28} {json.dumps(extra, default=str)[:300]}")
+    return 0
+
+
+def cmd_report(args) -> int:
+    base = Path(args.out).resolve() / args.incident_id / f"{args.incident_id}_report.{'json' if args.json else 'md'}"
+    if not base.exists():
+        print(f"no report at {base}", file=sys.stderr)
+        return 1
+    print(base.read_text(encoding="utf-8"))
+    return 0
 
 
 def cmd_endpoints(args) -> int:
@@ -125,6 +268,12 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_kill_switch(args)
     if args.cmd == "catalog":
         return cmd_catalog(args)
+    if args.cmd == "action-api":
+        return cmd_action_api(args)
+    if args.cmd == "audit":
+        return cmd_audit(args)
+    if args.cmd == "report":
+        return cmd_report(args)
     if not args.model:
         print("error: model identifier missing (use --model or ANTHROPIC_MODEL)", file=sys.stderr)
         return 2
@@ -132,15 +281,25 @@ def main(argv: list[str] | None = None) -> int:
         print("error: ANTHROPIC_API_KEY is not set", file=sys.stderr)
         return 2
     catalog, client = None, None
-    if args.respond:
+    if args.respond and args.action_api:
+        import httpx
+
+        from action_api_client import ActionApiError
+        try:
+            client = _team_client()
+            catalog = client.catalog()
+        except (ActionApiError, httpx.HTTPError) as exc:
+            print(f"error: team Action API unavailable ({exc}); start it with: python cli.py action-api serve", file=sys.stderr)
+            return 2
+    elif args.respond:
         try:
             catalog = load_catalog(args.action_catalog)
             client = HttpActionClient(catalog) if args.execute else None
         except CatalogError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
-    elif args.execute:
-        print("error: --execute requires --respond", file=sys.stderr)
+    elif args.execute or args.action_api:
+        print("error: --execute and --action-api require --respond", file=sys.stderr)
         return 2
     now = datetime.now(timezone.utc)
     out = Path(args.out).resolve()

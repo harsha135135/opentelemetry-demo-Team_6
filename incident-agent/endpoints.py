@@ -87,6 +87,16 @@ def check(timeout: float = 5.0) -> list[dict[str, Any]]:
 def action_api_status(catalog_path: Optional[str]) -> dict[str, str]:
     from actions import CatalogError, load_catalog
 
+    url = _url("ACTION_API_URL")
+    if url and os.getenv("ACTION_API_TOKEN") and not catalog_path:
+        try:
+            h = httpx.get(f"{url}/health", timeout=3).json()
+            return {"backend": "action-api", "env": "ACTION_API_URL", "url": url,
+                    "status": f"team API {h.get('api_version')} executor={h.get('executor')} "
+                              f"kill_switch={'ON' if h.get('kill_switch_active') else 'off'}"}
+        except (httpx.HTTPError, ValueError):
+            return {"backend": "action-api", "env": "ACTION_API_URL", "url": url,
+                    "status": "team API UNREACHABLE (python cli.py action-api serve)"}
     if not catalog_path:
         return {"backend": "action-api", "status": "NOT CONFIGURED (no ACTION_API_CATALOG; remediation escalates)"}
     try:

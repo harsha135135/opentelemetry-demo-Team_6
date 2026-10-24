@@ -157,18 +157,33 @@ URLs depend on the Docker Compose configuration.
 
 ## Current Status
 
-Environment setup in progress.
+The incident agent is implemented in `incident-agent/`:
 
-Agent implementation and testing are pending.
+- read-only telemetry investigation and an evidence-validated Claude diagnosis;
+- gated remediation through our **team-defined Action API**, with a server-issued single-use approval code, a kill
+  switch and an audit trail;
+- measured recovery verification and reports.
+
+Mocked and in-process tests pass. Checkpoints count only once they are demonstrated live.
+
+| Guide | Contents |
+| --- | --- |
+| [incident-agent/INTEGRATION.md](incident-agent/INTEGRATION.md) | Setup and all CLI commands |
+| [incident-agent/docs/END_TO_END_DEMO.md](incident-agent/docs/END_TO_END_DEMO.md) | Two-terminal demo, scenarios A–J |
+| [incident-agent/docs/ACTION_API_ARCHITECTURE.md](incident-agent/docs/ACTION_API_ARCHITECTURE.md) | Action API design, security model, examples |
+| [incident-agent/ACTION_API.md](incident-agent/ACTION_API.md) | Team API vs organiser contract status |
+
+Start the stack with `make start` (it includes the observability layer). A plain `docker compose up` exports
+telemetry only to the collector's debug output.
 
 ## Design and Implementation Guides
 
 - [Design guide and architecture overview](docs/ARCHITECTURE.md)
 - [Simple implementation guide](docs/IMPLEMENTATION_GUIDE.md)
 
-These guides describe the planned solution. No incident-response modules have
-been implemented. The implementation guide also explains the Compose layers
-needed for telemetry; the base startup command above does not include them.
+These guides describe the original plan; see "Current Status" above for what is
+implemented. The implementation guide also explains the Compose layers needed
+for telemetry; the base startup command above does not include them.
 
 ## References
 

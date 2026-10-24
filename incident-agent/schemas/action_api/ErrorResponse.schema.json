@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "ErrorCode": {
+      "enum": [
+        "INVALID_REQUEST",
+        "UNAUTHORIZED",
+        "NOT_FOUND",
+        "PAYLOAD_TOO_LARGE",
+        "UNSUPPORTED_MEDIA_TYPE",
+        "UNKNOWN_OPERATION",
+        "TARGET_NOT_ALLOWED",
+        "INVALID_ARGUMENTS",
+        "APPROVAL_NOT_FOUND",
+        "APPROVAL_EXPIRED",
+        "APPROVAL_CONSUMED",
+        "APPROVAL_REJECTED",
+        "APPROVAL_LOCKED",
+        "APPROVAL_CODE_INVALID",
+        "PAYLOAD_MISMATCH",
+        "IDEMPOTENCY_CONFLICT",
+        "INCIDENT_ACTION_EXISTS",
+        "KILL_SWITCH_ACTIVE",
+        "VERIFICATION_EXISTS",
+        "INTERNAL_ERROR"
+      ],
+      "title": "ErrorCode",
+      "type": "string"
+    },
+    "ErrorDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "details": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Details",
+          "type": "array"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    }
+  },
+  "$id": "https://incident-zero.team6.local/schemas/action_api/ErrorResponse.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "$ref": "#/$defs/ErrorDetail"
+    }
+  },
+  "required": [
+    "error"
+  ],
+  "title": "ErrorResponse",
+  "type": "object"
+}

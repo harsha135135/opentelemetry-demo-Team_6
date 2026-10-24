@@ -9,7 +9,9 @@
           -> report_io.write_report (report.py) -> JSON + Markdown with evidence links
 
 The model only ever gets read-only telemetry tools and, after an accepted diagnosis, one proposal-only call.
-Approval, kill switch, dispatch and verification are deterministic code. See `ACTION_API.md` for contract status.
+Approval, kill switch, dispatch and verification are deterministic code. Remediation runs through our team Action API
+(a separate process: `action_server.py` + `action_executor.py`), with a server-issued, single-use approval code.
+See `ACTION_API.md`, `docs/ACTION_API_ARCHITECTURE.md` and `docs/END_TO_END_DEMO.md`.
 
 ## Setup
     cd incident-agent && uv venv --python 3.11 .venv && uv pip install --python .venv/bin/python -r requirements.txt
@@ -23,7 +25,16 @@ Approval, kill switch, dispatch and verification are deterministic code. See `AC
 ## Investigate (read-only)
     .venv/bin/python cli.py investigate --incident-id INC-001 --symptom "<symptom>" [--service checkout] --model <model-id>
 
-## Investigate and remediate
+## Team Action API
+    .venv/bin/python cli.py action-api init-token            # once; adds ACTION_API_TOKEN/URL to .env if absent
+    .venv/bin/python cli.py action-api serve [--executor docker]   # separate terminal; approval codes print here
+    .venv/bin/python cli.py action-api health | operations | actions | show <action_id>
+    .venv/bin/python cli.py investigate ... --respond --action-api            # dry-run + server-side validation
+    .venv/bin/python cli.py investigate ... --respond --action-api --execute  # live: type 'approve <CODE>'
+    .venv/bin/python cli.py audit [--server] [--incident-id ID]
+    .venv/bin/python cli.py report <incident-id> [--json]
+
+## Investigate and remediate (catalog file, e.g. an organiser contract)
     # dry-run (default): full plan/policy/approval flow, nothing sent
     .venv/bin/python cli.py investigate ... --respond --action-catalog <catalog.json>
     # live: needs an organiser catalog, ACTION_API_URL and an interactive terminal for approval

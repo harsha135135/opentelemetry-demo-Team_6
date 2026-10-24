@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "OperationSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_targets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Targets",
+          "type": "array"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "expected_effect": {
+          "title": "Expected Effect",
+          "type": "string"
+        },
+        "idempotent": {
+          "title": "Idempotent",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "required": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required",
+          "type": "array"
+        },
+        "reversible": {
+          "title": "Reversible",
+          "type": "boolean"
+        },
+        "risk": {
+          "title": "Risk",
+          "type": "string"
+        },
+        "target_kind": {
+          "const": "service",
+          "default": "service",
+          "title": "Target Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "allowed_targets",
+        "parameters",
+        "risk",
+        "reversible",
+        "idempotent",
+        "expected_effect"
+      ],
+      "title": "OperationSpec",
+      "type": "object"
+    }
+  },
+  "$id": "https://incident-zero.team6.local/schemas/action_api/OperationList.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "api_version": {
+      "title": "Api Version",
+      "type": "string"
+    },
+    "executor": {
+      "enum": [
+        "docker",
+        "simulate"
+      ],
+      "title": "Executor",
+      "type": "string"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/OperationSpec"
+      },
+      "title": "Operations",
+      "type": "array"
+    },
+    "provenance": {
+      "const": "team",
+      "default": "team",
+      "title": "Provenance",
+      "type": "string"
+    }
+  },
+  "required": [
+    "api_version",
+    "executor",
+    "operations"
+  ],
+  "title": "OperationList",
+  "type": "object"
+}

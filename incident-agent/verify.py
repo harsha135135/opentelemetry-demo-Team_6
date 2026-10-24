@@ -148,3 +148,46 @@ def collect(checks: list[VerificationCheck], run_tool: Any, register: Any, windo
     for svc in sorted({c.service for c in checks if c.metric in TRAFFIC_METRICS}):
         traffic[svc] = one(svc, "request_rate")
     return values, traffic, ids
+
+
+def observe(services: list[str], run_tool: Any, register: Any, window_minutes: int = 2
+            ) -> tuple[dict[str, dict[str, Optional[float]]], list[str]]:
+    """Unjudged context for the report: p95 latency, error-trace and error-log counts per service."""
+    from integration import to_evidence
+
+    out: dict[str, dict[str, Optional[float]]] = {}
+    ids: list[str] = []
+
+    def run(name: str, args: dict) -> Optional[Evidence]:
+        try:
+            ev = to_evidence(run_tool(name, args))
+        except Exception:
+            return None
+        register(ev)
+        ids.append(ev.evidence_id)
+        return ev
+
+    def count(ev: Optional[Evidence], key: str) -> Optional[float]:
+        if ev is None or ev.status in (ToolStatus.UNAVAILABLE, ToolStatus.ERROR):
+            return None
+        if ev.status == ToolStatus.EMPTY:
+            return 0.0
+        v = (ev.observed_value or {}).get("value") or {}
+        items = v.get(key) if isinstance(v, dict) else None
+        return float(len(items)) if isinstance(items, list) else None
+
+    for svc in services:
+        out[svc] = {
+            "p95_latency_ms": metric_value(run("query_metrics", {"service": svc, "metric": "p95_latency_ms", "window_minutes": window_minutes})),
+            "error_traces": count(run("search_traces", {"service": svc, "window_minutes": window_minutes, "errors_only": True, "limit": 5}), "traces"),
+            "error_logs": count(run("query_logs", {"service": svc, "window_minutes": window_minutes, "min_severity": "ERROR", "limit": 5}), "lines"),
+        }
+    return out, ids
+
+
+def describe_observations(before: dict, after: dict) -> str:
+    parts = []
+    for svc in sorted(set(before) | set(after)):
+        b, a = before.get(svc, {}), after.get(svc, {})
+        parts.append(f"{svc}: " + ", ".join(f"{k} {b.get(k)} -> {a.get(k)}" for k in ("p95_latency_ms", "error_traces", "error_logs")))
+    return "Observations (context, not judged): " + "; ".join(parts) if parts else ""

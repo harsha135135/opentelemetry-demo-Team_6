@@ -69,7 +69,7 @@ class Operation(BaseModel):
 
 
 class Catalog(BaseModel):
-    provenance: Literal["organiser", "mock"]
+    provenance: Literal["organiser", "team", "mock"]  # team = our own Action API (action_server.py), not an organiser contract
     description: str = ""
     base_url_env: str = "ACTION_API_URL"
     auth_header: Optional[str] = None  # e.g. "Authorization"; value comes from token_env, never from the file
@@ -142,6 +142,8 @@ def validate_arguments(op: Operation, arguments: dict[str, Any]) -> tuple[dict[s
 
 class ActionResult(BaseModel):
     outcome: Literal["success", "failed", "unknown"]
+    simulated: bool = False  # the executor changed nothing (team API simulate mode)
+    refused: bool = False    # rejected before execution (authorization, kill switch, unavailable); nothing ran
     http_status: Optional[int] = None
     request_id: Optional[str] = None
     response: Optional[dict[str, Any]] = None
