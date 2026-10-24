@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-5f169625",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "ad",
+    "query": "{__name__=~\"container_uptime.*\",container_name=\"ad\"}",
+    "window_start": "2026-10-24T05:45:34.545616Z",
+    "window_end": "2026-10-24T05:50:34.545616Z",
+    "collected_at": "2026-10-24T05:50:34.547237Z",
+    "value": {
+      "metric": "container_uptime",
+      "unit": "s",
+      "value": 182.282582
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_metrics-5f169625.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"__name__\": \"container_uptime_seconds\", \"container_name\": \"ad\", \"host_name\": \"docker-desktop\"}, \"value\": [1792821034.545, \"182.282581709\"]}]}}"
+}

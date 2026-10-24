@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-91764d33",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "checkout",
+    "query": "sum(rate(traces_span_metrics_calls_total{service_name=\"checkout\"}[2m]))",
+    "window_start": "2026-10-24T05:52:48.163927Z",
+    "window_end": "2026-10-24T05:54:48.163927Z",
+    "collected_at": "2026-10-24T05:54:48.167030Z",
+    "value": {
+      "metric": "request_rate",
+      "unit": "requests/s",
+      "value": 0.0
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-2-PAYMENT/evidence/ev-query_metrics-91764d33.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {}, \"value\": [1792821288.164, \"0\"]}]}}"
+}

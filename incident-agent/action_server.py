@@ -29,7 +29,8 @@ from pydantic import BaseModel, ValidationError
 from action_api_models import (
     API_VERSION, printable, TERMINAL_STATUSES, ActionList, ActionPayload, ActionRecord, ActionResultResponse, Approval,
     ApprovalCreateRequest, ApprovalRejectRequest, AuditInfo, ErrorCode, ErrorDetail, ErrorResponse, ExecuteRequest,
-    ExecutionResult, Health, OperationList, OperationSpec, ValidateResponse, VerificationReport,
+    ExecutionResult, Health, LoadGeneratorState, OperationList, OperationSpec, ServiceState, SystemState,
+    ValidateResponse, VerificationReport,
 )
 from actions import Operation, validate_arguments
 
@@ -72,8 +73,12 @@ def _code_hash(approval_id: str, code: str) -> str:
 class ActionApiService:
     def __init__(self, *, executor: Any, targets: list[str], state_dir: Path, kill_switch: Callable[[], bool],
                  announce: Callable[[str], None] = lambda s: print(s, file=sys.stderr, flush=True),
-                 clock: Callable[[], datetime] = _now, run_async: bool = True) -> None:
+                 clock: Callable[[], datetime] = _now, run_async: bool = True,
+                 inspector: Optional[Callable[[list[str]], list[dict]]] = None, state_services: Optional[list[str]] = None,
+                 loadgen_url: str = "") -> None:
         self.executor, self.kill_switch, self.announce, self.clock = executor, kill_switch, announce, clock
+        self.inspector, self.loadgen_url = inspector, loadgen_url.rstrip("/")
+        self.state_services = state_services or []
         self.operations = {"restart_service": restart_operation(targets)}
         self.state_dir = Path(state_dir)
         self.state_dir.mkdir(parents=True, exist_ok=True)
@@ -136,6 +141,31 @@ class ActionApiService:
                              parameters=o.parameters, required=o.required, risk=o.risk, reversible=o.reversible,
                              idempotent=o.idempotent, expected_effect=o.expected_effect) for o in self.operations.values()]
         return OperationList(api_version=API_VERSION, executor=self.executor.mode, operations=ops)
+
+    def system_state(self) -> SystemState:
+        targets = set(self.operations["restart_service"].allowed_targets)
+        if self.inspector is None:
+            services, source = [], "unavailable: no docker CLI for read-only inspection"
+        else:
+            try:
+                services = [ServiceState(**r, restartable=r["service"] in targets) for r in self.inspector(self.state_services)]
+                source = "docker inspect (read-only)"
+            except Exception as exc:  # noqa: BLE001
+                services, source = [], f"unavailable: {type(exc).__name__}"
+        return SystemState(time=self.clock(), source=source, services=services, load_generator=self._loadgen(),
+                           kill_switch_active=self.kill_switch())
+
+    def _loadgen(self) -> Optional[LoadGeneratorState]:
+        if not self.loadgen_url:
+            return None
+        import httpx
+        try:
+            d = httpx.get(f"{self.loadgen_url}/stats/requests", timeout=3, follow_redirects=False).json()
+            return LoadGeneratorState(available=True, state=str(d.get("state")), user_count=d.get("user_count"),
+                                      total_rps=round(float(d.get("total_rps") or 0), 3),
+                                      fail_ratio=round(float(d.get("fail_ratio") or 0), 4))
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
+            return LoadGeneratorState(available=False, detail=f"load generator stats unavailable: {type(exc).__name__}")
 
     def validate(self, payload: ActionPayload) -> ValidateResponse:
         try:
@@ -358,6 +388,8 @@ def make_handler(service: ActionApiService, token: str) -> type[BaseHTTPRequestH
                 parts = path.split("/")[2:]
                 if method == "GET" and parts == ["operations"]:
                     return self._send(200, service.list_operations())
+                if method == "GET" and parts == ["services"]:
+                    return self._send(200, service.system_state())
                 if method == "GET" and parts == ["actions"]:
                     return self._send(200, service.list_actions())
                 if method == "POST" and parts == ["actions", "validate"]:

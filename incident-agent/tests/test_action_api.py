@@ -115,6 +115,8 @@ def test_schema_files_and_openapi_match_models(tmp_path):
     for f in (tmp_path / "schemas" / "action_api").iterdir():
         assert f.read_text() == (root / "schemas" / "action_api" / f.name).read_text(), f"schema drift: {f.name}"
     assert (tmp_path / "docs" / "action_api.openapi.json").read_text() == (root / "docs" / "action_api.openapi.json").read_text()
+    from report_io import export_report_schema
+    assert export_report_schema(tmp_path).read_text() == (root / "schemas" / "incident_report.schema.json").read_text()
     spec = m.openapi()
     assert spec["openapi"] == "3.1.0" and spec["components"]["schemas"]["ActionPayload"]["additionalProperties"] is False
     assert {"/health", "/v1/operations", "/v1/actions/validate", "/v1/approvals", "/v1/actions/execute",
@@ -549,3 +551,43 @@ def test_agent_summary_escapes_diagnosis_text_and_ends_with_action(tmp_path):
     assert "\u001b" not in summary and "\r" not in summary
     tail = summary.splitlines()[-5:]
     assert tail[0] == "OPERATION: restart_service" and tail[1] == "TARGET:    payment"
+
+
+def test_every_written_report_validates_against_team_schema(tmp_path):
+    from report_io import write_report
+    tel, rep, reg = payment_diagnosis(tmp_path)
+    out = respond(rep, ResponseConfig(mode="dry_run"), response_deps(tmp_path, tel, reg, Planner(plan()), answer="no"))
+    out, art = write_report(out, tmp_path / "rep")
+    assert art.team_schema_status == "passed" and json.loads(Path(art.json_path).read_text())["schema_version"] == "team6.incident-report/1.0"
+
+
+def test_system_state_endpoint_is_read_only_and_flag_free(api):
+    start, *_ = api
+    svc, url, client = start()
+    svc.inspector = lambda names: [{"service": n, "state": "exited" if n == "payment" else "running"} for n in names]
+    svc.state_services = ["payment", "cart", "otel-collector"]
+    data = client.system_state()
+    by = {s["service"]: s for s in data["services"]}
+    assert by["payment"]["state"] == "exited" and by["payment"]["restartable"] and not by["otel-collector"]["restartable"]
+    assert "flag" not in json.dumps(data).lower()
+    assert httpx.get(f"{url}/v1/services").status_code == 401
+
+
+def test_container_state_tool_filters_and_reports_unavailable(tmp_path, monkeypatch):
+    import state_tool
+    import telemetry
+    monkeypatch.setattr(telemetry, "EVIDENCE_DIR", tmp_path)
+
+    class C:
+        def system_state(self):
+            return {"source": "docker inspect (read-only)", "services": [{"service": "payment", "state": "exited", "restart_count": 0},
+                                                                          {"service": "cart", "state": "running"}]}
+    r = state_tool.make_state_tool(C())("payment")
+    assert r.status.value == "ok" and r.value["services"] == [{"service": "payment", "state": "exited", "health": None,
+                                                                 "restart_count": 0, "uptime_s": None}]
+    assert "not running: payment" in r.message and r.source == "health"
+
+    class Down:
+        def system_state(self):
+            raise httpx.ConnectError("down")
+    assert state_tool.make_state_tool(Down())(None).status.value == "unavailable"

@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-613b3edc",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "kafka",
+    "query": "deriv({__name__=~\"container_memory_usage_total.*\",container_name=\"kafka\"}[5m])",
+    "window_start": "2026-10-24T05:49:36.463681Z",
+    "window_end": "2026-10-24T05:54:36.463681Z",
+    "collected_at": "2026-10-24T05:54:36.464660Z",
+    "value": {
+      "metric": "container_memory_trend",
+      "unit": "bytes/s (positive = growing)",
+      "value": 69610.275809
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-2-PAYMENT/evidence/ev-query_metrics-613b3edc.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"container_name\": \"kafka\", \"host_name\": \"docker-desktop\"}, \"value\": [1792821276.463, \"69610.27580911509\"]}]}}"
+}

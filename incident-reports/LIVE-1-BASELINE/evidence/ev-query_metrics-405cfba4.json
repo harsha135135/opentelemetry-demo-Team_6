@@ -1,0 +1,33 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-405cfba4",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "frontend-proxy",
+    "query": "topk(10, sum by (span_name) (rate(traces_span_metrics_calls_total{service_name=\"frontend-proxy\",status_code=\"STATUS_CODE_ERROR\"}[5m])))",
+    "window_start": "2026-10-24T05:45:31.956582Z",
+    "window_end": "2026-10-24T05:50:31.956582Z",
+    "collected_at": "2026-10-24T05:50:31.964827Z",
+    "value": {
+      "metric": "errors_by_operation",
+      "unit": "errors/s",
+      "series": [
+        {
+          "span_name": "router frontend egress",
+          "value": 0.017758
+        },
+        {
+          "span_name": "GET",
+          "value": 0.017758
+        }
+      ]
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_metrics-405cfba4.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"span_name\": \"router frontend egress\"}, \"value\": [1792821031.959, \"0.017758463123918412\"]}, {\"metric\": {\"span_name\": \"GET\"}, \"value\": [1792821031.959, \"0.017758463123918412\"]}]}}"
+}

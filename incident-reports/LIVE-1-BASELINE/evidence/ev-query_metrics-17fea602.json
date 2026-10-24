@@ -1,0 +1,33 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-17fea602",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "ad",
+    "query": "{__name__=~\"container_memory_(usage_total|percent|rss).*\",container_name=\"ad\"}",
+    "window_start": "2026-10-24T05:45:34.539270Z",
+    "window_end": "2026-10-24T05:50:34.539270Z",
+    "collected_at": "2026-10-24T05:50:34.542416Z",
+    "value": {
+      "metric": "container_memory",
+      "unit": "bytes/percent",
+      "series": [
+        {
+          "__name__": "container_memory_percent_ratio",
+          "value": 75.151042
+        },
+        {
+          "__name__": "container_memory_usage_total_bytes",
+          "value": 236404736.0
+        }
+      ]
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_metrics-17fea602.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"__name__\": \"container_memory_percent_ratio\", \"container_name\": \"ad\", \"host_name\": \"docker-desktop\"}, \"value\": [1792821034.539, \"75.15104166666666\"]}, {\"metric\": {\"__name__\": \"container_memory_usage_total_bytes\", \"container_name\": \"ad\", \"host_name\": \"docker-desktop\"}, \"value\": [1792821034.539, \"236404736\"]}]}}"
+}

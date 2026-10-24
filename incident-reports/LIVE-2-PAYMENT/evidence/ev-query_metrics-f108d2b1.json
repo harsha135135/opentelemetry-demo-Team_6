@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-f108d2b1",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "jaeger",
+    "query": "{__name__=~\"container_uptime.*\",container_name=\"jaeger\"}",
+    "window_start": "2026-10-24T05:49:36.492135Z",
+    "window_end": "2026-10-24T05:54:36.492135Z",
+    "collected_at": "2026-10-24T05:54:36.493744Z",
+    "value": {
+      "metric": "container_uptime",
+      "unit": "s",
+      "value": 448.270868
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-2-PAYMENT/evidence/ev-query_metrics-f108d2b1.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"__name__\": \"container_uptime_seconds\", \"container_name\": \"jaeger\", \"host_name\": \"docker-desktop\"}, \"value\": [1792821276.492, \"448.270868249\"]}]}}"
+}

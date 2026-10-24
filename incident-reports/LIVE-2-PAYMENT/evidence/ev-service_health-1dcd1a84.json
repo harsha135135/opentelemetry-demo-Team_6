@@ -1,0 +1,47 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-service_health-1dcd1a84",
+    "tool": "service_health",
+    "source": "derived",
+    "service": "kafka",
+    "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+    "window_start": "2026-10-24T05:49:36.449215Z",
+    "window_end": "2026-10-24T05:54:36.449215Z",
+    "collected_at": "2026-10-24T05:54:36.467466Z",
+    "value": {
+      "summary": {
+        "request_rate": "empty",
+        "error_rate": "empty",
+        "p95_latency_ms": "empty",
+        "container_cpu": [
+          {
+            "__name__": "container_cpu_utilization_ratio",
+            "value": 0.233368
+          }
+        ],
+        "container_memory": [
+          {
+            "__name__": "container_memory_percent_ratio",
+            "value": 88.257308
+          },
+          {
+            "__name__": "container_memory_usage_total_bytes",
+            "value": 573775872.0
+          }
+        ],
+        "container_memory_trend": 69610.275809,
+        "container_uptime": 448.308657,
+        "container_last_seen_age_s": 10.457,
+        "recently_restarted": false,
+        "stopped_reporting": false
+      }
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-2-PAYMENT/evidence/ev-service_health-1dcd1a84.json",
+    "message": null
+  },
+  "raw": "{\"sub_evidence\": [\"ev-query_metrics-695bfb48\", \"ev-query_metrics-11fcc7fa\", \"ev-query_metrics-d3907cc3\", \"ev-query_metrics-8aef3061\", \"ev-query_metrics-fb72b665\", \"ev-query_metrics-613b3edc\", \"ev-query_metrics-1a7bdd68\", \"ev-query_metrics-d5b9e5ea\"]}"
+}

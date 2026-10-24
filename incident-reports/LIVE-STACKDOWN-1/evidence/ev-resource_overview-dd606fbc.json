@@ -1,0 +1,19 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-resource_overview-dd606fbc",
+    "tool": "resource_overview",
+    "source": "prometheus",
+    "service": null,
+    "query": "cpu: container_cpu_utilization_ratio; cpu_prior: avg_over_time(container_cpu_utilization_ratio[60m] offset 65m); mem: container_memory_percent_ratio; mem_growth: deriv(container_memory_usage_total_bytes[60m]) * 3600 / container_memory_usage_total_bytes; uptime: container_uptime_seconds; last_seen_age: time() - max_over_time(timestamp(container_uptime_seconds)[60m:30s])",
+    "window_start": "2026-10-24T03:54:41.761262Z",
+    "window_end": "2026-10-24T04:54:41.761262Z",
+    "collected_at": "2026-10-24T04:54:41.774727Z",
+    "value": null,
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": null,
+    "message": "no container resource metrics in the last 60 minutes (docker_stats not reporting?)"
+  }
+}

@@ -176,8 +176,16 @@ def observe(services: list[str], run_tool: Any, register: Any, window_minutes: i
         items = v.get(key) if isinstance(v, dict) else None
         return float(len(items)) if isinstance(items, list) else None
 
+    def state(svc: str) -> Optional[str]:
+        ev = run("container_state", {"service": svc})
+        if ev is None or ev.status != ToolStatus.OK:
+            return None
+        rows = ((ev.observed_value or {}).get("value") or {}).get("services") or []
+        return rows[0].get("state") if rows else None
+
     for svc in services:
         out[svc] = {
+            "container_state": state(svc),
             "p95_latency_ms": metric_value(run("query_metrics", {"service": svc, "metric": "p95_latency_ms", "window_minutes": window_minutes})),
             "error_traces": count(run("search_traces", {"service": svc, "window_minutes": window_minutes, "errors_only": True, "limit": 5}), "traces"),
             "error_logs": count(run("query_logs", {"service": svc, "window_minutes": window_minutes, "min_severity": "ERROR", "limit": 5}), "lines"),
@@ -189,5 +197,5 @@ def describe_observations(before: dict, after: dict) -> str:
     parts = []
     for svc in sorted(set(before) | set(after)):
         b, a = before.get(svc, {}), after.get(svc, {})
-        parts.append(f"{svc}: " + ", ".join(f"{k} {b.get(k)} -> {a.get(k)}" for k in ("p95_latency_ms", "error_traces", "error_logs")))
+        parts.append(f"{svc}: " + ", ".join(f"{k} {b.get(k)} -> {a.get(k)}" for k in ("container_state", "p95_latency_ms", "error_traces", "error_logs")))
     return "Observations (context, not judged): " + "; ".join(parts) if parts else ""

@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-284afd6d",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "payment",
+    "query": "deriv({__name__=~\"container_memory_usage_total.*\",container_name=\"payment\"}[5m])",
+    "window_start": "2026-10-24T05:49:28.744114Z",
+    "window_end": "2026-10-24T05:54:28.744114Z",
+    "collected_at": "2026-10-24T05:54:28.745508Z",
+    "value": {
+      "metric": "container_memory_trend",
+      "unit": "bytes/s (positive = growing)",
+      "value": 6630.44209
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-2-PAYMENT/evidence/ev-query_metrics-284afd6d.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"container_name\": \"payment\", \"host_name\": \"docker-desktop\"}, \"value\": [1792821268.743, \"6630.442090189456\"]}]}}"
+}

@@ -5,10 +5,11 @@ human-approved remediation through the Action API and measured verification.
     python cli.py investigate --incident-id INC-001 --symptom "..." [--service checkout] --model <id>
     python cli.py investigate ... --respond [--action-catalog catalog.json] [--execute]
     python cli.py kill-switch on|off|status
-    python cli.py action-api init-token | serve [--executor docker|simulate] | health | operations | actions | show <id>
+    python cli.py action-api init-token | serve [--executor docker|simulate] | health | operations | services | actions | show <id>
     python cli.py investigate ... --respond --action-api [--execute]     # use the team Action API
     python cli.py audit [--server] [--incident-id ID]
     python cli.py report <incident-id>
+    python cli.py grafana sync | export <dir>                            # root-cause and verification dashboards
 """
 from __future__ import annotations
 
@@ -70,6 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--settle-s", type=float, default=120, help="wait after dispatch before the first verification sample")
     r.add_argument("--interval-s", type=float, default=30)
     r.add_argument("--samples", type=int, default=2)
+    i.add_argument("--grafana", action="store_true", help="after the report, publish the Grafana dashboards (grafana sync)")
     e = sub.add_parser("endpoints", help="show each backend, the tools that use it, reachability and browser URLs")
     e.add_argument("--write-env", action="store_true", help="discover published ports with `docker port` and update .env")
     k = sub.add_parser("kill-switch", help="operator kill switch for all state-changing actions")
@@ -88,6 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
     asub.add_parser("health")
     asub.add_parser("operations")
     asub.add_parser("actions")
+    asub.add_parser("services", help="read-only system state (container state/health, load generator)")
     sh = asub.add_parser("show")
     sh.add_argument("action_id")
     asub.add_parser("export-schemas", help="regenerate schemas/action_api/*.json and docs/action_api.openapi.json")
@@ -100,6 +103,13 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("incident_id")
     rp.add_argument("--json", action="store_true")
     rp.add_argument("--out", default="runs")
+    g = sub.add_parser("grafana", help="root-cause and verification dashboards for every report (GRAFANA_URL)")
+    gsub = g.add_subparsers(dest="grafana_cmd", required=True)
+    gs = gsub.add_parser("sync", help="publish the index and each incident's dashboards to Grafana")
+    gs.add_argument("--out", default="runs")
+    ge = gsub.add_parser("export", help="write the dashboard JSON files instead of publishing")
+    ge.add_argument("dir")
+    ge.add_argument("--out", default="runs")
     return p
 
 
@@ -107,6 +117,18 @@ def _team_client():
     from action_api_client import TeamActionApiClient
 
     return TeamActionApiClient(os.getenv("ACTION_API_URL", DEFAULT_ACTION_API_URL), os.getenv("ACTION_API_TOKEN", ""))
+
+
+def _state_client():
+    """Team Action API client for the read-only container_state tool, if the API is configured and reachable."""
+    if not (os.getenv("ACTION_API_URL") and os.getenv("ACTION_API_TOKEN")):
+        return None
+    try:
+        client = _team_client()
+        client.health()
+        return client
+    except Exception:  # noqa: BLE001 - the tool is optional; investigation continues without it
+        return None
 
 
 def cmd_action_api(args) -> int:
@@ -133,7 +155,8 @@ def cmd_action_api(args) -> int:
         return 0
     if args.api_cmd == "export-schemas":
         import action_api_models
-        for path in action_api_models.export(HERE):
+        from report_io import export_report_schema
+        for path in action_api_models.export(HERE) + [export_report_schema(HERE)]:
             print(path.relative_to(HERE))
         return 0
     if args.api_cmd == "serve":
@@ -146,6 +169,8 @@ def cmd_action_api(args) -> int:
             data = client.operations().model_dump(mode="json")
         elif args.api_cmd == "actions":
             data = client.list_actions()
+        elif args.api_cmd == "services":
+            data = client.system_state()
         else:
             data = client._call("GET", f"/v1/actions/{args.action_id}")[1]
     except (ActionApiError, httpx.HTTPError) as exc:
@@ -156,7 +181,7 @@ def cmd_action_api(args) -> int:
 
 
 def _serve(args) -> int:
-    from action_executor import DockerExecutor, SimulatedExecutor, allowed_targets
+    from action_executor import STATE_SERVICES, ContainerInspector, DockerExecutor, SimulatedExecutor, allowed_targets
     from action_server import ActionApiService, build_server
     from safety import KillSwitch
 
@@ -174,8 +199,12 @@ def _serve(args) -> int:
     except (ValueError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+    project = os.getenv("ACTION_API_COMPOSE_PROJECT", "opentelemetry-demo-team_6")
+    inspector = ContainerInspector(project)
     service = ActionApiService(executor=executor, targets=targets, state_dir=Path(args.state_dir),
-                               kill_switch=KillSwitch(KILL_SWITCH_FILE).active)
+                               kill_switch=KillSwitch(KILL_SWITCH_FILE).active,
+                               inspector=inspector if inspector.docker else None, state_services=STATE_SERVICES,
+                               loadgen_url=os.getenv("ACTION_API_LOADGEN_URL", "http://localhost:8080/loadgen"))
     server = build_server(service, token, args.host, args.port)
     print(f"Team Action API {args.host}:{args.port}  executor={executor.mode}  targets={', '.join(targets)}\n"
           f"state/audit: {args.state_dir}  kill switch: {KILL_SWITCH_FILE}\n"
@@ -211,6 +240,28 @@ def cmd_report(args) -> int:
         print(f"no report at {base}", file=sys.stderr)
         return 1
     print(base.read_text(encoding="utf-8"))
+    return 0
+
+
+def cmd_grafana(args, incident_id: str | None = None) -> int:
+    import grafana_dash
+
+    runs = Path(args.out).resolve()
+    if getattr(args, "grafana_cmd", None) == "export":
+        paths = grafana_dash.export(runs, Path(args.dir))
+        print(f"wrote {len(paths)} dashboards to {Path(args.dir).resolve()}")
+        return 0
+    try:
+        res = grafana_dash.sync(runs, grafana_dash.GrafanaPublisher())
+    except grafana_dash.GrafanaError as exc:
+        print(f"grafana: {exc} (set GRAFANA_URL, e.g. python cli.py endpoints --write-env)", file=sys.stderr)
+        return 1
+    print(f"Grafana index:   {res['index']}")
+    for iid, (rc, ver) in res["incidents"].items():
+        if incident_id in (None, iid):
+            print(f"{iid}\n  root cause:    {rc}\n  verification:  {ver}")
+    for s in res["skipped"]:
+        print(f"skipped (not a valid report): {s}")
     return 0
 
 
@@ -274,6 +325,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_audit(args)
     if args.cmd == "report":
         return cmd_report(args)
+    if args.cmd == "grafana":
+        return cmd_grafana(args)
     if not args.model:
         print("error: model identifier missing (use --model or ANTHROPIC_MODEL)", file=sys.stderr)
         return 2
@@ -310,7 +363,7 @@ def main(argv: list[str] | None = None) -> int:
             detection_time=now, observation_window=TimeWindow(start_time=now - timedelta(minutes=args.window_minutes), end_time=now),
             recovery_condition=args.recovery_condition,
         )
-        run_tool, policy, _ = make_telemetry_runner(run_dir / "evidence")
+        run_tool, policy, _ = make_telemetry_runner(run_dir / "evidence", _state_client())
         if not policy.approved_services:
             print("error: no services visible in telemetry backends; run `python cli.py endpoints` first", file=sys.stderr)
             return 2
@@ -343,11 +396,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Verification: {report.verification.result.value}: {report.verification.details}")
     print(f"Model calls: {meta.get('model_calls')}  Tool calls: {meta.get('tool_calls')}  Elapsed: {meta.get('elapsed_s')}s")
     print(f"Report JSON: {art.json_path}\nReport MD:   {art.markdown_path}")
-    print("Official schema: " + art.official_schema_status + " (exports are provisional/internal)")
+    print(f"Report schema (team-defined schemas/incident_report.schema.json): {art.team_schema_status}"
+          " | organiser schema: none supplied")
+    for e in art.team_schema_errors:
+        print(f"SCHEMA ERROR: {e}")
     for e in art.internal_validation_errors + art.export_errors:
         print(f"VALIDATION/EXPORT ERROR: {e}")
     for lim in report.limitations:
         print(f"limitation: {lim}")
+    if args.grafana and art.json_path:
+        try:
+            cmd_grafana(args, report.incident_id)
+        except Exception as exc:  # the report is already written; a dashboard problem must not fail the incident
+            print(f"grafana: dashboards not published ({type(exc).__name__}: {exc})", file=sys.stderr)
     return 0 if not art.export_errors else 1
 
 

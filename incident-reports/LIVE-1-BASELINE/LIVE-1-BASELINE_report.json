@@ -1,0 +1,1475 @@
+{
+  "schema_version": "team6.incident-report/1.0",
+  "incident_id": "LIVE-1-BASELINE",
+  "status": "ESCALATED",
+  "incident": {
+    "id": "LIVE-1-BASELINE",
+    "source": "manual-cli",
+    "symptom": "Load generator reports about 20% of requests failing; find the cause",
+    "affected_service": null,
+    "detection_time": "2026-10-24T05:50:24.281040Z",
+    "observation_window": {
+      "start_time": "2026-10-24T05:45:24.281040Z",
+      "end_time": "2026-10-24T05:50:24.281040Z"
+    },
+    "recovery_condition": "not provided - diagnosis only (CP0-CP2, no remediation)"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-10-24T05:50:24.331113Z",
+      "status": "RECEIVED",
+      "description": "Incident received from manual-cli",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T05:50:24.331119Z",
+      "status": "INVESTIGATING",
+      "description": "Investigation started",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T05:50:26.163413Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 3 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T05:50:26.180701Z",
+      "status": "INVESTIGATING",
+      "description": "overview({'window_minutes': 5}) -> ok [ev-overview-784e18be]",
+      "metadata": {
+        "window_start": "2026-10-24T05:45:26.163922+00:00",
+        "window_end": "2026-10-24T05:50:26.163922+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:26.199824Z",
+      "status": "INVESTIGATING",
+      "description": "resource_overview({'window_minutes': 5}) -> ok [ev-resource_overview-2f2df154]",
+      "metadata": {
+        "window_start": "2026-10-24T05:45:26.180941+00:00",
+        "window_end": "2026-10-24T05:50:26.180941+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:26.356206Z",
+      "status": "INVESTIGATING",
+      "description": "container_state({'service': None}) -> ok [ev-container_state-826b40e4]",
+      "metadata": {
+        "window_start": "2026-10-24T05:50:26.200072+00:00",
+        "window_end": "2026-10-24T05:50:26.200072+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:29.019408Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 5 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T05:50:29.076589Z",
+      "status": "INVESTIGATING",
+      "description": "search_traces({'service': 'load-generator', 'window_minutes': 15, 'errors_only': True, 'limit': 10}) -> ok [ev-search_traces-a6f3746a]",
+      "metadata": {
+        "window_start": "2026-10-24T05:35:29.019729+00:00",
+        "window_end": "2026-10-24T05:50:29.019729+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:29.107155Z",
+      "status": "INVESTIGATING",
+      "description": "search_traces({'service': 'frontend', 'window_minutes': 15, 'errors_only': True, 'limit': 10}) -> empty [ev-search_traces-01a6fcce]",
+      "metadata": {
+        "window_start": "2026-10-24T05:35:29.076772+00:00",
+        "window_end": "2026-10-24T05:50:29.076772+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:31.902431Z",
+      "status": "INVESTIGATING",
+      "description": "query_logs({'service': 'ad', 'window_minutes': 10, 'min_severity': 'WARN', 'limit': 20}) -> ok [ev-query_logs-0e9838e2]",
+      "metadata": {
+        "window_start": "2026-10-24T05:40:29.107339+00:00",
+        "window_end": "2026-10-24T05:50:29.107339+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:31.956282Z",
+      "status": "INVESTIGATING",
+      "description": "query_logs({'service': 'accounting', 'window_minutes': 10, 'min_severity': 'WARN', 'limit': 20}) -> ok [ev-query_logs-a42a37f3]",
+      "metadata": {
+        "window_start": "2026-10-24T05:40:31.902896+00:00",
+        "window_end": "2026-10-24T05:50:31.902896+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:31.965508Z",
+      "status": "INVESTIGATING",
+      "description": "query_metrics({'service': 'frontend-proxy', 'metric': 'errors_by_operation', 'window_minutes': 5}) -> ok [ev-query_metrics-405cfba4]",
+      "metadata": {
+        "window_start": "2026-10-24T05:45:31.956582+00:00",
+        "window_end": "2026-10-24T05:50:31.956582+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:34.525036Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 3 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T05:50:34.549887Z",
+      "status": "INVESTIGATING",
+      "description": "service_health({'service': 'ad', 'window_minutes': 5}) -> ok [ev-service_health-76a2caed]",
+      "metadata": {
+        "window_start": "2026-10-24T05:45:34.525304+00:00",
+        "window_end": "2026-10-24T05:50:34.525304+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:34.591575Z",
+      "status": "INVESTIGATING",
+      "description": "search_traces({'service': 'ad', 'window_minutes': 15, 'errors_only': True, 'limit': 10}) -> ok [ev-search_traces-8d9980bf]",
+      "metadata": {
+        "window_start": "2026-10-24T05:35:34.550181+00:00",
+        "window_end": "2026-10-24T05:50:34.550181+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:34.603698Z",
+      "status": "INVESTIGATING",
+      "description": "service_health({'service': 'accounting', 'window_minutes': 5}) -> ok [ev-service_health-03fbc603]",
+      "metadata": {
+        "window_start": "2026-10-24T05:45:34.591799+00:00",
+        "window_end": "2026-10-24T05:50:34.591799+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:43.325155Z",
+      "status": "INVESTIGATING",
+      "description": "Finish deferred: unresolved resource anomalies ['kafka', 'opensearch', 'astronomy-db']",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T05:50:45.571669Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 3 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T05:50:45.595119Z",
+      "status": "INVESTIGATING",
+      "description": "service_health({'service': 'kafka', 'window_minutes': 5}) -> ok [ev-service_health-0cb68839]",
+      "metadata": {
+        "window_start": "2026-10-24T05:45:45.571924+00:00",
+        "window_end": "2026-10-24T05:50:45.571924+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:53.245560Z",
+      "status": "DIAGNOSED",
+      "description": "Diagnosis validated: load-generator",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T05:50:53.245600Z",
+      "status": "DIAGNOSED",
+      "description": "Finished: diagnosed; 6 model calls, 12 tool calls, 28.9s",
+      "metadata": {
+        "model_calls": 6,
+        "tool_calls": 12,
+        "tool_requests_rejected": 2,
+        "tokens": 66951,
+        "elapsed_s": 28.91,
+        "terminal_reason": "diagnosed",
+        "evidence_count": 12,
+        "rejected_diagnosis_errors": []
+      }
+    },
+    {
+      "timestamp": "2026-10-24T05:50:53.256485Z",
+      "status": "ESCALATED",
+      "description": "Remediation finished: ESCALATED (Diagnosis confidence is low; remediation not planned. Human review required.)",
+      "metadata": {}
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "ev-overview-784e18be",
+      "status": "ok",
+      "source": "prometheus",
+      "service": null,
+      "event_time_window": {
+        "start_time": "2026-10-24T05:45:26.163922Z",
+        "end_time": "2026-10-24T05:50:26.163922Z"
+      },
+      "collection_time": "2026-10-24T05:50:26.178927Z",
+      "tool": "overview",
+      "query": "{\"request_rate\": \"sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))\", \"error_rate\": \"(sum by (service_name) (rate(traces_span_metrics_calls_total{status_code=\\\"STATUS_CODE_ERROR\\\"}[5m])) or sum by (service_name) (rate(traces_span_metrics_calls_total[5m])) * 0) / sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))\", \"p95_ms\": \"histogram_quantile(0.95, sum by (le, service_name) (rate(traces_span_metrics_duration_milliseconds_bucket[5m])))\"}",
+      "observed_value": {
+        "value": {
+          "services": [
+            {
+              "service": "load-generator",
+              "request_rate": 1.072042,
+              "error_rate": 0.1107,
+              "p95_ms": 4355.55815
+            },
+            {
+              "service": "ad",
+              "request_rate": 0.345854,
+              "error_rate": 0.04902,
+              "p95_ms": 11.676732
+            },
+            {
+              "service": "accounting",
+              "request_rate": 0.081377,
+              "error_rate": 0.041667,
+              "p95_ms": 15000.0
+            },
+            {
+              "service": "frontend",
+              "request_rate": 14.569931,
+              "error_rate": 0.004654,
+              "p95_ms": 42.129983
+            },
+            {
+              "service": "frontend-web",
+              "request_rate": 5.937154,
+              "error_rate": 0.002856,
+              "p95_ms": 191.557435
+            },
+            {
+              "service": "frontend-proxy",
+              "request_rate": 13.705527,
+              "error_rate": 0.002474,
+              "p95_ms": 41.456559
+            },
+            {
+              "service": "fraud-detection",
+              "request_rate": 0.061033,
+              "error_rate": 0.0,
+              "p95_ms": 96.393808
+            },
+            {
+              "service": "checkout",
+              "request_rate": 0.298384,
+              "error_rate": 0.0,
+              "p95_ms": 47.182079
+            },
+            {
+              "service": "recommendation",
+              "request_rate": 1.234223,
+              "error_rate": 0.0,
+              "p95_ms": 38.657926
+            },
+            {
+              "service": "email",
+              "request_rate": 0.09494,
+              "error_rate": 0.0,
+              "p95_ms": 36.565941
+            },
+            {
+              "service": "product-catalog",
+              "request_rate": 4.97758,
+              "error_rate": 0.0,
+              "p95_ms": 36.160188
+            },
+            {
+              "service": "shipping",
+              "request_rate": 0.172927,
+              "error_rate": 0.0,
+              "p95_ms": 9.461416
+            },
+            {
+              "service": "payment",
+              "request_rate": 0.064424,
+              "error_rate": 0.0,
+              "p95_ms": 5.737276
+            },
+            {
+              "service": "cart",
+              "request_rate": 2.739703,
+              "error_rate": 0.0,
+              "p95_ms": 3.438794
+            },
+            {
+              "service": "quote",
+              "request_rate": 0.223788,
+              "error_rate": 0.0,
+              "p95_ms": 1.989694
+            },
+            {
+              "service": "image-provider",
+              "request_rate": 1.864897,
+              "error_rate": 0.0,
+              "p95_ms": 1.906937
+            },
+            {
+              "service": "currency",
+              "request_rate": 0.51539,
+              "error_rate": 0.0,
+              "p95_ms": 1.9
+            },
+            {
+              "service": "telemetry-docs",
+              "request_rate": 0.122066,
+              "error_rate": 0.0,
+              "p95_ms": 1.9
+            }
+          ],
+          "units": {
+            "request_rate": "req/s",
+            "error_rate": "ratio 0-1",
+            "p95_ms": "ms"
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-overview-784e18be.json"
+    },
+    {
+      "evidence_id": "ev-resource_overview-2f2df154",
+      "status": "ok",
+      "source": "prometheus",
+      "service": null,
+      "event_time_window": {
+        "start_time": "2026-10-24T05:45:26.180941Z",
+        "end_time": "2026-10-24T05:50:26.180941Z"
+      },
+      "collection_time": "2026-10-24T05:50:26.198992Z",
+      "tool": "resource_overview",
+      "query": "cpu: container_cpu_utilization_ratio; cpu_prior: avg_over_time(container_cpu_utilization_ratio[5m] offset 10m); mem: container_memory_percent_ratio; mem_growth: deriv(container_memory_usage_total_bytes[5m]) * 300 / container_memory_usage_total_bytes; uptime: container_uptime_seconds; last_seen_age: time() - max_over_time(timestamp(container_uptime_seconds)[60m:30s])",
+      "observed_value": {
+        "value": {
+          "fleet": {
+            "cpu_median_pct": 0.01757625045195287,
+            "uptime_median_s": 172.26835882950002,
+            "containers": 22
+          },
+          "flagged": [
+            {
+              "container": "kafka",
+              "reasons": [
+                "memory 86% of limit"
+              ],
+              "severity": 3
+            },
+            {
+              "container": "opensearch",
+              "reasons": [
+                "memory 86% of limit"
+              ],
+              "severity": 3
+            },
+            {
+              "container": "ad",
+              "reasons": [
+                "memory grew 50% over the window"
+              ],
+              "severity": 2
+            },
+            {
+              "container": "astronomy-db",
+              "reasons": [
+                "memory grew 21% over the window"
+              ],
+              "severity": 2
+            }
+          ],
+          "flagged_total": 16,
+          "restart_clusters": [],
+          "telemetry_silence": null,
+          "note": "Flags are anomalies to investigate, not proven causes. High CPU may be effect or load; clustered restarts may be a cause, a side effect or environmental.",
+          "containers": [
+            {
+              "container": "ad",
+              "cpu_pct": 0.0908365116347776,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 75.08463541666667,
+              "memory_growth_frac": 0.503663316190664,
+              "uptime_s": 172.281815371
+            },
+            {
+              "container": "astronomy-db",
+              "cpu_pct": 0.0174320431234536,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 74.0576171875,
+              "memory_growth_frac": 0.21473931271885366,
+              "uptime_s": 188.279154629
+            },
+            {
+              "container": "checkout",
+              "cpu_pct": 0.009881020330184063,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 64.8828125,
+              "memory_growth_frac": 0.07401417115101518,
+              "uptime_s": 165.670161451
+            },
+            {
+              "container": "currency",
+              "cpu_pct": 0.005503419364336345,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 22.20703125,
+              "memory_growth_frac": 0.07444467037257471,
+              "uptime_s": 172.242184455
+            },
+            {
+              "container": "email",
+              "cpu_pct": 0.021054628375169113,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 55.13671875,
+              "memory_growth_frac": 0.3538960382732957,
+              "uptime_s": 172.249493621
+            },
+            {
+              "container": "frontend",
+              "cpu_pct": 0.0513371622268252,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 41.15,
+              "memory_growth_frac": 0.9615509943296527,
+              "uptime_s": 160.492979797
+            },
+            {
+              "container": "frontend-proxy",
+              "cpu_pct": 0.01704946797402884,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 39.28819444444444,
+              "memory_growth_frac": 0.711634316038827,
+              "uptime_s": 154.19160521
+            },
+            {
+              "container": "grafana",
+              "cpu_pct": 0.09258103941898058,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 84.82109375,
+              "memory_growth_frac": 0.2903230735988343,
+              "uptime_s": 188.318230004
+            },
+            {
+              "container": "image-provider",
+              "cpu_pct": 0.004335387266817712,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 4.505208333333333,
+              "memory_growth_frac": 0.20636221769778482,
+              "uptime_s": 172.254902288
+            },
+            {
+              "container": "jaeger",
+              "cpu_pct": 0.006269113179190768,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 5.722005208333333,
+              "memory_growth_frac": 1.3355166049836682,
+              "uptime_s": 188.286587629
+            },
+            {
+              "container": "kafka",
+              "cpu_pct": 0.19119578680016164,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 85.5367943548387,
+              "memory_growth_frac": -0.06828561941373745,
+              "uptime_s": 188.324376754
+            },
+            {
+              "container": "load-generator",
+              "cpu_pct": 0.4354921043906694,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 34.791666666666664,
+              "memory_growth_frac": 1.1629687499771064,
+              "uptime_s": 154.817634877
+            },
+            {
+              "container": "opamp-server",
+              "cpu_pct": 0.0030823166902485743,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 22.506009615384613,
+              "memory_growth_frac": 0.6633300420520752,
+              "uptime_s": 188.326105587
+            },
+            {
+              "container": "opensearch",
+              "cpu_pct": 0.2925692871131552,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 85.63613891601562,
+              "memory_growth_frac": 0.03936191175808445,
+              "uptime_s": 188.294043254
+            },
+            {
+              "container": "otel-collector",
+              "cpu_pct": 0.052044635483400326,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 35.4794921875,
+              "memory_growth_frac": 0.3623576526674267,
+              "uptime_s": 172.43111433
+            },
+            {
+              "container": "payment",
+              "cpu_pct": 0.09748064624577998,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 41.166294642857146,
+              "memory_growth_frac": -0.002494345397872019,
+              "uptime_s": 172.240415705
+            },
+            {
+              "container": "prometheus",
+              "cpu_pct": 0.01772045778045214,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 63.841796875,
+              "memory_growth_frac": -0.601143252923606,
+              "uptime_s": 188.274029754
+            },
+            {
+              "container": "quote",
+              "cpu_pct": 0.006373463823774272,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 42.626953125,
+              "memory_growth_frac": 0.23293821296902098,
+              "uptime_s": 172.244782621
+            },
+            {
+              "container": "recommendation",
+              "cpu_pct": 0.07060671938166163,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 38.13515625,
+              "memory_growth_frac": 0.6268824493512247,
+              "uptime_s": 171.186148287
+            },
+            {
+              "container": "shipping",
+              "cpu_pct": 0.003936949872272873,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 29.9609375,
+              "memory_growth_frac": 0.6360448063175053,
+              "uptime_s": 172.239308538
+            },
+            {
+              "container": "telemetry-docs",
+              "cpu_pct": 0.004507351524892585,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 5.28125,
+              "memory_growth_frac": 0.012296849693808716,
+              "uptime_s": 188.323333587
+            },
+            {
+              "container": "valkey-cart",
+              "cpu_pct": 0.004407872695379341,
+              "cpu_prior_window_pct": null,
+              "memory_pct": 59.00390625000001,
+              "memory_growth_frac": 0.05036953820261313,
+              "uptime_s": 188.275276837
+            }
+          ],
+          "baseline_note": "no prior-window CPU data available; CPU judged against the fleet median only"
+        },
+        "excerpt": "kafka: memory 86% of limit; opensearch: memory 86% of limit; ad: memory grew 50% over the window; astronomy-db: memory grew 21% over the window",
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-resource_overview-2f2df154.json"
+    },
+    {
+      "evidence_id": "ev-container_state-826b40e4",
+      "status": "ok",
+      "source": "health",
+      "service": null,
+      "event_time_window": {
+        "start_time": "2026-10-24T05:50:26.200072Z",
+        "end_time": "2026-10-24T05:50:26.200072Z"
+      },
+      "collection_time": "2026-10-24T05:50:26.355588Z",
+      "tool": "container_state",
+      "query": "GET /v1/services",
+      "observed_value": {
+        "value": {
+          "services": [
+            {
+              "service": "accounting",
+              "state": "running",
+              "health": "none",
+              "restart_count": 0,
+              "uptime_s": 182
+            },
+            {
+              "service": "ad",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 183
+            },
+            {
+              "service": "astronomy-db",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 199
+            },
+            {
+              "service": "cart",
+              "state": "running",
+              "health": "none",
+              "restart_count": 0,
+              "uptime_s": 182
+            },
+            {
+              "service": "checkout",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 176
+            },
+            {
+              "service": "currency",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 183
+            },
+            {
+              "service": "email",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 183
+            },
+            {
+              "service": "fraud-detection",
+              "state": "running",
+              "health": "none",
+              "restart_count": 0,
+              "uptime_s": 182
+            },
+            {
+              "service": "frontend",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 171
+            },
+            {
+              "service": "frontend-proxy",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 165
+            },
+            {
+              "service": "image-provider",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 183
+            },
+            {
+              "service": "kafka",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 199
+            },
+            {
+              "service": "load-generator",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 165
+            },
+            {
+              "service": "otel-collector",
+              "state": "running",
+              "health": "none",
+              "restart_count": 0,
+              "uptime_s": 183
+            },
+            {
+              "service": "payment",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 183
+            },
+            {
+              "service": "product-catalog",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 182
+            },
+            {
+              "service": "quote",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 183
+            },
+            {
+              "service": "recommendation",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 182
+            },
+            {
+              "service": "shipping",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 183
+            },
+            {
+              "service": "valkey-cart",
+              "state": "running",
+              "health": "healthy",
+              "restart_count": 0,
+              "uptime_s": 199
+            }
+          ],
+          "source": "docker inspect (read-only)",
+          "load_generator": {
+            "available": true,
+            "state": "running",
+            "user_count": 5,
+            "total_rps": 1.125,
+            "fail_ratio": 0.1913,
+            "detail": ""
+          }
+        },
+        "excerpt": null,
+        "message": "all listed containers running"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-container_state-826b40e4.json"
+    },
+    {
+      "evidence_id": "ev-search_traces-a6f3746a",
+      "status": "ok",
+      "source": "jaeger",
+      "service": "load-generator",
+      "event_time_window": {
+        "start_time": "2026-10-24T05:35:29.019729Z",
+        "end_time": "2026-10-24T05:50:29.019729Z"
+      },
+      "collection_time": "2026-10-24T05:50:29.068797Z",
+      "tool": "search_traces",
+      "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"load-generator\", \"query.num_traces\": 40, \"query.start_time_min\": \"2026-10-24T05:35:29Z\", \"query.start_time_max\": \"2026-10-24T05:50:29Z\"}",
+      "observed_value": {
+        "value": {
+          "traces_scanned": 40,
+          "error_origin_counts": {
+            "load-generator": 2
+          },
+          "edges": {
+            "load-generator -> frontend-proxy": 35,
+            "frontend-proxy -> frontend": 32,
+            "frontend -> product-catalog": 26,
+            "frontend -> cart": 14,
+            "checkout -> shipping": 6,
+            "checkout -> currency": 6,
+            "checkout -> cart": 6,
+            "shipping -> quote": 3,
+            "checkout -> product-catalog": 3,
+            "frontend -> checkout": 3,
+            "checkout -> email": 3,
+            "checkout -> payment": 3,
+            "frontend -> ad": 2,
+            "recommendation -> product-catalog": 2,
+            "frontend -> recommendation": 2
+          },
+          "traces": [
+            {
+              "trace_id": "336abcaa820b9817e4829bb87541bb2c",
+              "root": "load-generator: user_ask_agent",
+              "duration_ms": 4008.9,
+              "services": [
+                "load-generator"
+              ],
+              "error_spans": [
+                {
+                  "service": "load-generator",
+                  "name": "POST",
+                  "error_message": "ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -5] No address associated with hostname)\"))",
+                  "duration_ms": 4006.6,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.url": "http://agent:8010/prompt"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "load-generator",
+                "operation": "POST",
+                "error_message": "ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -5] No address associated with hostname)\"))",
+                "span_id": "b2f06d0278c974ce"
+              }
+            },
+            {
+              "trace_id": "a84be8f5e124993f31d665dc70dd7f84",
+              "root": "load-generator: user_ask_agent",
+              "duration_ms": 4011.1,
+              "services": [
+                "load-generator"
+              ],
+              "error_spans": [
+                {
+                  "service": "load-generator",
+                  "name": "POST",
+                  "error_message": "ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -5] No address associated with hostname)\"))",
+                  "duration_ms": 4009.8,
+                  "attributes": {
+                    "http.method": "POST",
+                    "http.url": "http://agent:8010/prompt"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "load-generator",
+                "operation": "POST",
+                "error_message": "ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -5] No address associated with hostname)\"))",
+                "span_id": "2fa78813d62e3839"
+              }
+            }
+          ]
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [
+        "336abcaa820b9817e4829bb87541bb2c",
+        "a84be8f5e124993f31d665dc70dd7f84"
+      ],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-search_traces-a6f3746a.json"
+    },
+    {
+      "evidence_id": "ev-search_traces-01a6fcce",
+      "status": "empty",
+      "source": "jaeger",
+      "service": "frontend",
+      "event_time_window": {
+        "start_time": "2026-10-24T05:35:29.076772Z",
+        "end_time": "2026-10-24T05:50:29.076772Z"
+      },
+      "collection_time": "2026-10-24T05:50:29.097732Z",
+      "tool": "search_traces",
+      "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"frontend\", \"query.num_traces\": 40, \"query.start_time_min\": \"2026-10-24T05:35:29Z\", \"query.start_time_max\": \"2026-10-24T05:50:29Z\"}",
+      "observed_value": {
+        "value": {
+          "traces_scanned": 40,
+          "edges": {
+            "frontend-proxy -> frontend": 43,
+            "frontend -> shipping": 1,
+            "frontend -> currency": 2,
+            "shipping -> quote": 2,
+            "frontend-web -> frontend-proxy": 11,
+            "recommendation -> product-catalog": 3,
+            "frontend -> product-catalog": 19,
+            "frontend -> recommendation": 3,
+            "frontend -> cart": 9,
+            "frontend -> ad": 2,
+            "load-generator -> frontend-proxy": 5,
+            "checkout -> shipping": 2,
+            "checkout -> currency": 2,
+            "checkout -> product-catalog": 1,
+            "frontend -> checkout": 1,
+            "checkout -> email": 1,
+            "checkout -> cart": 2,
+            "checkout -> payment": 1
+          }
+        },
+        "excerpt": null,
+        "message": "traces found but none with errors in window"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-search_traces-01a6fcce.json"
+    },
+    {
+      "evidence_id": "ev-query_logs-0e9838e2",
+      "status": "ok",
+      "source": "opensearch",
+      "service": "ad",
+      "event_time_window": {
+        "start_time": "2026-10-24T05:40:29.107339Z",
+        "end_time": "2026-10-24T05:50:29.107339Z"
+      },
+      "collection_time": "2026-10-24T05:50:31.900732Z",
+      "tool": "query_logs",
+      "query": "source=otel-logs-* | where resource.service.name = 'ad' and `@timestamp` >= '2026-10-24 05:40:29' and `severity.number` >= 13 | sort - `@timestamp` | head 40 | fields `@timestamp`, severity, body, traceId, _id",
+      "observed_value": {
+        "value": {
+          "min_severity": "WARN",
+          "count": 5,
+          "lines": [
+            {
+              "time": "2026-10-24 05:50:19.435455799",
+              "severity": "WARN",
+              "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+              "trace_id": "885edd1a17d36af6aebf2ae78102fbcc",
+              "log_id": "qqh1bKEBTapvhM3uxy0A"
+            },
+            {
+              "time": "2026-10-24 05:49:20.6933348",
+              "severity": "WARN",
+              "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+              "trace_id": "ebcef62f2a4716edac540ea45f18f302",
+              "log_id": "jqh0bKEBTapvhM3u4CVh"
+            },
+            {
+              "time": "2026-10-24 05:49:19.679416424",
+              "severity": "WARN",
+              "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+              "trace_id": "8955dc118d731807bf9a405bdceae181",
+              "log_id": "Yqh0bKEBTapvhM3u3CUV"
+            },
+            {
+              "time": "2026-10-24 05:48:11.157749212",
+              "severity": "WARN",
+              "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+              "trace_id": "4afaea5ee0b9e2a32bc9016c769f702a",
+              "log_id": "_6hzbKEBTapvhM3u0hyc"
+            },
+            {
+              "time": "2026-10-24 05:48:00.247097013",
+              "severity": "WARN",
+              "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+              "trace_id": "238ab299614ca220061c276a94437c87",
+              "log_id": "9KhzbKEBTapvhM3upxt5"
+            }
+          ]
+        },
+        "excerpt": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [
+        "238ab299614ca220061c276a94437c87",
+        "4afaea5ee0b9e2a32bc9016c769f702a",
+        "885edd1a17d36af6aebf2ae78102fbcc",
+        "8955dc118d731807bf9a405bdceae181",
+        "ebcef62f2a4716edac540ea45f18f302"
+      ],
+      "log_ids": [
+        "qqh1bKEBTapvhM3uxy0A",
+        "jqh0bKEBTapvhM3u4CVh",
+        "Yqh0bKEBTapvhM3u3CUV",
+        "_6hzbKEBTapvhM3u0hyc",
+        "9KhzbKEBTapvhM3upxt5"
+      ],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_logs-0e9838e2.json"
+    },
+    {
+      "evidence_id": "ev-query_logs-a42a37f3",
+      "status": "ok",
+      "source": "opensearch",
+      "service": "accounting",
+      "event_time_window": {
+        "start_time": "2026-10-24T05:40:31.902896Z",
+        "end_time": "2026-10-24T05:50:31.902896Z"
+      },
+      "collection_time": "2026-10-24T05:50:31.955440Z",
+      "tool": "query_logs",
+      "query": "source=otel-logs-* | where resource.service.name = 'accounting' and `@timestamp` >= '2026-10-24 05:40:31' and `severity.number` >= 13 | sort - `@timestamp` | head 40 | fields `@timestamp`, severity, body, traceId, _id",
+      "observed_value": {
+        "value": {
+          "min_severity": "WARN",
+          "count": 1,
+          "lines": [
+            {
+              "time": "2026-10-24 05:47:27.9800345",
+              "severity": "Error",
+              "body": "Consume error: {reason}",
+              "trace_id": "",
+              "log_id": "bKhzbKEBTapvhM3uNBoi"
+            }
+          ]
+        },
+        "excerpt": "Consume error: {reason}",
+        "message": null
+      },
+      "trace_or_log_id": "bKhzbKEBTapvhM3uNBoi",
+      "trace_ids": [],
+      "log_ids": [
+        "bKhzbKEBTapvhM3uNBoi"
+      ],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_logs-a42a37f3.json"
+    },
+    {
+      "evidence_id": "ev-query_metrics-405cfba4",
+      "status": "ok",
+      "source": "prometheus",
+      "service": "frontend-proxy",
+      "event_time_window": {
+        "start_time": "2026-10-24T05:45:31.956582Z",
+        "end_time": "2026-10-24T05:50:31.956582Z"
+      },
+      "collection_time": "2026-10-24T05:50:31.964827Z",
+      "tool": "query_metrics",
+      "query": "topk(10, sum by (span_name) (rate(traces_span_metrics_calls_total{service_name=\"frontend-proxy\",status_code=\"STATUS_CODE_ERROR\"}[5m])))",
+      "observed_value": {
+        "value": {
+          "metric": "errors_by_operation",
+          "unit": "errors/s",
+          "series": [
+            {
+              "span_name": "router frontend egress",
+              "value": 0.017758
+            },
+            {
+              "span_name": "GET",
+              "value": 0.017758
+            }
+          ]
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_metrics-405cfba4.json"
+    },
+    {
+      "evidence_id": "ev-service_health-76a2caed",
+      "status": "ok",
+      "source": "derived",
+      "service": "ad",
+      "event_time_window": {
+        "start_time": "2026-10-24T05:45:34.525304Z",
+        "end_time": "2026-10-24T05:50:34.525304Z"
+      },
+      "collection_time": "2026-10-24T05:50:34.549441Z",
+      "tool": "service_health",
+      "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+      "observed_value": {
+        "value": {
+          "summary": {
+            "request_rate": 0.369543,
+            "error_rate": 0.04902,
+            "p95_latency_ms": 11.245162,
+            "container_cpu": [
+              {
+                "__name__": "container_cpu_utilization_ratio",
+                "value": 0.091309
+              }
+            ],
+            "container_memory": [
+              {
+                "__name__": "container_memory_percent_ratio",
+                "value": 75.151042
+              },
+              {
+                "__name__": "container_memory_usage_total_bytes",
+                "value": 236404736.0
+              }
+            ],
+            "container_memory_trend": 360114.46824,
+            "container_uptime": 182.282582,
+            "container_last_seen_age_s": 8.521,
+            "recently_restarted": true,
+            "stopped_reporting": false
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-service_health-76a2caed.json"
+    },
+    {
+      "evidence_id": "ev-search_traces-8d9980bf",
+      "status": "ok",
+      "source": "jaeger",
+      "service": "ad",
+      "event_time_window": {
+        "start_time": "2026-10-24T05:35:34.550181Z",
+        "end_time": "2026-10-24T05:50:34.550181Z"
+      },
+      "collection_time": "2026-10-24T05:50:34.584691Z",
+      "tool": "search_traces",
+      "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"ad\", \"query.num_traces\": 40, \"query.start_time_min\": \"2026-10-24T05:35:34Z\", \"query.start_time_max\": \"2026-10-24T05:50:34Z\"}",
+      "observed_value": {
+        "value": {
+          "traces_scanned": 40,
+          "error_origin_counts": {
+            "ad": 3
+          },
+          "edges": {
+            "frontend-proxy -> frontend": 29,
+            "frontend -> ad": 27,
+            "frontend-web -> frontend-proxy": 26,
+            "load-generator -> frontend-proxy": 4
+          },
+          "traces": [
+            {
+              "trace_id": "885edd1a17d36af6aebf2ae78102fbcc",
+              "root": "frontend-web: GET",
+              "duration_ms": 21.0,
+              "services": [
+                "ad",
+                "frontend",
+                "frontend-proxy",
+                "frontend-web"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 9.7,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "GET",
+                  "error_message": null,
+                  "duration_ms": 9.8,
+                  "attributes": {
+                    "http.method": "GET",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/data?contextKeys=binoculars",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "frontend-web",
+                  "name": "GET",
+                  "error_message": null,
+                  "duration_ms": 21.0,
+                  "attributes": {
+                    "error.type": "500",
+                    "http.request.method": "GET",
+                    "http.response.status_code": "500",
+                    "server.address": "frontend-proxy",
+                    "server.port": "8080",
+                    "url.full": "http://frontend-proxy:8080/api/data?contextKeys=binoculars"
+                  }
+                },
+                {
+                  "service": "ad",
+                  "name": "oteldemo.AdService/GetAds",
+                  "error_message": null,
+                  "duration_ms": 5.0,
+                  "attributes": {
+                    "network.peer.address": "172.22.0.27",
+                    "network.peer.port": "48254",
+                    "network.type": "ipv4",
+                    "rpc.grpc.status_code": "14",
+                    "rpc.method": "GetAds",
+                    "rpc.service": "oteldemo.AdService",
+                    "rpc.system": "grpc",
+                    "server.address": "ad",
+                    "server.port": "9555"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "ad",
+                "operation": "oteldemo.AdService/GetAds",
+                "error_message": null,
+                "span_id": "3fa4aa3de491f16b"
+              }
+            },
+            {
+              "trace_id": "ebcef62f2a4716edac540ea45f18f302",
+              "root": "frontend-web: GET",
+              "duration_ms": 10.0,
+              "services": [
+                "ad",
+                "frontend",
+                "frontend-proxy",
+                "frontend-web"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 5.3,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-web",
+                  "name": "GET",
+                  "error_message": null,
+                  "duration_ms": 10.0,
+                  "attributes": {
+                    "error.type": "500",
+                    "http.request.method": "GET",
+                    "http.response.status_code": "500",
+                    "server.address": "frontend-proxy",
+                    "server.port": "8080",
+                    "url.full": "http://frontend-proxy:8080/api/data?contextKeys=binoculars"
+                  }
+                },
+                {
+                  "service": "ad",
+                  "name": "oteldemo.AdService/GetAds",
+                  "error_message": null,
+                  "duration_ms": 2.0,
+                  "attributes": {
+                    "network.peer.address": "172.22.0.27",
+                    "network.peer.port": "48254",
+                    "network.type": "ipv4",
+                    "rpc.grpc.status_code": "14",
+                    "rpc.method": "GetAds",
+                    "rpc.service": "oteldemo.AdService",
+                    "rpc.system": "grpc",
+                    "server.address": "ad",
+                    "server.port": "9555"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "GET",
+                  "error_message": null,
+                  "duration_ms": 5.5,
+                  "attributes": {
+                    "http.method": "GET",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/data?contextKeys=binoculars",
+                    "peer.address": "172.22.0.28"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "ad",
+                "operation": "oteldemo.AdService/GetAds",
+                "error_message": null,
+                "span_id": "125d8bd8736ea87b"
+              }
+            },
+            {
+              "trace_id": "8955dc118d731807bf9a405bdceae181",
+              "root": "frontend-web: GET",
+              "duration_ms": 13.0,
+              "services": [
+                "ad",
+                "frontend",
+                "frontend-proxy",
+                "frontend-web"
+              ],
+              "error_spans": [
+                {
+                  "service": "frontend-proxy",
+                  "name": "router frontend egress",
+                  "error_message": null,
+                  "duration_ms": 7.9,
+                  "attributes": {
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "peer.address": "172.22.0.27:8080"
+                  }
+                },
+                {
+                  "service": "frontend-proxy",
+                  "name": "GET",
+                  "error_message": null,
+                  "duration_ms": 8.0,
+                  "attributes": {
+                    "http.method": "GET",
+                    "http.protocol": "HTTP/1.1",
+                    "http.status_code": "500",
+                    "http.url": "http://frontend-proxy:8080/api/data?contextKeys=binoculars",
+                    "peer.address": "172.22.0.28"
+                  }
+                },
+                {
+                  "service": "frontend-web",
+                  "name": "GET",
+                  "error_message": null,
+                  "duration_ms": 13.0,
+                  "attributes": {
+                    "error.type": "500",
+                    "http.request.method": "GET",
+                    "http.response.status_code": "500",
+                    "server.address": "frontend-proxy",
+                    "server.port": "8080",
+                    "url.full": "http://frontend-proxy:8080/api/data?contextKeys=binoculars"
+                  }
+                },
+                {
+                  "service": "ad",
+                  "name": "oteldemo.AdService/GetAds",
+                  "error_message": null,
+                  "duration_ms": 2.0,
+                  "attributes": {
+                    "network.peer.address": "172.22.0.27",
+                    "network.peer.port": "48254",
+                    "network.type": "ipv4",
+                    "rpc.grpc.status_code": "14",
+                    "rpc.method": "GetAds",
+                    "rpc.service": "oteldemo.AdService",
+                    "rpc.system": "grpc",
+                    "server.address": "ad",
+                    "server.port": "9555"
+                  }
+                }
+              ],
+              "suspected_origin": {
+                "service": "ad",
+                "operation": "oteldemo.AdService/GetAds",
+                "error_message": null,
+                "span_id": "81fb9d03997df1f0"
+              }
+            }
+          ]
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [
+        "885edd1a17d36af6aebf2ae78102fbcc",
+        "ebcef62f2a4716edac540ea45f18f302",
+        "8955dc118d731807bf9a405bdceae181"
+      ],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-search_traces-8d9980bf.json"
+    },
+    {
+      "evidence_id": "ev-service_health-03fbc603",
+      "status": "ok",
+      "source": "derived",
+      "service": "accounting",
+      "event_time_window": {
+        "start_time": "2026-10-24T05:45:34.591799Z",
+        "end_time": "2026-10-24T05:50:34.591799Z"
+      },
+      "collection_time": "2026-10-24T05:50:34.603428Z",
+      "tool": "service_health",
+      "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+      "observed_value": {
+        "value": {
+          "summary": {
+            "request_rate": 0.086995,
+            "error_rate": 0.041667,
+            "p95_latency_ms": 15000.0,
+            "container_cpu": "empty",
+            "container_memory": "empty",
+            "container_memory_trend": "empty",
+            "container_uptime": "empty",
+            "container_last_seen_age_s": "empty"
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-service_health-03fbc603.json"
+    },
+    {
+      "evidence_id": "ev-service_health-0cb68839",
+      "status": "ok",
+      "source": "derived",
+      "service": "kafka",
+      "event_time_window": {
+        "start_time": "2026-10-24T05:45:45.571924Z",
+        "end_time": "2026-10-24T05:50:45.571924Z"
+      },
+      "collection_time": "2026-10-24T05:50:45.594549Z",
+      "tool": "service_health",
+      "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+      "observed_value": {
+        "value": {
+          "summary": {
+            "request_rate": "empty",
+            "error_rate": "empty",
+            "p95_latency_ms": "empty",
+            "container_cpu": [
+              {
+                "__name__": "container_cpu_utilization_ratio",
+                "value": 0.195537
+              }
+            ],
+            "container_memory": [
+              {
+                "__name__": "container_memory_percent_ratio",
+                "value": 85.693044
+              },
+              {
+                "__name__": "container_memory_usage_total_bytes",
+                "value": 557105152.0
+              }
+            ],
+            "container_memory_trend": -134389.611374,
+            "container_uptime": 208.32413,
+            "container_last_seen_age_s": 19.566,
+            "recently_restarted": true,
+            "stopped_reporting": false
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-service_health-0cb68839.json"
+    }
+  ],
+  "diagnosis": {
+    "suspected_component": "load-generator",
+    "suspected_cause": "The most likely cause of the load-generator failures is its \"user_ask_agent\" task. It POSTs to http://agent:8010/prompt, and the hostname \"agent\" does not resolve (NameResolutionError). Each call fails after about 4s. This looks like a missing or misconfigured \"agent\" dependency or load-generator target. A smaller, separate fault is the ad service's intermittent gRPC UNAVAILABLE on GetAds (~5% errors), which shows up as HTTP 500s on /api/data through frontend-proxy and frontend-web.",
+    "supporting_evidence_ids": [
+      "ev-search_traces-a6f3746a",
+      "ev-overview-784e18be",
+      "ev-container_state-826b40e4",
+      "ev-search_traces-8d9980bf",
+      "ev-query_logs-0e9838e2",
+      "ev-service_health-76a2caed",
+      "ev-query_metrics-405cfba4"
+    ],
+    "conflicting_evidence_ids": [
+      "ev-search_traces-01a6fcce",
+      "ev-service_health-03fbc603",
+      "ev-query_logs-a42a37f3",
+      "ev-resource_overview-2f2df154",
+      "ev-service_health-0cb68839"
+    ],
+    "alternatives": [
+      "The ad service's UNAVAILABLE errors as the main cause. This seems less likely, because they are only ~5% of ad traffic and show up as small error rates at frontend and frontend-proxy.",
+      "Kafka memory pressure causing the accounting consume errors. Kafka's memory trend is flat to falling, and this is unproven.",
+      "Opensearch or astronomy-db resource problems. I couldn't follow up on either, so this is unchecked."
+    ],
+    "uncertainty": "Only 2 of 40 sampled traces showed the agent DNS failure, so I haven't shown it accounts for the full ~20% fail ratio. Part of the rest is probably the ad errors. Every container started about 3 minutes ago, so I have no pre-restart baseline. The ad memory growth of 50% is probably warm-up. Kafka sits at ~86% of its memory limit with a flat-to-falling trend. It showed no request or error metrics, and its CPU is low. I treat it as probably unrelated, but I can't rule out a link to the accounting Kafka \"Consume error\". For opensearch and astronomy-db, my follow-up calls failed because the tool budget ran out. I only have their resource_overview flags (opensearch 86% memory, astronomy-db memory growth of 21%). I did not check either one, so they remain unverified and are not ruled out. The accounting service reports no container metrics, so I couldn't check its resources. Its 15s p95 and 4% errors are unexplained, apart from one Consume error log. The data is live, not from the historical incident window. [Unresolved resource anomaly without follow-up evidence: opensearch, astronomy-db.]",
+    "confidence_label": "low",
+    "next_step": "Confirm whether an \"agent\" service is meant to be deployed and why DNS for host \"agent\" fails. Check the load-generator config for its agent endpoint. Then investigate why ad's GetAds returns UNAVAILABLE. Check opensearch and astronomy-db health, and the accounting-to-Kafka consume error."
+  },
+  "proposals": [],
+  "approval": null,
+  "verification": null,
+  "limitations": [
+    "No recovery condition supplied; recovery is out of scope for CP0-CP2.",
+    "Resource anomalies flagged but not followed up with evidence: opensearch, astronomy-db",
+    "Confidence labels are model-reported and not calibrated; no evaluation was run.",
+    "Telemetry tools are live-only; queried windows are recorded per evidence item.",
+    "1 evidence item(s) were queried outside the incident observation window: ev-container_state-826b40e4",
+    "Diagnosis confidence is low; remediation not planned. Human review required."
+  ],
+  "remediation_outcome": "ESCALATED",
+  "execution_mode": "dry_run",
+  "escalation_reason": "Diagnosis confidence is low; remediation not planned. Human review required."
+}

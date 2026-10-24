@@ -1,0 +1,20 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_logs-a28c4a04",
+    "tool": "query_logs",
+    "source": "opensearch",
+    "service": "frontend",
+    "query": "source=otel-logs-* | where resource.service.name = 'frontend' and `@timestamp` >= '2026-10-24 03:54:41' and `severity.number` >= 13 | sort - `@timestamp` | head 40 | fields `@timestamp`, severity, body, traceId, _id",
+    "window_start": "2026-10-24T03:54:41.826749Z",
+    "window_end": "2026-10-24T04:54:41.826749Z",
+    "collected_at": "2026-10-24T04:54:42.152754Z",
+    "value": null,
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-query_logs-a28c4a04.json",
+    "message": "no WARN+ logs in window"
+  },
+  "raw": "{\"schema\": [{\"name\": \"@timestamp\", \"type\": \"timestamp\"}, {\"name\": \"severity\", \"type\": \"struct\"}, {\"name\": \"body\", \"type\": \"string\"}, {\"name\": \"traceId\", \"type\": \"string\"}, {\"name\": \"_id\", \"type\": \"string\"}], \"datarows\": [], \"total\": 0, \"size\": 0}"
+}

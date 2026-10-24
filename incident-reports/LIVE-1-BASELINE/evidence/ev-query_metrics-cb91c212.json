@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-cb91c212",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "accounting",
+    "query": "{__name__=~\"container_cpu_utilization.*\",container_name=\"accounting\"}",
+    "window_start": "2026-10-24T05:45:34.595740Z",
+    "window_end": "2026-10-24T05:50:34.595740Z",
+    "collected_at": "2026-10-24T05:50:34.598213Z",
+    "value": {
+      "metric": "container_cpu",
+      "unit": "ratio/percent"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_metrics-cb91c212.json",
+    "message": "no data in window (no traffic, no errors recorded, or metric not exported)"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}"
+}

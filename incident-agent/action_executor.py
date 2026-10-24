@@ -101,3 +101,47 @@ class DockerExecutor:
                                duration_s=round(time.monotonic() - started, 2),
                                detail="container restarted and running" if ok else
                                f"restart returned {p.returncode}; container status {after!r}")
+
+
+# Read-only state view: restartable targets plus infrastructure whose health explains incidents. Flag services are
+# deliberately absent (flag state is out of bounds); nothing here changes the system.
+STATE_SERVICES = sorted((APP_SERVICES | OPTIONAL_TARGETS | {"load-generator", "otel-collector"}) - {"flagd", "flagd-ui"})
+
+
+class ContainerInspector:
+    """`docker inspect` only. One call for all containers; missing containers are reported as 'absent'."""
+
+    FORMAT = ('{{.Name}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|'
+              '{{.RestartCount}}|{{.State.StartedAt}}|{{index .Config.Labels "com.docker.compose.service"}}|'
+              '{{index .Config.Labels "com.docker.compose.project"}}')
+
+    def __init__(self, project: str, run: Callable[..., Any] = subprocess.run, docker: str | None = None) -> None:
+        self.project, self.run = project, run
+        self.docker = docker or shutil.which("docker")
+
+    def __call__(self, names: list[str]) -> list[dict[str, Any]]:
+        from datetime import datetime, timezone
+
+        if not self.docker:
+            raise RuntimeError("docker CLI not available")
+        p = self.run([self.docker, "inspect", "--format", self.FORMAT, *names], capture_output=True, text=True, timeout=15)
+        seen: dict[str, dict[str, Any]] = {}
+        now = datetime.now(timezone.utc)
+        for line in (p.stdout or "").splitlines():
+            parts = line.strip().split("|")
+            if len(parts) != 7:
+                continue
+            name, status, health, restarts, started, service, project = parts
+            name = name.lstrip("/")
+            if name not in names:
+                continue
+            if service != name or project != self.project:
+                seen[name] = {"service": name, "state": "identity_mismatch"}
+                continue
+            try:
+                uptime = round((now - datetime.fromisoformat(started[:19] + "+00:00")).total_seconds())
+            except ValueError:
+                uptime = None
+            seen[name] = {"service": name, "state": status, "health": health, "restart_count": int(restarts or 0),
+                          "started_at": started[:19] + "Z", "uptime_s": uptime if status == "running" else None}
+        return [seen.get(n, {"service": n, "state": "absent"}) for n in names]

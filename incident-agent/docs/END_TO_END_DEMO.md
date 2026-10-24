@@ -99,6 +99,7 @@ Use a new `--incident-id` for every run: each incident allows one action, enforc
 .venv/bin/python cli.py audit --incident-id DEMO-B-1234  # agent journal: approval_opened, dispatch_intent, result
 .venv/bin/python cli.py audit --server                   # API journal: approval_created, action_accepted/finished, verification
 .venv/bin/python cli.py action-api actions               # server records with result + verification
+.venv/bin/python cli.py grafana sync                     # Grafana: index -> per incident Root cause / Verification
 ```
 
 | Question | Where to find the answer |
@@ -107,6 +108,7 @@ Use a new `--incident-id` for every run: each incident allows one action, enforc
 | Why that action | Proposal reason, cited evidence and policy checks (timeline `Proposal passed policy`) |
 | How approval was enforced | Server `approval_created` → agent `approval` → server `action_accepted` with `approval_id`. The code exists only on terminal 1. |
 | Whether recovery was verified | Report section 6: per-check baseline and samples, observations, outcome. The server record also has `verification`. |
+| The same story on graphs | Grafana `/grafana/d/iz-index`. Per incident, **Root cause** shows the cited evidence, re-queried with the component in red. **Verification** shows each check against its bound, with markers for baseline, approval and dispatch. |
 
 ## 4. Dry-run and safety demos (no state change)
 

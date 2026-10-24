@@ -1,0 +1,29 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-b59d0b25",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "ad",
+    "query": "{__name__=~\"container_cpu_utilization.*\",container_name=\"ad\"}",
+    "window_start": "2026-10-24T05:45:34.535807Z",
+    "window_end": "2026-10-24T05:50:34.535807Z",
+    "collected_at": "2026-10-24T05:50:34.538744Z",
+    "value": {
+      "metric": "container_cpu",
+      "unit": "ratio/percent",
+      "series": [
+        {
+          "__name__": "container_cpu_utilization_ratio",
+          "value": 0.091309
+        }
+      ]
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_metrics-b59d0b25.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"__name__\": \"container_cpu_utilization_ratio\", \"container_name\": \"ad\", \"host_name\": \"docker-desktop\"}, \"value\": [1792821034.536, \"0.09130933992980074\"]}]}}"
+}

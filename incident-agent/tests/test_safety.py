@@ -306,3 +306,12 @@ def test_links_for_container_metric_and_overview_queries(tmp_path, monkeypatch):
     assert endpoints.evidence_links(raw)[0].startswith("http://p:9090/query?g0.expr=%7B__name__")
     ov = ev.model_copy(update={"query": json.dumps({"request_rate": "sum(rate(a[5m]))", "p95_ms": "histogram_quantile(0.95, b)"})})
     assert len(endpoints.evidence_links(ov)) == 2
+
+
+def test_availability_bound_cannot_be_tighter_than_reporting_interval(tmp_path):
+    from safety import VerificationCheck
+    ev = _evidence(tmp_path)
+    plan = _plan(supporting_evidence_ids=[ev[0].evidence_id],
+                 verification_checks=[VerificationCheck(service="cart", metric="container_last_seen_age_s", max_value=30.0)])
+    d = evaluate(plan, catalog=MOCK_CATALOG, diagnosis=_diag(), evidence=ev, inventory=SERVICES, incident_id="I", affected_service=None)
+    assert not d.allowed and any("outside [90.0, 600.0]" in e for e in d.errors)

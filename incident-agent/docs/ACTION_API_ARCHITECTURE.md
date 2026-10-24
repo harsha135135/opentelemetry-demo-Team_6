@@ -56,6 +56,7 @@ All `/v1/*` endpoints require `Authorization: Bearer $ACTION_API_TOKEN`. Bodies 
 | --- | --- | --- |
 | `GET /health` (no auth) | Liveness, executor mode, kill-switch state | 200 `Health` |
 | `GET /v1/operations` | Allowlisted operations, argument schemas, targets | 200 `OperationList` |
+| `GET /v1/services` | **Read-only system state:** container state/health/restart count/uptime for app services, workers, cache, DB, collector and load generator (+ Locust users, RPS, fail ratio). Never feature flags. Also exposed to the investigator as the `container_state` tool. | 200 `SystemState` |
 | `POST /v1/actions/validate` | Stateless dry-run validation of an `ActionPayload` | 200 `ValidateResponse` |
 | `POST /v1/approvals` | Open an approval bound to the payload digest; print a one-time code on the console | 201 `Approval` |
 | `GET /v1/approvals/{approval_id}` | Approval status (never the code) | 200 `Approval` |
@@ -79,6 +80,12 @@ All `/v1/*` endpoints require `Authorization: Bearer $ACTION_API_TOKEN`. Bodies 
 | 422 | `INVALID_ARGUMENTS` | The arguments violate the operation schema |
 | 423 | `KILL_SWITCH_ACTIVE` | The kill switch blocks every execution |
 | 500 | `INTERNAL_ERROR` | No internals are leaked; the client treats this as an **unknown** outcome |
+
+### One endpoint per service?
+
+No. Each action is the generic `POST /v1/actions/execute` with a validated `target`, checked against the allowlist.
+State is the single read-only `GET /v1/services`. One endpoint per service would duplicate the same checks 14 times
+and widen the attack surface. **Scale** (on the slide) is Kubernetes-only and does not apply to Docker Compose.
 
 ## 3. Supported operation
 

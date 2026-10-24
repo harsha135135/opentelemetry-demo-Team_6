@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-695bfb48",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "kafka",
+    "query": "sum(rate(traces_span_metrics_calls_total{service_name=\"kafka\"}[5m]))",
+    "window_start": "2026-10-24T05:49:36.449222Z",
+    "window_end": "2026-10-24T05:54:36.449222Z",
+    "collected_at": "2026-10-24T05:54:36.452914Z",
+    "value": {
+      "metric": "request_rate",
+      "unit": "requests/s"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-2-PAYMENT/evidence/ev-query_metrics-695bfb48.json",
+    "message": "no data in window (no traffic, no errors recorded, or metric not exported)"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}"
+}

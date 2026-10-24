@@ -1,0 +1,24 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-bf9aae3c",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "jaeger",
+    "query": "deriv({__name__=~\"container_memory_usage_total.*\",container_name=\"jaeger\"}[5m])",
+    "window_start": "2026-10-24T05:49:36.489883Z",
+    "window_end": "2026-10-24T05:54:36.489883Z",
+    "collected_at": "2026-10-24T05:54:36.491673Z",
+    "value": {
+      "metric": "container_memory_trend",
+      "unit": "bytes/s (positive = growing)",
+      "value": 346364.943115
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-2-PAYMENT/evidence/ev-query_metrics-bf9aae3c.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"container_name\": \"jaeger\", \"host_name\": \"docker-desktop\"}, \"value\": [1792821276.49, \"346364.94311531907\"]}]}}"
+}

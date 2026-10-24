@@ -1,0 +1,34 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_logs-a42a37f3",
+    "tool": "query_logs",
+    "source": "opensearch",
+    "service": "accounting",
+    "query": "source=otel-logs-* | where resource.service.name = 'accounting' and `@timestamp` >= '2026-10-24 05:40:31' and `severity.number` >= 13 | sort - `@timestamp` | head 40 | fields `@timestamp`, severity, body, traceId, _id",
+    "window_start": "2026-10-24T05:40:31.902896Z",
+    "window_end": "2026-10-24T05:50:31.902896Z",
+    "collected_at": "2026-10-24T05:50:31.955440Z",
+    "value": {
+      "min_severity": "WARN",
+      "count": 1,
+      "lines": [
+        {
+          "time": "2026-10-24 05:47:27.9800345",
+          "severity": "Error",
+          "body": "Consume error: {reason}",
+          "trace_id": "",
+          "log_id": "bKhzbKEBTapvhM3uNBoi"
+        }
+      ]
+    },
+    "excerpt": "Consume error: {reason}",
+    "trace_ids": [],
+    "log_ids": [
+      "bKhzbKEBTapvhM3uNBoi"
+    ],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_logs-a42a37f3.json",
+    "message": null
+  },
+  "raw": "{\"schema\": [{\"name\": \"@timestamp\", \"type\": \"timestamp\"}, {\"name\": \"severity\", \"type\": \"struct\"}, {\"name\": \"body\", \"type\": \"string\"}, {\"name\": \"traceId\", \"type\": \"string\"}, {\"name\": \"_id\", \"type\": \"string\"}], \"datarows\": [[\"2026-10-24 05:47:27.9800345\", {\"number\": 17, \"text\": \"Error\"}, \"Consume error: {reason}\", null, \"bKhzbKEBTapvhM3uNBoi\"]], \"total\": 1, \"size\": 1}"
+}

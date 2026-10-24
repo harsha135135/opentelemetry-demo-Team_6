@@ -1,0 +1,172 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-container_state-826b40e4",
+    "tool": "container_state",
+    "source": "health",
+    "service": null,
+    "query": "GET /v1/services",
+    "window_start": "2026-10-24T05:50:26.200072Z",
+    "window_end": "2026-10-24T05:50:26.200072Z",
+    "collected_at": "2026-10-24T05:50:26.355588Z",
+    "value": {
+      "services": [
+        {
+          "service": "accounting",
+          "state": "running",
+          "health": "none",
+          "restart_count": 0,
+          "uptime_s": 182
+        },
+        {
+          "service": "ad",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 183
+        },
+        {
+          "service": "astronomy-db",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 199
+        },
+        {
+          "service": "cart",
+          "state": "running",
+          "health": "none",
+          "restart_count": 0,
+          "uptime_s": 182
+        },
+        {
+          "service": "checkout",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 176
+        },
+        {
+          "service": "currency",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 183
+        },
+        {
+          "service": "email",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 183
+        },
+        {
+          "service": "fraud-detection",
+          "state": "running",
+          "health": "none",
+          "restart_count": 0,
+          "uptime_s": 182
+        },
+        {
+          "service": "frontend",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 171
+        },
+        {
+          "service": "frontend-proxy",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 165
+        },
+        {
+          "service": "image-provider",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 183
+        },
+        {
+          "service": "kafka",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 199
+        },
+        {
+          "service": "load-generator",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 165
+        },
+        {
+          "service": "otel-collector",
+          "state": "running",
+          "health": "none",
+          "restart_count": 0,
+          "uptime_s": 183
+        },
+        {
+          "service": "payment",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 183
+        },
+        {
+          "service": "product-catalog",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 182
+        },
+        {
+          "service": "quote",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 183
+        },
+        {
+          "service": "recommendation",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 182
+        },
+        {
+          "service": "shipping",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 183
+        },
+        {
+          "service": "valkey-cart",
+          "state": "running",
+          "health": "healthy",
+          "restart_count": 0,
+          "uptime_s": 199
+        }
+      ],
+      "source": "docker inspect (read-only)",
+      "load_generator": {
+        "available": true,
+        "state": "running",
+        "user_count": 5,
+        "total_rps": 1.125,
+        "fail_ratio": 0.1913,
+        "detail": ""
+      }
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-container_state-826b40e4.json",
+    "message": "all listed containers running"
+  },
+  "raw": "{\"time\": \"2026-10-24T05:50:26.345474Z\", \"source\": \"docker inspect (read-only)\", \"services\": [{\"service\": \"accounting\", \"state\": \"running\", \"health\": \"none\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:24Z\", \"uptime_s\": 182, \"restartable\": true}, {\"service\": \"ad\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:23Z\", \"uptime_s\": 183, \"restartable\": true}, {\"service\": \"astronomy-db\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:07Z\", \"uptime_s\": 199, \"restartable\": false}, {\"service\": \"cart\", \"state\": \"running\", \"health\": \"none\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:24Z\", \"uptime_s\": 182, \"restartable\": true}, {\"service\": \"checkout\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:30Z\", \"uptime_s\": 176, \"restartable\": true}, {\"service\": \"currency\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:23Z\", \"uptime_s\": 183, \"restartable\": true}, {\"service\": \"email\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:23Z\", \"uptime_s\": 183, \"restartable\": true}, {\"service\": \"fraud-detection\", \"state\": \"running\", \"health\": \"none\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:24Z\", \"uptime_s\": 182, \"restartable\": true}, {\"service\": \"frontend\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:35Z\", \"uptime_s\": 171, \"restartable\": true}, {\"service\": \"frontend-proxy\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:41Z\", \"uptime_s\": 165, \"restartable\": false}, {\"service\": \"image-provider\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:23Z\", \"uptime_s\": 183, \"restartable\": true}, {\"service\": \"kafka\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:07Z\", \"uptime_s\": 199, \"restartable\": false}, {\"service\": \"load-generator\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:41Z\", \"uptime_s\": 165, \"restartable\": false}, {\"service\": \"otel-collector\", \"state\": \"running\", \"health\": \"none\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:23Z\", \"uptime_s\": 183, \"restartable\": false}, {\"service\": \"payment\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:23Z\", \"uptime_s\": 183, \"restartable\": true}, {\"service\": \"product-catalog\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:24Z\", \"uptime_s\": 182, \"restartable\": true}, {\"service\": \"quote\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:23Z\", \"uptime_s\": 183, \"restartable\": true}, {\"service\": \"recommendation\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:24Z\", \"uptime_s\": 182, \"restartable\": true}, {\"service\": \"shipping\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:23Z\", \"uptime_s\": 183, \"restartable\": true}, {\"service\": \"valkey-cart\", \"state\": \"running\", \"health\": \"healthy\", \"restart_count\": 0, \"started_at\": \"2026-10-24T05:47:07Z\", \"uptime_s\": 199, \"restartable\": false}], \"load_generator\": {\"available\": true, \"state\": \"running\", \"user_count\": 5, \"total_rps\": 1.125, \"fail_ratio\": 0.1913, \"detail\": \"\"}, \"kill_switch_active\": false}"
+}

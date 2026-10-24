@@ -25,7 +25,7 @@ def validate_tool_request(request: ToolRequest, policy: ToolPolicy) -> ToolValid
     except ValidationError as exc:
         return ToolValidation(allowed=False, reasons=[f"invalid arguments: {exc.errors()[:3]}"])
     service = args.get("service")
-    if "service" in model.model_fields:
+    if "service" in model.model_fields and service is not None:
         if service in BLOCKED_SERVICES:
             return ToolValidation(allowed=False, reasons=[f"service '{service}' is out of bounds"])
         if service not in policy.approved_services:

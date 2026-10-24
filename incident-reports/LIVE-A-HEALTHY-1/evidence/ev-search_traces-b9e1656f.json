@@ -1,0 +1,20 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-search_traces-b9e1656f",
+    "tool": "search_traces",
+    "source": "jaeger",
+    "service": "frontend",
+    "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"frontend\", \"query.num_traces\": 10, \"query.start_time_min\": \"2026-10-24T04:20:59Z\", \"query.start_time_max\": \"2026-10-24T05:20:59Z\"}",
+    "window_start": "2026-10-24T04:20:59.707486Z",
+    "window_end": "2026-10-24T05:20:59.707486Z",
+    "collected_at": "2026-10-24T05:20:59.789906Z",
+    "value": null,
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-A-HEALTHY-1/evidence/ev-search_traces-b9e1656f.json",
+    "message": "no traces in window"
+  },
+  "raw": "\"{\\\"error\\\":{\\\"httpCode\\\":404,\\\"message\\\":\\\"No traces found\\\"}}\\n\""
+}

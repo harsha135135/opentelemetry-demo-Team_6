@@ -235,6 +235,34 @@ class OperationList(_Strict):
     operations: list[OperationSpec]
 
 
+class ServiceState(_Strict):
+    service: str
+    state: str  # docker state (running, exited, restarting, ...), 'absent' or 'identity_mismatch'
+    health: Optional[str] = None
+    restart_count: Optional[int] = None
+    started_at: Optional[str] = None
+    uptime_s: Optional[int] = None
+    restartable: bool = False
+
+
+class LoadGeneratorState(_Strict):
+    available: bool
+    state: Optional[str] = None
+    user_count: Optional[int] = None
+    total_rps: Optional[float] = None
+    fail_ratio: Optional[float] = None
+    detail: str = ""
+
+
+class SystemState(_Strict):
+    """Read-only snapshot. Feature-flag state is deliberately never included."""
+    time: datetime
+    source: str
+    services: list[ServiceState]
+    load_generator: Optional[LoadGeneratorState] = None
+    kill_switch_active: bool
+
+
 class Health(_Strict):
     status: Literal["ok"] = "ok"
     api_version: str
@@ -248,6 +276,7 @@ SCHEMA_MODELS = {
     "Approval": Approval, "ApprovalRejectRequest": ApprovalRejectRequest, "ExecuteRequest": ExecuteRequest,
     "ActionRecord": ActionRecord, "ActionResultResponse": ActionResultResponse, "ActionList": ActionList,
     "VerificationReport": VerificationReport, "OperationList": OperationList, "Health": Health,
+    "SystemState": SystemState,
     "ErrorResponse": ErrorResponse,
 }
 
@@ -305,6 +334,8 @@ def openapi() -> dict[str, Any]:
             "/health": {"get": {"summary": "Liveness, executor mode and kill-switch state", "security": [],
                                 "responses": {"200": {"description": "OK", **_json("Health")}}}},
             "/v1/operations": {"get": op("Allowlisted operations with argument schemas and targets", "200", "OperationList")},
+            "/v1/services": {"get": op("Read-only system state: container state/health/restarts/uptime and load "
+                                       "generator users (never feature flags)", "200", "SystemState")},
             "/v1/actions": {"get": op("Recent action records", "200", "ActionList")},
             "/v1/actions/validate": {"post": op("Stateless validation of an action payload (dry-run)", "200",
                                                 "ValidateResponse", "ActionPayload")},

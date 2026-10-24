@@ -1,0 +1,72 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_logs-0e9838e2",
+    "tool": "query_logs",
+    "source": "opensearch",
+    "service": "ad",
+    "query": "source=otel-logs-* | where resource.service.name = 'ad' and `@timestamp` >= '2026-10-24 05:40:29' and `severity.number` >= 13 | sort - `@timestamp` | head 40 | fields `@timestamp`, severity, body, traceId, _id",
+    "window_start": "2026-10-24T05:40:29.107339Z",
+    "window_end": "2026-10-24T05:50:29.107339Z",
+    "collected_at": "2026-10-24T05:50:31.900732Z",
+    "value": {
+      "min_severity": "WARN",
+      "count": 5,
+      "lines": [
+        {
+          "time": "2026-10-24 05:50:19.435455799",
+          "severity": "WARN",
+          "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+          "trace_id": "885edd1a17d36af6aebf2ae78102fbcc",
+          "log_id": "qqh1bKEBTapvhM3uxy0A"
+        },
+        {
+          "time": "2026-10-24 05:49:20.6933348",
+          "severity": "WARN",
+          "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+          "trace_id": "ebcef62f2a4716edac540ea45f18f302",
+          "log_id": "jqh0bKEBTapvhM3u4CVh"
+        },
+        {
+          "time": "2026-10-24 05:49:19.679416424",
+          "severity": "WARN",
+          "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+          "trace_id": "8955dc118d731807bf9a405bdceae181",
+          "log_id": "Yqh0bKEBTapvhM3u3CUV"
+        },
+        {
+          "time": "2026-10-24 05:48:11.157749212",
+          "severity": "WARN",
+          "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+          "trace_id": "4afaea5ee0b9e2a32bc9016c769f702a",
+          "log_id": "_6hzbKEBTapvhM3u0hyc"
+        },
+        {
+          "time": "2026-10-24 05:48:00.247097013",
+          "severity": "WARN",
+          "body": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+          "trace_id": "238ab299614ca220061c276a94437c87",
+          "log_id": "9KhzbKEBTapvhM3upxt5"
+        }
+      ]
+    },
+    "excerpt": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+    "trace_ids": [
+      "238ab299614ca220061c276a94437c87",
+      "4afaea5ee0b9e2a32bc9016c769f702a",
+      "885edd1a17d36af6aebf2ae78102fbcc",
+      "8955dc118d731807bf9a405bdceae181",
+      "ebcef62f2a4716edac540ea45f18f302"
+    ],
+    "log_ids": [
+      "qqh1bKEBTapvhM3uxy0A",
+      "jqh0bKEBTapvhM3u4CVh",
+      "Yqh0bKEBTapvhM3u3CUV",
+      "_6hzbKEBTapvhM3u0hyc",
+      "9KhzbKEBTapvhM3upxt5"
+    ],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_logs-0e9838e2.json",
+    "message": null
+  },
+  "raw": "{\"schema\": [{\"name\": \"@timestamp\", \"type\": \"timestamp\"}, {\"name\": \"severity\", \"type\": \"struct\"}, {\"name\": \"body\", \"type\": \"string\"}, {\"name\": \"traceId\", \"type\": \"string\"}, {\"name\": \"_id\", \"type\": \"string\"}], \"datarows\": [[\"2026-10-24 05:50:19.435455799\", {\"number\": 13, \"text\": \"WARN\"}, \"GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}\", \"885edd1a17d36af6aebf2ae78102fbcc\", \"qqh1bKEBTapvhM3uxy0A\"], [\"2026-10-24 05:49:20.6933348\", {\"number\": 13, \"text\": \"WARN\"}, \"GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}\", \"ebcef62f2a4716edac540ea45f18f302\", \"jqh0bKEBTapvhM3u4CVh\"], [\"2026-10-24 05:49:19.679416424\", {\"number\": 13, \"text\": \"WARN\"}, \"GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}\", \"8955dc118d731807bf9a405bdceae181\", \"Yqh0bKEBTapvhM3u3CUV\"], [\"2026-10-24 05:48:11.157749212\", {\"number\": 13, \"text\": \"WARN\"}, \"GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}\", \"4afaea5ee0b9e2a32bc9016c769f702a\", \"_6hzbKEBTapvhM3u0hyc\"], [\"2026-10-24 05:48:00.247097013\", {\"number\": 13, \"text\": \"WARN\"}, \"GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}\", \"238ab299614ca220061c276a94437c87\", \"9KhzbKEBTapvhM3upxt5\"]], \"total\": 5, \"size\": 5}"
+}

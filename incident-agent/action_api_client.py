@@ -118,5 +118,8 @@ class TeamActionApiClient:
     def record_verification(self, action_id: str, report: VerificationReport) -> None:
         self._call("POST", f"/v1/actions/{action_id}/verification", report)
 
+    def system_state(self) -> dict:
+        return self._call("GET", "/v1/services")[1]
+
     def list_actions(self) -> dict:
         return self._call("GET", "/v1/actions")[1]

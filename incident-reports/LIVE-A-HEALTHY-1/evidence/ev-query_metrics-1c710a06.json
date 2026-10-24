@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-1c710a06",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "frontend",
+    "query": "(sum(rate(traces_span_metrics_calls_total{service_name=\"frontend\",status_code=\"STATUS_CODE_ERROR\"}[60m])) or vector(0)) / sum(rate(traces_span_metrics_calls_total{service_name=\"frontend\"}[60m]))",
+    "window_start": "2026-10-24T04:21:00.102524Z",
+    "window_end": "2026-10-24T05:21:00.102524Z",
+    "collected_at": "2026-10-24T05:21:00.104257Z",
+    "value": {
+      "metric": "error_rate",
+      "unit": "ratio 0-1"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-A-HEALTHY-1/evidence/ev-query_metrics-1c710a06.json",
+    "message": "no requests in window - cannot judge error rate"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}"
+}

@@ -1,0 +1,238 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-resource_overview-2f2df154",
+    "tool": "resource_overview",
+    "source": "prometheus",
+    "service": null,
+    "query": "cpu: container_cpu_utilization_ratio; cpu_prior: avg_over_time(container_cpu_utilization_ratio[5m] offset 10m); mem: container_memory_percent_ratio; mem_growth: deriv(container_memory_usage_total_bytes[5m]) * 300 / container_memory_usage_total_bytes; uptime: container_uptime_seconds; last_seen_age: time() - max_over_time(timestamp(container_uptime_seconds)[60m:30s])",
+    "window_start": "2026-10-24T05:45:26.180941Z",
+    "window_end": "2026-10-24T05:50:26.180941Z",
+    "collected_at": "2026-10-24T05:50:26.198992Z",
+    "value": {
+      "fleet": {
+        "cpu_median_pct": 0.01757625045195287,
+        "uptime_median_s": 172.26835882950002,
+        "containers": 22
+      },
+      "flagged": [
+        {
+          "container": "kafka",
+          "reasons": [
+            "memory 86% of limit"
+          ],
+          "severity": 3
+        },
+        {
+          "container": "opensearch",
+          "reasons": [
+            "memory 86% of limit"
+          ],
+          "severity": 3
+        },
+        {
+          "container": "ad",
+          "reasons": [
+            "memory grew 50% over the window"
+          ],
+          "severity": 2
+        },
+        {
+          "container": "astronomy-db",
+          "reasons": [
+            "memory grew 21% over the window"
+          ],
+          "severity": 2
+        }
+      ],
+      "flagged_total": 16,
+      "restart_clusters": [],
+      "telemetry_silence": null,
+      "note": "Flags are anomalies to investigate, not proven causes. High CPU may be effect or load; clustered restarts may be a cause, a side effect or environmental.",
+      "containers": [
+        {
+          "container": "ad",
+          "cpu_pct": 0.0908365116347776,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 75.08463541666667,
+          "memory_growth_frac": 0.503663316190664,
+          "uptime_s": 172.281815371
+        },
+        {
+          "container": "astronomy-db",
+          "cpu_pct": 0.0174320431234536,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 74.0576171875,
+          "memory_growth_frac": 0.21473931271885366,
+          "uptime_s": 188.279154629
+        },
+        {
+          "container": "checkout",
+          "cpu_pct": 0.009881020330184063,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 64.8828125,
+          "memory_growth_frac": 0.07401417115101518,
+          "uptime_s": 165.670161451
+        },
+        {
+          "container": "currency",
+          "cpu_pct": 0.005503419364336345,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 22.20703125,
+          "memory_growth_frac": 0.07444467037257471,
+          "uptime_s": 172.242184455
+        },
+        {
+          "container": "email",
+          "cpu_pct": 0.021054628375169113,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 55.13671875,
+          "memory_growth_frac": 0.3538960382732957,
+          "uptime_s": 172.249493621
+        },
+        {
+          "container": "frontend",
+          "cpu_pct": 0.0513371622268252,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 41.15,
+          "memory_growth_frac": 0.9615509943296527,
+          "uptime_s": 160.492979797
+        },
+        {
+          "container": "frontend-proxy",
+          "cpu_pct": 0.01704946797402884,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 39.28819444444444,
+          "memory_growth_frac": 0.711634316038827,
+          "uptime_s": 154.19160521
+        },
+        {
+          "container": "grafana",
+          "cpu_pct": 0.09258103941898058,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 84.82109375,
+          "memory_growth_frac": 0.2903230735988343,
+          "uptime_s": 188.318230004
+        },
+        {
+          "container": "image-provider",
+          "cpu_pct": 0.004335387266817712,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 4.505208333333333,
+          "memory_growth_frac": 0.20636221769778482,
+          "uptime_s": 172.254902288
+        },
+        {
+          "container": "jaeger",
+          "cpu_pct": 0.006269113179190768,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 5.722005208333333,
+          "memory_growth_frac": 1.3355166049836682,
+          "uptime_s": 188.286587629
+        },
+        {
+          "container": "kafka",
+          "cpu_pct": 0.19119578680016164,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 85.5367943548387,
+          "memory_growth_frac": -0.06828561941373745,
+          "uptime_s": 188.324376754
+        },
+        {
+          "container": "load-generator",
+          "cpu_pct": 0.4354921043906694,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 34.791666666666664,
+          "memory_growth_frac": 1.1629687499771064,
+          "uptime_s": 154.817634877
+        },
+        {
+          "container": "opamp-server",
+          "cpu_pct": 0.0030823166902485743,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 22.506009615384613,
+          "memory_growth_frac": 0.6633300420520752,
+          "uptime_s": 188.326105587
+        },
+        {
+          "container": "opensearch",
+          "cpu_pct": 0.2925692871131552,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 85.63613891601562,
+          "memory_growth_frac": 0.03936191175808445,
+          "uptime_s": 188.294043254
+        },
+        {
+          "container": "otel-collector",
+          "cpu_pct": 0.052044635483400326,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 35.4794921875,
+          "memory_growth_frac": 0.3623576526674267,
+          "uptime_s": 172.43111433
+        },
+        {
+          "container": "payment",
+          "cpu_pct": 0.09748064624577998,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 41.166294642857146,
+          "memory_growth_frac": -0.002494345397872019,
+          "uptime_s": 172.240415705
+        },
+        {
+          "container": "prometheus",
+          "cpu_pct": 0.01772045778045214,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 63.841796875,
+          "memory_growth_frac": -0.601143252923606,
+          "uptime_s": 188.274029754
+        },
+        {
+          "container": "quote",
+          "cpu_pct": 0.006373463823774272,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 42.626953125,
+          "memory_growth_frac": 0.23293821296902098,
+          "uptime_s": 172.244782621
+        },
+        {
+          "container": "recommendation",
+          "cpu_pct": 0.07060671938166163,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 38.13515625,
+          "memory_growth_frac": 0.6268824493512247,
+          "uptime_s": 171.186148287
+        },
+        {
+          "container": "shipping",
+          "cpu_pct": 0.003936949872272873,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 29.9609375,
+          "memory_growth_frac": 0.6360448063175053,
+          "uptime_s": 172.239308538
+        },
+        {
+          "container": "telemetry-docs",
+          "cpu_pct": 0.004507351524892585,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 5.28125,
+          "memory_growth_frac": 0.012296849693808716,
+          "uptime_s": 188.323333587
+        },
+        {
+          "container": "valkey-cart",
+          "cpu_pct": 0.004407872695379341,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 59.00390625000001,
+          "memory_growth_frac": 0.05036953820261313,
+          "uptime_s": 188.275276837
+        }
+      ],
+      "baseline_note": "no prior-window CPU data available; CPU judged against the fleet median only"
+    },
+    "excerpt": "kafka: memory 86% of limit; opensearch: memory 86% of limit; ad: memory grew 50% over the window; astronomy-db: memory grew 21% over the window",
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": null,
+    "message": null
+  }
+}

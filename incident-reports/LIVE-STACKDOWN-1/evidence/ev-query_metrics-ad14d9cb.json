@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-ad14d9cb",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "valkey-cart",
+    "query": "(sum(rate(traces_span_metrics_calls_total{service_name=\"valkey-cart\",status_code=\"STATUS_CODE_ERROR\"}[60m])) or vector(0)) / sum(rate(traces_span_metrics_calls_total{service_name=\"valkey-cart\"}[60m]))",
+    "window_start": "2026-10-24T03:54:42.157357Z",
+    "window_end": "2026-10-24T04:54:42.157357Z",
+    "collected_at": "2026-10-24T04:54:42.159070Z",
+    "value": {
+      "metric": "error_rate",
+      "unit": "ratio 0-1"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-query_metrics-ad14d9cb.json",
+    "message": "no requests in window - cannot judge error rate"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}"
+}

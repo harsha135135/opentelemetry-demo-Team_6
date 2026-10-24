@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-70ea8c57",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "accounting",
+    "query": "time() - max_over_time(timestamp({__name__=~\"container_uptime.*\",container_name=\"accounting\"})[60m:30s])",
+    "window_start": "2026-10-24T05:45:34.602190Z",
+    "window_end": "2026-10-24T05:50:34.602190Z",
+    "collected_at": "2026-10-24T05:50:34.603212Z",
+    "value": {
+      "metric": "container_last_seen_age_s",
+      "unit": "s since last sample"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_metrics-70ea8c57.json",
+    "message": "no data in window (no traffic, no errors recorded, or metric not exported)"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}"
+}

@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-cfb3d6af",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "frontend",
+    "query": "{__name__=~\"container_cpu_utilization.*\",container_name=\"frontend\"}",
+    "window_start": "2026-10-24T04:21:00.106081Z",
+    "window_end": "2026-10-24T05:21:00.106081Z",
+    "collected_at": "2026-10-24T05:21:00.108969Z",
+    "value": {
+      "metric": "container_cpu",
+      "unit": "ratio/percent"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-A-HEALTHY-1/evidence/ev-query_metrics-cfb3d6af.json",
+    "message": "no data in window (no traffic, no errors recorded, or metric not exported)"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}"
+}

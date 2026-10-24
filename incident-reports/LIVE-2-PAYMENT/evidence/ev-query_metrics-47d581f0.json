@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-47d581f0",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "checkout",
+    "query": "histogram_quantile(0.95, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name=\"checkout\"}[2m])))",
+    "window_start": "2026-10-24T05:52:48.381522Z",
+    "window_end": "2026-10-24T05:54:48.381522Z",
+    "collected_at": "2026-10-24T05:54:48.386565Z",
+    "value": {
+      "metric": "p95_latency_ms",
+      "unit": "ms"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-2-PAYMENT/evidence/ev-query_metrics-47d581f0.json",
+    "message": "no data in window (no traffic, no errors recorded, or metric not exported)"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {}, \"value\": [1792821288.382, \"NaN\"]}]}}"
+}

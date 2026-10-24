@@ -1,0 +1,324 @@
+{
+  "incident_id": "LIVE-STACKDOWN-1",
+  "status": "INCONCLUSIVE",
+  "incident": {
+    "id": "LIVE-STACKDOWN-1",
+    "source": "manual-cli",
+    "symptom": "Shop checkout and browsing failing; users report errors",
+    "affected_service": null,
+    "detection_time": "2026-10-24T04:54:36.191896Z",
+    "observation_window": {
+      "start_time": "2026-10-24T04:39:36.191896Z",
+      "end_time": "2026-10-24T04:54:36.191896Z"
+    },
+    "recovery_condition": "not provided - diagnosis only (CP0-CP2, no remediation)"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-10-24T04:54:36.269642Z",
+      "status": "RECEIVED",
+      "description": "Incident received from manual-cli",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T04:54:36.269649Z",
+      "status": "INVESTIGATING",
+      "description": "Investigation started",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T04:54:37.605358Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 2 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T04:54:37.612082Z",
+      "status": "INVESTIGATING",
+      "description": "overview({'window_minutes': 5}) -> empty [ev-overview-e5d64f15]",
+      "metadata": {
+        "window_start": "2026-10-24T04:49:37.605908+00:00",
+        "window_end": "2026-10-24T04:54:37.605908+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T04:54:37.631388Z",
+      "status": "INVESTIGATING",
+      "description": "resource_overview({'window_minutes': 5}) -> empty [ev-resource_overview-28a33510]",
+      "metadata": {
+        "window_start": "2026-10-24T04:49:37.612355+00:00",
+        "window_end": "2026-10-24T04:54:37.612355+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T04:54:41.754010Z",
+      "status": "INVESTIGATING",
+      "description": "Model requested 5 tool call(s): ",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-10-24T04:54:41.761042Z",
+      "status": "INVESTIGATING",
+      "description": "overview({'window_minutes': 60}) -> empty [ev-overview-d59e2c2b]",
+      "metadata": {
+        "window_start": "2026-10-24T03:54:41.755966+00:00",
+        "window_end": "2026-10-24T04:54:41.755966+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T04:54:41.775225Z",
+      "status": "INVESTIGATING",
+      "description": "resource_overview({'window_minutes': 60}) -> empty [ev-resource_overview-dd606fbc]",
+      "metadata": {
+        "window_start": "2026-10-24T03:54:41.761262+00:00",
+        "window_end": "2026-10-24T04:54:41.761262+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T04:54:41.826162Z",
+      "status": "INVESTIGATING",
+      "description": "search_traces({'service': 'frontend', 'window_minutes': 60, 'errors_only': False, 'limit': 10}) -> empty [ev-search_traces-743f84b1]",
+      "metadata": {
+        "window_start": "2026-10-24T03:54:41.775420+00:00",
+        "window_end": "2026-10-24T04:54:41.775420+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T04:54:42.154039Z",
+      "status": "INVESTIGATING",
+      "description": "query_logs({'service': 'frontend', 'window_minutes': 60, 'min_severity': 'WARN', 'limit': 20}) -> empty [ev-query_logs-a28c4a04]",
+      "metadata": {
+        "window_start": "2026-10-24T03:54:41.826749+00:00",
+        "window_end": "2026-10-24T04:54:41.826749+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T04:54:42.175073Z",
+      "status": "INVESTIGATING",
+      "description": "service_health({'service': 'valkey-cart', 'window_minutes': 60}) -> empty [ev-service_health-e0f75df5]",
+      "metadata": {
+        "window_start": "2026-10-24T03:54:42.154526+00:00",
+        "window_end": "2026-10-24T04:54:42.154526+00:00"
+      }
+    },
+    {
+      "timestamp": "2026-10-24T04:54:46.262862Z",
+      "status": "INCONCLUSIVE",
+      "description": "Inconclusive: Every telemetry source returned empty for the last 60 minutes. That covers span metrics fleet-wide, container resource metrics, frontend traces, frontend WARN+ logs, and valkey-cart health. I can't tell which service failed or why. The two main explanations fit the data equally well. One is that the whole stack is down (for example the host, docker or the network). The other is that the telemetry pipeline (collector or docker_stats) is broken while the services may still be running. I found no error messages, traces or logs from callers that would corroborate a specific failed service. I also didn't check whether the incident window (04:39-04:54) is older than the data the tools can see. A fleet-wide silence doesn't show that every service failed.",
+      "metadata": {
+        "relevant": [
+          "ev-overview-e5d64f15",
+          "ev-resource_overview-28a33510",
+          "ev-overview-d59e2c2b",
+          "ev-resource_overview-dd606fbc",
+          "ev-search_traces-743f84b1",
+          "ev-query_logs-a28c4a04",
+          "ev-service_health-e0f75df5"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-10-24T04:54:46.262975Z",
+      "status": "INCONCLUSIVE",
+      "description": "Finished: model_inconclusive; 3 model calls, 7 tool calls, 10.0s",
+      "metadata": {
+        "model_calls": 3,
+        "tool_calls": 7,
+        "tool_requests_rejected": 0,
+        "tokens": 13041,
+        "elapsed_s": 9.99,
+        "terminal_reason": "model_inconclusive",
+        "evidence_count": 7,
+        "rejected_diagnosis_errors": []
+      }
+    },
+    {
+      "timestamp": "2026-10-24T04:54:46.279599Z",
+      "status": "INCONCLUSIVE",
+      "description": "Remediation finished: ESCALATED (No accepted diagnosis, so no remediation was planned; escalate to a human.)",
+      "metadata": {}
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "ev-overview-e5d64f15",
+      "status": "empty",
+      "source": "prometheus",
+      "service": null,
+      "event_time_window": {
+        "start_time": "2026-10-24T04:49:37.605908Z",
+        "end_time": "2026-10-24T04:54:37.605908Z"
+      },
+      "collection_time": "2026-10-24T04:54:37.611081Z",
+      "tool": "overview",
+      "query": "{\"request_rate\": \"sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))\", \"error_rate\": \"(sum by (service_name) (rate(traces_span_metrics_calls_total{status_code=\\\"STATUS_CODE_ERROR\\\"}[5m])) or sum by (service_name) (rate(traces_span_metrics_calls_total[5m])) * 0) / sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))\", \"p95_ms\": \"histogram_quantile(0.95, sum by (le, service_name) (rate(traces_span_metrics_duration_milliseconds_bucket[5m])))\"}",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no span metrics in window (is load running?)"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-overview-e5d64f15.json"
+    },
+    {
+      "evidence_id": "ev-resource_overview-28a33510",
+      "status": "empty",
+      "source": "prometheus",
+      "service": null,
+      "event_time_window": {
+        "start_time": "2026-10-24T04:49:37.612355Z",
+        "end_time": "2026-10-24T04:54:37.612355Z"
+      },
+      "collection_time": "2026-10-24T04:54:37.630689Z",
+      "tool": "resource_overview",
+      "query": "cpu: container_cpu_utilization_ratio; cpu_prior: avg_over_time(container_cpu_utilization_ratio[5m] offset 10m); mem: container_memory_percent_ratio; mem_growth: deriv(container_memory_usage_total_bytes[5m]) * 300 / container_memory_usage_total_bytes; uptime: container_uptime_seconds; last_seen_age: time() - max_over_time(timestamp(container_uptime_seconds)[60m:30s])",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no container resource metrics in the last 60 minutes (docker_stats not reporting?)"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-resource_overview-28a33510.json"
+    },
+    {
+      "evidence_id": "ev-overview-d59e2c2b",
+      "status": "empty",
+      "source": "prometheus",
+      "service": null,
+      "event_time_window": {
+        "start_time": "2026-10-24T03:54:41.755966Z",
+        "end_time": "2026-10-24T04:54:41.755966Z"
+      },
+      "collection_time": "2026-10-24T04:54:41.760351Z",
+      "tool": "overview",
+      "query": "{\"request_rate\": \"sum by (service_name) (rate(traces_span_metrics_calls_total[60m]))\", \"error_rate\": \"(sum by (service_name) (rate(traces_span_metrics_calls_total{status_code=\\\"STATUS_CODE_ERROR\\\"}[60m])) or sum by (service_name) (rate(traces_span_metrics_calls_total[60m])) * 0) / sum by (service_name) (rate(traces_span_metrics_calls_total[60m]))\", \"p95_ms\": \"histogram_quantile(0.95, sum by (le, service_name) (rate(traces_span_metrics_duration_milliseconds_bucket[60m])))\"}",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no span metrics in window (is load running?)"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-overview-d59e2c2b.json"
+    },
+    {
+      "evidence_id": "ev-resource_overview-dd606fbc",
+      "status": "empty",
+      "source": "prometheus",
+      "service": null,
+      "event_time_window": {
+        "start_time": "2026-10-24T03:54:41.761262Z",
+        "end_time": "2026-10-24T04:54:41.761262Z"
+      },
+      "collection_time": "2026-10-24T04:54:41.774727Z",
+      "tool": "resource_overview",
+      "query": "cpu: container_cpu_utilization_ratio; cpu_prior: avg_over_time(container_cpu_utilization_ratio[60m] offset 65m); mem: container_memory_percent_ratio; mem_growth: deriv(container_memory_usage_total_bytes[60m]) * 3600 / container_memory_usage_total_bytes; uptime: container_uptime_seconds; last_seen_age: time() - max_over_time(timestamp(container_uptime_seconds)[60m:30s])",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no container resource metrics in the last 60 minutes (docker_stats not reporting?)"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-resource_overview-dd606fbc.json"
+    },
+    {
+      "evidence_id": "ev-search_traces-743f84b1",
+      "status": "empty",
+      "source": "jaeger",
+      "service": "frontend",
+      "event_time_window": {
+        "start_time": "2026-10-24T03:54:41.775420Z",
+        "end_time": "2026-10-24T04:54:41.775420Z"
+      },
+      "collection_time": "2026-10-24T04:54:41.824791Z",
+      "tool": "search_traces",
+      "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"frontend\", \"query.num_traces\": 10, \"query.start_time_min\": \"2026-10-24T03:54:41Z\", \"query.start_time_max\": \"2026-10-24T04:54:41Z\"}",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no traces in window"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-search_traces-743f84b1.json"
+    },
+    {
+      "evidence_id": "ev-query_logs-a28c4a04",
+      "status": "empty",
+      "source": "opensearch",
+      "service": "frontend",
+      "event_time_window": {
+        "start_time": "2026-10-24T03:54:41.826749Z",
+        "end_time": "2026-10-24T04:54:41.826749Z"
+      },
+      "collection_time": "2026-10-24T04:54:42.152754Z",
+      "tool": "query_logs",
+      "query": "source=otel-logs-* | where resource.service.name = 'frontend' and `@timestamp` >= '2026-10-24 03:54:41' and `severity.number` >= 13 | sort - `@timestamp` | head 40 | fields `@timestamp`, severity, body, traceId, _id",
+      "observed_value": {
+        "value": null,
+        "excerpt": null,
+        "message": "no WARN+ logs in window"
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-query_logs-a28c4a04.json"
+    },
+    {
+      "evidence_id": "ev-service_health-e0f75df5",
+      "status": "empty",
+      "source": "derived",
+      "service": "valkey-cart",
+      "event_time_window": {
+        "start_time": "2026-10-24T03:54:42.154526Z",
+        "end_time": "2026-10-24T04:54:42.154526Z"
+      },
+      "collection_time": "2026-10-24T04:54:42.174439Z",
+      "tool": "service_health",
+      "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+      "observed_value": {
+        "value": {
+          "summary": {
+            "request_rate": "empty",
+            "error_rate": "empty",
+            "p95_latency_ms": "empty",
+            "container_cpu": "empty",
+            "container_memory": "empty",
+            "container_memory_trend": "empty",
+            "container_uptime": "empty",
+            "container_last_seen_age_s": "empty"
+          }
+        },
+        "excerpt": null,
+        "message": null
+      },
+      "trace_or_log_id": null,
+      "trace_ids": [],
+      "log_ids": [],
+      "local_capture_reference": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-service_health-e0f75df5.json"
+    }
+  ],
+  "diagnosis": null,
+  "proposals": [],
+  "approval": null,
+  "verification": null,
+  "limitations": [
+    "No recovery condition supplied; recovery is out of scope for CP0-CP2.",
+    "Model stopped without a diagnosis: Every telemetry source returned empty for the last 60 minutes. That covers span metrics fleet-wide, container resource metrics, frontend traces, frontend WARN+ logs, and valkey-cart health. I can't tell which service failed or why. The two main explanations fit the data equally well. One is that the whole stack is down (for example the host, docker or the network). The other is that the telemetry pipeline (collector or docker_stats) is broken while the services may still be running. I found no error messages, traces or logs from callers that would corroborate a specific failed service. I also didn't check whether the incident window (04:39-04:54) is older than the data the tools can see. A fleet-wide silence doesn't show that every service failed.",
+    "No diagnosis accepted: escalate to a human operator.",
+    "Confidence labels are model-reported and not calibrated; no evaluation was run.",
+    "Telemetry tools are live-only; queried windows are recorded per evidence item.",
+    "No accepted diagnosis, so no remediation was planned; escalate to a human."
+  ],
+  "remediation_outcome": "ESCALATED",
+  "execution_mode": "dry_run",
+  "escalation_reason": "No accepted diagnosis, so no remediation was planned; escalate to a human."
+}

@@ -1,0 +1,29 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-query_metrics-c9bb83d9",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "kafka",
+    "query": "{__name__=~\"container_cpu_utilization.*\",container_name=\"kafka\"}",
+    "window_start": "2026-10-24T05:45:45.581426Z",
+    "window_end": "2026-10-24T05:50:45.581426Z",
+    "collected_at": "2026-10-24T05:50:45.583427Z",
+    "value": {
+      "metric": "container_cpu",
+      "unit": "ratio/percent",
+      "series": [
+        {
+          "__name__": "container_cpu_utilization_ratio",
+          "value": 0.195537
+        }
+      ]
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-1-BASELINE/evidence/ev-query_metrics-c9bb83d9.json",
+    "message": null
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": [{\"metric\": {\"__name__\": \"container_cpu_utilization_ratio\", \"container_name\": \"kafka\", \"host_name\": \"docker-desktop\"}, \"value\": [1792821045.581, \"0.19553713758150948\"]}]}}"
+}

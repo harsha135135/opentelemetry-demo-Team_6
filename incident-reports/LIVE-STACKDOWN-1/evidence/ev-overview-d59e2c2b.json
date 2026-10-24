@@ -1,0 +1,20 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-overview-d59e2c2b",
+    "tool": "overview",
+    "source": "prometheus",
+    "service": null,
+    "query": "{\"request_rate\": \"sum by (service_name) (rate(traces_span_metrics_calls_total[60m]))\", \"error_rate\": \"(sum by (service_name) (rate(traces_span_metrics_calls_total{status_code=\\\"STATUS_CODE_ERROR\\\"}[60m])) or sum by (service_name) (rate(traces_span_metrics_calls_total[60m])) * 0) / sum by (service_name) (rate(traces_span_metrics_calls_total[60m]))\", \"p95_ms\": \"histogram_quantile(0.95, sum by (le, service_name) (rate(traces_span_metrics_duration_milliseconds_bucket[60m])))\"}",
+    "window_start": "2026-10-24T03:54:41.755966Z",
+    "window_end": "2026-10-24T04:54:41.755966Z",
+    "collected_at": "2026-10-24T04:54:41.760351Z",
+    "value": null,
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-STACKDOWN-1/evidence/ev-overview-d59e2c2b.json",
+    "message": "no span metrics in window (is load running?)"
+  },
+  "raw": "{\"request_rate\": {\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}, \"error_rate\": {\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}, \"p95_ms\": {\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}}"
+}

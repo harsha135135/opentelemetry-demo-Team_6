@@ -1,0 +1,31 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-service_health-cfaba563",
+    "tool": "service_health",
+    "source": "derived",
+    "service": "frontend",
+    "query": "request_rate, error_rate, p95_latency_ms, container_cpu, container_memory, container_memory_trend, container_uptime, container_last_seen_age_s",
+    "window_start": "2026-10-24T04:21:00.097495Z",
+    "window_end": "2026-10-24T05:21:00.097495Z",
+    "collected_at": "2026-10-24T05:21:00.115074Z",
+    "value": {
+      "summary": {
+        "request_rate": "empty",
+        "error_rate": "empty",
+        "p95_latency_ms": "empty",
+        "container_cpu": "empty",
+        "container_memory": "empty",
+        "container_memory_trend": "empty",
+        "container_uptime": "empty",
+        "container_last_seen_age_s": "empty"
+      }
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-A-HEALTHY-1/evidence/ev-service_health-cfaba563.json",
+    "message": null
+  },
+  "raw": "{\"sub_evidence\": [\"ev-query_metrics-27ff93cb\", \"ev-query_metrics-1c710a06\", \"ev-query_metrics-14e11339\", \"ev-query_metrics-cfb3d6af\", \"ev-query_metrics-2e8c5fb0\", \"ev-query_metrics-5c4b9cae\", \"ev-query_metrics-a98d126b\", \"ev-query_metrics-d44c7c12\"]}"
+}

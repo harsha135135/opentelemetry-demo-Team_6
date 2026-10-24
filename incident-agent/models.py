@@ -129,7 +129,11 @@ class TimelineEvent(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+REPORT_SCHEMA_VERSION = "team6.incident-report/1.0"
+
+
 class IncidentReport(BaseModel):
+    schema_version: str = REPORT_SCHEMA_VERSION  # team-defined schema: schemas/incident_report.schema.json
     incident_id: str
     status: IncidentStatus
     incident: Incident

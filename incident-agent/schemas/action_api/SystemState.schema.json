@@ -1,0 +1,188 @@
+{
+  "$defs": {
+    "LoadGeneratorState": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "detail": {
+          "default": "",
+          "title": "Detail",
+          "type": "string"
+        },
+        "fail_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fail Ratio"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "State"
+        },
+        "total_rps": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Rps"
+        },
+        "user_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "User Count"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "title": "LoadGeneratorState",
+      "type": "object"
+    },
+    "ServiceState": {
+      "additionalProperties": false,
+      "properties": {
+        "health": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Health"
+        },
+        "restart_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Restart Count"
+        },
+        "restartable": {
+          "default": false,
+          "title": "Restartable",
+          "type": "boolean"
+        },
+        "service": {
+          "title": "Service",
+          "type": "string"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Started At"
+        },
+        "state": {
+          "title": "State",
+          "type": "string"
+        },
+        "uptime_s": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uptime S"
+        }
+      },
+      "required": [
+        "service",
+        "state"
+      ],
+      "title": "ServiceState",
+      "type": "object"
+    }
+  },
+  "$id": "https://incident-zero.team6.local/schemas/action_api/SystemState.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Read-only snapshot. Feature-flag state is deliberately never included.",
+  "properties": {
+    "kill_switch_active": {
+      "title": "Kill Switch Active",
+      "type": "boolean"
+    },
+    "load_generator": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LoadGeneratorState"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "services": {
+      "items": {
+        "$ref": "#/$defs/ServiceState"
+      },
+      "title": "Services",
+      "type": "array"
+    },
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "time": {
+      "format": "date-time",
+      "title": "Time",
+      "type": "string"
+    }
+  },
+  "required": [
+    "time",
+    "source",
+    "services",
+    "kill_switch_active"
+  ],
+  "title": "SystemState",
+  "type": "object"
+}

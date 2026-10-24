@@ -1,0 +1,20 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-search_traces-12a9c2c6",
+    "tool": "search_traces",
+    "source": "jaeger",
+    "service": "payment",
+    "query": "GET /jaeger/ui/api/v3/traces {\"query.service_name\": \"payment\", \"query.num_traces\": 20, \"query.start_time_min\": \"2026-10-24T05:52:48Z\", \"query.start_time_max\": \"2026-10-24T05:54:48Z\"}",
+    "window_start": "2026-10-24T05:52:48.665055Z",
+    "window_end": "2026-10-24T05:54:48.665055Z",
+    "collected_at": "2026-10-24T05:54:48.675071Z",
+    "value": null,
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-2-PAYMENT/evidence/ev-search_traces-12a9c2c6.json",
+    "message": "no traces in window"
+  },
+  "raw": "\"{\\\"error\\\":{\\\"httpCode\\\":404,\\\"message\\\":\\\"No traces found\\\"}}\\n\""
+}

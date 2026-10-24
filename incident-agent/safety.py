@@ -28,7 +28,8 @@ VERIFICATION_METRICS: dict[str, tuple[str, Optional[float], float, float]] = {
     "error_rate": ("max", 0.05, 0.0, 0.5),
     "p95_latency_ms": ("max", None, 1.0, 60000.0),
     "request_rate": ("min", None, 0.0, 10000.0),
-    "container_last_seen_age_s": ("max", 150.0, 30.0, 600.0),
+    # docker_stats samples arrive every ~10-35 s for a healthy container (measured live), so tighter bounds would fail recoveries
+    "container_last_seen_age_s": ("max", 150.0, 90.0, 600.0),
     "container_cpu": ("max", None, 0.0, 10000.0),
     "container_memory": ("max", None, 0.0, 1e12),
 }

@@ -1,0 +1,239 @@
+{
+  "result": {
+    "status": "ok",
+    "evidence_id": "ev-resource_overview-5d2c67aa",
+    "tool": "resource_overview",
+    "source": "prometheus",
+    "service": null,
+    "query": "cpu: container_cpu_utilization_ratio; cpu_prior: avg_over_time(container_cpu_utilization_ratio[5m] offset 10m); mem: container_memory_percent_ratio; mem_growth: deriv(container_memory_usage_total_bytes[5m]) * 300 / container_memory_usage_total_bytes; uptime: container_uptime_seconds; last_seen_age: time() - max_over_time(timestamp(container_uptime_seconds)[60m:30s])",
+    "window_start": "2026-10-24T05:49:26.151149Z",
+    "window_end": "2026-10-24T05:54:26.151149Z",
+    "collected_at": "2026-10-24T05:54:26.172313Z",
+    "value": {
+      "fleet": {
+        "cpu_median_pct": 0.03890453260673846,
+        "uptime_median_s": 412.2526655375,
+        "containers": 22
+      },
+      "flagged": [
+        {
+          "container": "kafka",
+          "reasons": [
+            "memory 88% of limit"
+          ],
+          "severity": 3
+        },
+        {
+          "container": "opensearch",
+          "reasons": [
+            "memory 92% of limit"
+          ],
+          "severity": 3
+        },
+        {
+          "container": "payment",
+          "kind": "silent",
+          "severity": 3,
+          "reasons": [
+            "stopped reporting metrics 200s ago while others still report: container may be stopped, crashed or removed, or only its metrics are missing"
+          ]
+        },
+        {
+          "container": "jaeger",
+          "reasons": [
+            "memory grew 66% over the window"
+          ],
+          "severity": 2
+        }
+      ],
+      "flagged_total": 4,
+      "restart_clusters": [],
+      "telemetry_silence": null,
+      "note": "Flags are anomalies to investigate, not proven causes. High CPU may be effect or load; clustered restarts may be a cause, a side effect or environmental.",
+      "containers": [
+        {
+          "container": "ad",
+          "cpu_pct": 0.10292738687166253,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 76.23958333333334,
+          "memory_growth_frac": 0.0185927698177662,
+          "uptime_s": 412.266122079
+        },
+        {
+          "container": "astronomy-db",
+          "cpu_pct": 0.03894966072097956,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 72.83203125,
+          "memory_growth_frac": -0.03876870079127925,
+          "uptime_s": 428.263461337
+        },
+        {
+          "container": "checkout",
+          "cpu_pct": 0.027971774686009636,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 74.21875,
+          "memory_growth_frac": 0.012927356001904249,
+          "uptime_s": 405.654468159
+        },
+        {
+          "container": "currency",
+          "cpu_pct": 0.012351839568921935,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 18.8671875,
+          "memory_growth_frac": -0.2474125691769661,
+          "uptime_s": 412.226491163
+        },
+        {
+          "container": "email",
+          "cpu_pct": 0.03885940449249735,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 60.03515625,
+          "memory_growth_frac": 0.10406475861370919,
+          "uptime_s": 412.233800329
+        },
+        {
+          "container": "frontend",
+          "cpu_pct": 0.11545846260837145,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 42.3546875,
+          "memory_growth_frac": 0.03469396656094304,
+          "uptime_s": 400.477286505
+        },
+        {
+          "container": "frontend-proxy",
+          "cpu_pct": 0.04531016748548325,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 40.08680555555556,
+          "memory_growth_frac": 0.025920260585497592,
+          "uptime_s": 394.175911918
+        },
+        {
+          "container": "grafana",
+          "cpu_pct": 0.11136985366306852,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 78.10312499999999,
+          "memory_growth_frac": -0.23455757461201424,
+          "uptime_s": 428.302536712
+        },
+        {
+          "container": "image-provider",
+          "cpu_pct": 0.009479816018711595,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 4.619140625,
+          "memory_growth_frac": 0.03636047877210286,
+          "uptime_s": 412.239208996
+        },
+        {
+          "container": "jaeger",
+          "cpu_pct": 0.01729395002492147,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 12.619791666666666,
+          "memory_growth_frac": 0.6567836360542876,
+          "uptime_s": 428.270894337
+        },
+        {
+          "container": "kafka",
+          "cpu_pct": 0.2304987196722186,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 88.21572580645162,
+          "memory_growth_frac": 0.033924640100454186,
+          "uptime_s": 428.308683462
+        },
+        {
+          "container": "load-generator",
+          "cpu_pct": 1.1147341937927668,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 36.373958333333334,
+          "memory_growth_frac": -0.04052117103384808,
+          "uptime_s": 394.801941585
+        },
+        {
+          "container": "opamp-server",
+          "cpu_pct": 0.006198436442234691,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 23.239182692307693,
+          "memory_growth_frac": 0.039782821922807146,
+          "uptime_s": 428.310412295
+        },
+        {
+          "container": "opensearch",
+          "cpu_pct": 0.39819893671380424,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 91.80946350097656,
+          "memory_growth_frac": 0.0728100112019088,
+          "uptime_s": 428.278349962
+        },
+        {
+          "container": "otel-collector",
+          "cpu_pct": 0.12490740219347816,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 36.1806640625,
+          "memory_growth_frac": 0.039314586682937434,
+          "uptime_s": 412.415421038
+        },
+        {
+          "container": "payment",
+          "cpu_pct": 0.12042812532083393,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 41.414620535714285,
+          "memory_growth_frac": 0.0327176502578689,
+          "uptime_s": 222.241096284
+        },
+        {
+          "container": "prometheus",
+          "cpu_pct": 0.026312459587553697,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 58.255859375,
+          "memory_growth_frac": 0.025359986378380574,
+          "uptime_s": 428.258336462
+        },
+        {
+          "container": "quote",
+          "cpu_pct": 0.01296090916391666,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 49.521484375,
+          "memory_growth_frac": 0.11636015467764327,
+          "uptime_s": 412.229089329
+        },
+        {
+          "container": "recommendation",
+          "cpu_pct": 0.08849844294954899,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 39.0,
+          "memory_growth_frac": 0.029144580111273483,
+          "uptime_s": 411.170454995
+        },
+        {
+          "container": "shipping",
+          "cpu_pct": 0.009062286050882218,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 31.093749999999996,
+          "memory_growth_frac": 0.04601962654148322,
+          "uptime_s": 412.223615246
+        },
+        {
+          "container": "telemetry-docs",
+          "cpu_pct": 0.009197227933893852,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 5.4140625,
+          "memory_growth_frac": 0.026232468207937586,
+          "uptime_s": 428.307640295
+        },
+        {
+          "container": "valkey-cart",
+          "cpu_pct": 0.009621491289606628,
+          "cpu_prior_window_pct": null,
+          "memory_pct": 60.703125,
+          "memory_growth_frac": 0.04035823685171018,
+          "uptime_s": 428.259583545
+        }
+      ],
+      "baseline_note": "no prior-window CPU data available; CPU judged against the fleet median only"
+    },
+    "excerpt": "kafka: memory 88% of limit; opensearch: memory 92% of limit; payment: stopped reporting metrics 200s ago while others still report: container may be stopped, crashed or removed, or only its metrics are missing; jaeger: memory grew 66% over the window",
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": null,
+    "message": null
+  }
+}

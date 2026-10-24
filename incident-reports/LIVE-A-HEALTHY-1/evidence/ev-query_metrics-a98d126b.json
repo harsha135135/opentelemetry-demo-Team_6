@@ -1,0 +1,23 @@
+{
+  "result": {
+    "status": "empty",
+    "evidence_id": "ev-query_metrics-a98d126b",
+    "tool": "query_metrics",
+    "source": "prometheus",
+    "service": "frontend",
+    "query": "{__name__=~\"container_uptime.*\",container_name=\"frontend\"}",
+    "window_start": "2026-10-24T04:21:00.112208Z",
+    "window_end": "2026-10-24T05:21:00.112208Z",
+    "collected_at": "2026-10-24T05:21:00.113294Z",
+    "value": {
+      "metric": "container_uptime",
+      "unit": "s"
+    },
+    "excerpt": null,
+    "trace_ids": [],
+    "log_ids": [],
+    "capture_ref": "/Users/harshamac/developer/bosch/opentelemetry-demo-Team_6/incident-agent/runs/LIVE-A-HEALTHY-1/evidence/ev-query_metrics-a98d126b.json",
+    "message": "no data in window (no traffic, no errors recorded, or metric not exported)"
+  },
+  "raw": "{\"status\": \"success\", \"data\": {\"resultType\": \"vector\", \"result\": []}}"
+}
