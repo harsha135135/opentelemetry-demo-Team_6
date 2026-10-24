@@ -33,6 +33,7 @@ MEM_PCT_FLAG = 85.0       # percent of the container memory limit
 MEM_GROWTH_FLAG = 0.15    # fractional growth over the window
 RESTART_CLUSTER_S = 90    # containers whose uptimes differ by less than this restarted "together"
 MAX_FLAGGED = 4
+SILENT_FLEET_FRAC = 0.8   # if this share of containers is silent, report a fleet/pipeline outage instead of per-container flags
 
 
 class ResourceArgs(BaseModel):
@@ -40,7 +41,8 @@ class ResourceArgs(BaseModel):
 
 
 DESCRIPTION = ("Fleet-wide container resources: CPU, memory %, memory growth and uptime per container, compared with the "
-               "fleet median and a prior window. Returns flagged anomalies to investigate (flags are not causes).")
+               "fleet median and a prior window, plus containers that reported in the last 60 minutes but have stopped "
+               "reporting (stopped, crashed or removed). Returns flagged anomalies to investigate (flags are not causes).")
 
 
 def _instant(client: httpx.Client, promql: str) -> dict[str, float]:
@@ -61,8 +63,10 @@ def _instant(client: httpx.Client, promql: str) -> dict[str, float]:
     return out
 
 
-def analyse(cpu: dict, cpu_base: dict, mem: dict, mem_growth: dict, uptime: dict) -> dict[str, Any]:
+def analyse(cpu: dict, cpu_base: dict, mem: dict, mem_growth: dict, uptime: dict,
+            last_seen_age: dict | None = None) -> dict[str, Any]:
     """Pure function: build per-container rows, fleet baselines and flagged anomalies."""
+    last_seen_age = last_seen_age or {}
     names = sorted(set(cpu) | set(mem) | set(uptime))
     med_cpu = statistics.median(cpu.values()) if cpu else None
     med_up = statistics.median(uptime.values()) if uptime else None
@@ -98,9 +102,23 @@ def analyse(cpu: dict, cpu_base: dict, mem: dict, mem_growth: dict, uptime: dict
         for n in c["containers"]:
             if not any(f["container"] == n for f in flagged):
                 flagged.append({"container": n, "reasons": [f"restarted recently (uptime {uptime[n]:.0f}s vs fleet median {med_up:.0f}s)"], "severity": 1})
+    silent = {n: a for n, a in last_seen_age.items() if a > telemetry.SILENT_AFTER_S}
+    seen = set(last_seen_age) | set(names)
+    silence = None
+    if silent and len(silent) >= SILENT_FLEET_FRAC * len(seen):
+        silence = {"silent_containers": len(silent), "seen_containers": len(seen),
+                   "last_sample_age_s": round(min(silent.values())),
+                   "note": "Nearly every container stopped reporting at once: the whole stack is down or the telemetry "
+                           "pipeline (collector/exporter) is broken. Metrics alone cannot tell which; check traces and logs."}
+    else:
+        for n, a in sorted(silent.items(), key=lambda kv: kv[1]):
+            flagged.append({"container": n, "kind": "silent", "severity": 3, "reasons": [
+                f"stopped reporting metrics {a:.0f}s ago while others still report: container may be stopped, crashed "
+                "or removed, or only its metrics are missing"]})
     flagged.sort(key=lambda f: -f["severity"])
     return {"fleet": {"cpu_median_pct": med_cpu, "uptime_median_s": med_up, "containers": len(names)},
             "flagged": flagged[:MAX_FLAGGED], "flagged_total": len(flagged), "restart_clusters": restart_clusters,
+            "telemetry_silence": silence,
             "note": "Flags are anomalies to investigate, not proven causes. High CPU may be effect or load; clustered restarts may be a cause, a side effect or environmental.",
             "containers": rows}
 
@@ -115,6 +133,7 @@ def resource_overview(window_minutes: int = 5) -> ToolResult:
         "mem": f"{MEM}",
         "mem_growth": f"deriv({MEM_BYTES}[{w}m]) * {w * 60} / {MEM_BYTES}",
         "uptime": f"{UP}",
+        "last_seen_age": f"time() - max_over_time(timestamp({UP})[60m:30s])",
     }
     eid = f"ev-resource_overview-{uuid.uuid4().hex[:8]}"
     desc = "; ".join(f"{k}: {v}" for k, v in queries.items())
@@ -142,10 +161,12 @@ def resource_overview(window_minutes: int = 5) -> ToolResult:
     for d in data.values():
         for ex in telemetry.EXCLUDED_SERVICES:
             d.pop(ex, None)
-    if not data["cpu"] and not data["mem"] and not data["uptime"]:
-        return build(ToolStatus.EMPTY, message="no container resource metrics in window (docker_stats not reporting?)")
-    value = analyse(data["cpu"], data["cpu_prior"], data["mem"], data["mem_growth"], data["uptime"])
+    if not data["cpu"] and not data["mem"] and not data["uptime"] and not data["last_seen_age"]:
+        return build(ToolStatus.EMPTY, message="no container resource metrics in the last 60 minutes (docker_stats not reporting?)")
+    value = analyse(data["cpu"], data["cpu_prior"], data["mem"], data["mem_growth"], data["uptime"], data["last_seen_age"])
     if not data["cpu_prior"]:
         value["baseline_note"] = "no prior-window CPU data available; CPU judged against the fleet median only"
-    return build(ToolStatus.OK, value=value,
-                 excerpt="; ".join(f"{f['container']}: {', '.join(f['reasons'])}" for f in value["flagged"])[:300] or None)
+    excerpt = "; ".join(f"{f['container']}: {', '.join(f['reasons'])}" for f in value["flagged"])[:300] or None
+    if value["telemetry_silence"]:
+        excerpt = value["telemetry_silence"]["note"]
+    return build(ToolStatus.OK, value=value, excerpt=excerpt)

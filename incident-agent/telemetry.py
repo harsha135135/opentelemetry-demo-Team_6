@@ -62,6 +62,7 @@ MAX_ITEMS = 20            # max traces / log lines returned to the model
 EXCERPT_CHARS = 300       # max chars per log body / error message
 MAX_LLM_CHARS = 3500      # max chars of one result shown to the model
 INVENTORY_TTL_S = 60
+SILENT_AFTER_S = 150      # a container whose last metric sample is older than this has stopped reporting
 
 EXCLUDED_SERVICES = {"flagd", "flagd-ui"}   # flag state is out of bounds
 _FLAG_PATTERN = re.compile(r"feature[_.]?flag|flagd|openfeature", re.IGNORECASE)
@@ -270,10 +271,13 @@ METRIC_TEMPLATES: dict[str, tuple[str, str, str]] = {
     "container_memory_trend": ('deriv({__name__=~"container_memory_usage_total.*",container_name="{s}"}[{w}m])',
                                "bytes/s (positive = growing)", ""),
     "container_uptime": ('{__name__=~"container_uptime.*",container_name="{s}"}', "s", ""),
+    # Seconds since the container last reported uptime within 60m; large = stopped, crashed, removed or pipeline gap.
+    "container_last_seen_age_s": ('time() - max_over_time(timestamp({__name__=~"container_uptime.*",container_name="{s}"})[60m:30s])',
+                                  "s since last sample", ""),
 }
 MetricName = Literal[
     "request_rate", "error_rate", "errors_by_operation", "p95_latency_ms", "p95_latency_by_operation",
-    "container_cpu", "container_memory", "container_memory_trend", "container_uptime",
+    "container_cpu", "container_memory", "container_memory_trend", "container_uptime", "container_last_seen_age_s",
 ]
 
 
@@ -355,7 +359,7 @@ def overview(window_minutes: int = 5) -> ToolResult:
 
 
 # --------------------------------------------------------------------------
-# TRACES (Jaeger v3 API, through the frontend proxy)
+# TRACES (Jaeger v3 API; JAEGER_URL may be the direct query port or the frontend proxy)
 # --------------------------------------------------------------------------
 _SAFE_ATTR = re.compile(r"^(http\.|rpc\.|db\.|server\.|peer\.|error\.|net\.|network\.|url\.|exception\.)")
 
@@ -622,7 +626,7 @@ def service_health(service: str, window_minutes: int = 5) -> ToolResult:
     service = validate_service(service)
     start, end = _window(window_minutes, minimum=2)
     parts = ["request_rate", "error_rate", "p95_latency_ms", "container_cpu",
-             "container_memory", "container_memory_trend", "container_uptime"]
+             "container_memory", "container_memory_trend", "container_uptime", "container_last_seen_age_s"]
     summary, refs, statuses = {}, [], set()
     for m in parts:
         r = query_metrics(service, m, window_minutes)
@@ -632,6 +636,9 @@ def service_health(service: str, window_minutes: int = 5) -> ToolResult:
     uptime = summary.get("container_uptime")
     if isinstance(uptime, (int, float)):
         summary["recently_restarted"] = uptime < window_minutes * 60
+    age = summary.get("container_last_seen_age_s")
+    if isinstance(age, (int, float)):
+        summary["stopped_reporting"] = age > SILENT_AFTER_S
     if statuses == {ToolStatus.UNAVAILABLE}:
         status = ToolStatus.UNAVAILABLE
     elif ToolStatus.OK in statuses:

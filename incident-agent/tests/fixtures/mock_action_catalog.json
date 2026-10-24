@@ -1,0 +1,38 @@
+{
+  "provenance": "mock",
+  "description": "MOCK catalog for tests and dry-run demonstrations only. NOT the organiser's Action API contract; live dispatch refuses it.",
+  "base_url_env": "MOCK_ACTION_API_URL",
+  "timeout_s": 5,
+  "operations": [
+    {
+      "name": "restart_service",
+      "description": "Restart one service container.",
+      "method": "POST",
+      "path": "/actions/restart",
+      "target_kind": "service",
+      "target_field": "service",
+      "allowed_targets": ["ad", "cart", "checkout", "currency", "email", "frontend", "payment", "product-catalog",
+                          "quote", "recommendation", "shipping", "valkey-cart"],
+      "parameters": {"grace_period_seconds": {"type": "integer", "minimum": 0, "maximum": 60, "default": 10}},
+      "risk": "In-flight requests to the service fail during the restart.",
+      "reversible": false,
+      "idempotent": false,
+      "expected_effect": "Container restarts and resumes reporting; errors caused by a hung or crashed process clear."
+    },
+    {
+      "name": "set_load_generator_users",
+      "description": "Change the number of simulated users of the load generator.",
+      "method": "POST",
+      "path": "/actions/loadgen/users",
+      "target_kind": "none",
+      "parameters": {"users": {"type": "integer", "minimum": 0, "maximum": 200}},
+      "required": ["users"],
+      "risk": "Lower load hides capacity problems instead of fixing them.",
+      "reversible": true,
+      "rollback": "set_load_generator_users back to the previous user count",
+      "idempotent": true,
+      "reduces_load": true,
+      "expected_effect": "Request rate and resource pressure drop."
+    }
+  ]
+}

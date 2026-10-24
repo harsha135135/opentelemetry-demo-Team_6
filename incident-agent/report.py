@@ -18,6 +18,10 @@ class ReportGenerator:
             for eid in self.report.diagnosis.conflicting_evidence_ids:
                 if eid not in known_evidence_ids:
                     errors.append(f"Diagnosis cites unknown conflicting evidence ID: {eid}")
+        for p in self.report.proposals:
+            for eid in p.supporting_evidence_ids:
+                if eid not in known_evidence_ids:
+                    errors.append(f"Proposal cites unknown evidence ID: {eid}")
         if self.report.verification:
             for eid in self.report.verification.baseline_evidence_ids:
                 if eid not in known_evidence_ids:
@@ -34,6 +38,8 @@ class ReportGenerator:
             f"# Incident Response Report: {inc.id}",
             "",
             f"**Status**: `{rep.status.value}`  ",
+            f"**Remediation Outcome**: `{rep.remediation_outcome or 'not attempted'}`"
+            + (f" (mode: `{rep.execution_mode}`)" if rep.execution_mode else "") + "  ",
             f"**Affected Service**: `{inc.affected_service or 'Unknown'}`  ",
             f"**Detection Time (UTC)**: `{inc.detection_time.isoformat()}`  ",
             f"**Observation Window**: `{inc.observation_window.start_time.isoformat()}` to `{inc.observation_window.end_time.isoformat()}`",
@@ -68,6 +74,15 @@ class ReportGenerator:
                 capture = f"`{ev.local_capture_reference}`" if ev.local_capture_reference else "-"
                 svc_name = ev.service or "-"
                 lines.append(f"| `{ev.evidence_id}` | `{ev.source}` | `{svc_name}` | `{ev.status.value}` | `{ev.tool}: {ev.query}` | {val_snippet} ({capture}) |")
+            nav = []
+            try:
+                from endpoints import evidence_links
+                for ev in rep.evidence:
+                    nav += [f"- `{ev.evidence_id}`: <{u}>" for u in evidence_links(ev)]
+            except ImportError:  # pragma: no cover
+                pass
+            if nav:
+                lines.extend(["", "**Navigate to the evidence** (backend URLs from the operator's .env):", *nav])
         else:
             lines.append("No evidence captured.")
 
@@ -102,6 +117,8 @@ class ReportGenerator:
                 lines.append(f"- **Reason & Risk**: {p.reason} | Risk: {p.risk}")
                 lines.append(f"- **Expected Effect**: {p.expected_effect}")
                 lines.append(f"- **Verification Plan**: {p.verification_plan}")
+                lines.append(f"- **Supporting Evidence**: {', '.join(f'`{e}`' for e in p.supporting_evidence_ids) or 'None'}")
+                lines.append(f"- **Rollback**: {p.rollback or 'none documented'} | Catalog provenance: `{p.catalog_provenance or '-'}`")
         else:
             lines.append("No remediation actions proposed.")
 
@@ -109,7 +126,13 @@ class ReportGenerator:
             app = rep.approval
             lines.append("")
             lines.append(f"**Human Approval**: Decision `{app.decision}` by `{app.approver}` (Digest: `{app.proposal_digest[:16]}...`)")
-            lines.append(f"- Outcome: `{app.outcome}` | Dispatch: `{app.dispatch_time.isoformat() if app.dispatch_time else 'None'}`")
+            lines.append(f"- Outcome: `{app.outcome}` | Dispatch: `{app.dispatch_time.isoformat() if app.dispatch_time else 'None'}`"
+                         f" | Request ID: `{app.request_id or '-'}`")
+            if app.response:
+                lines.append(f"- Action API response: `{json.dumps(app.response, default=str)[:300]}`")
+        if rep.escalation_reason:
+            lines.append("")
+            lines.append(f"**Escalation**: {rep.escalation_reason}")
 
         lines.extend([
             "",

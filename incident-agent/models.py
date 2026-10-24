@@ -95,6 +95,10 @@ class ActionProposal(BaseModel):
     risk: str
     expected_effect: str
     verification_plan: str
+    supporting_evidence_ids: List[str] = Field(default_factory=list)
+    rollback: Optional[str] = None
+    catalog_provenance: Optional[str] = None  # "organiser" or "mock"; mock catalogs never reach a live dispatch
+    verification_checks: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class Approval(BaseModel):
@@ -136,3 +140,6 @@ class IncidentReport(BaseModel):
     approval: Optional[Approval] = None
     verification: Optional[Verification] = None
     limitations: List[str] = Field(default_factory=list)
+    remediation_outcome: Optional[str] = None  # VERIFIED_RECOVERY, PARTIAL_RECOVERY, NOT_RECOVERED, ACTION_FAILED, UNVERIFIED, ESCALATED, DRY_RUN
+    execution_mode: Optional[Literal["dry_run", "live"]] = None
+    escalation_reason: Optional[str] = None

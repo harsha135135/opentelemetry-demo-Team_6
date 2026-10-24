@@ -36,6 +36,7 @@ class InvestigationConfig(BaseModel):
     tool_worst_case_s: float = 25  # composite tools make several backend requests
     max_repairs: int = 1
     max_follow_up_nudges: int = 1
+    max_diagnosis_corrections: int = 1
 
 
 @dataclass
@@ -91,6 +92,7 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
     status, terminal_reason, diagnosis = IncidentStatus.INCONCLUSIVE, "unknown", None
     repairs = 0
     nudges = 0
+    corrections = 0
     rejection: str | None = None
     rejected_diag_errors: list[str] = []
     try:
@@ -144,6 +146,14 @@ def investigate(incident: Incident, config: InvestigationConfig, deps: Dependenc
                     status, terminal_reason = IncidentStatus.DIAGNOSED, "diagnosed"
                     log(IncidentStatus.DIAGNOSED, f"Diagnosis validated: {decision.diagnosis.suspected_component}")
                 else:
+                    if corrections < config.max_diagnosis_corrections and models_left > 1:
+                        corrections += 1
+                        rejection = ("Diagnosis not accepted by evidence validation: " + "; ".join(result.errors) +
+                                     ". Fix it using only captured evidence: cite ok evidence whose service, query or values "
+                                     "name the component, collect that evidence first if needed, or call inconclusive.")
+                        log(IncidentStatus.INVESTIGATING, "Diagnosis returned for one bounded correction",
+                            errors=result.errors, rejected=decision.diagnosis.model_dump(mode="json"))
+                        continue
                     rejected_diag_errors = result.errors
                     status, terminal_reason = IncidentStatus.INCONCLUSIVE, "diagnosis_rejected"
                     limitations.append("Model diagnosis rejected by validation: " + "; ".join(result.errors))
@@ -229,7 +239,9 @@ def anomaly_follow_up(registry: EvidenceRegistry, diagnosis) -> tuple[list[str],
             continue
         for flag in (ev.observed_value.get("value") or {}).get("flagged", []):
             svc = flag["container"]
-            follow = [e for e in items[i + 1:] if e.service == svc and e.tool in FOLLOW_UP_TOOLS and e.status.value == "ok"]
+            # A silent container is expected to return empty follow-up data; that emptiness is the confirmation.
+            accepted = {"ok", "empty"} if flag.get("kind") == "silent" else {"ok"}
+            follow = [e for e in items[i + 1:] if e.service == svc and e.tool in FOLLOW_UP_TOOLS and e.status.value in accepted]
             if not follow:
                 if svc not in unresolved:
                     unresolved.append(svc)
