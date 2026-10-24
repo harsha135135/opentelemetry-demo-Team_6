@@ -534,7 +534,11 @@ def cmd_watch(args, catalog, client) -> int:
                              alerts=[a.as_dict() for a in firing])
             except Exception as exc:  # noqa: BLE001 - one failed incident must not stop the watcher
                 print(f"[watch] incident {incident_id} failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
-            det.handled([a.service for a in firing] + ([service] if service else []))
+            try:  # mute everything breaching now too: one fault spreads to callers and must not open more incidents
+                spread = [a.service for a in detector.evaluate(detector.fetch())]
+            except Exception:  # noqa: BLE001
+                spread = []
+            det.handled([a.service for a in firing] + spread + ([service] if service else []))
             handled += 1
             if args.max_incidents and handled >= args.max_incidents:
                 return 0

@@ -195,3 +195,26 @@ def test_grafana_shows_alert_with_query_link(tmp_path):
     text = grafana_dash.root_cause_dashboard(rep)["panels"][0]["options"]["content"]
     assert "Alert that opened this incident" in text and "alert query" in text and "/grafana/explore?" in text
     assert grafana_dash.approval_page(rep) is None
+
+
+def test_watch_fires_once_runs_full_pipeline_and_mutes_spread(monkeypatch, tmp_path):
+    import cli
+    import telemetry
+
+    stop = detector.Alert("payment", "stopped", 400, 150, "container payment stopped", detector.promql_for("stopped", "payment"))
+    spread = detector.Alert("checkout", "error_rate", 0.4, 0.05, "error rate 40%", detector.promql_for("error_rate", "checkout"))
+    checks = iter([[], [stop], [stop], [stop, spread]])
+    monkeypatch.setattr(detector, "fetch", lambda: {})
+    monkeypatch.setattr(detector, "evaluate", lambda _: next(checks))
+    monkeypatch.setattr(telemetry, "service_inventory", lambda refresh=False: ["checkout", "frontend"])
+    monkeypatch.setattr(cli.time, "sleep", lambda _: None)
+    runs = []
+    monkeypatch.setattr(cli, "run_incident", lambda args, iid, symptom, service, source, catalog, client, alerts=None:
+                        runs.append((iid, symptom, service, source, alerts)) or 0)
+    args = cli.build_parser().parse_args(["watch", "--model", "m", "--execute", "--max-incidents", "1", "--out", str(tmp_path)])
+    assert args.respond and args.action_api and args.grafana and args.approval_channel == "page"
+    assert cli.cmd_watch(args, None, None) == 0
+    [(iid, symptom, service, source, alerts)] = runs
+    assert iid.startswith("AUTO-payment-") and "ALERT" in symptom and "payment" in symptom
+    assert service is None and source == "alert-watcher"  # payment is not in the span inventory: no affected service
+    assert alerts == [stop.as_dict()]

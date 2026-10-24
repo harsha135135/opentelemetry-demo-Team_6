@@ -101,8 +101,8 @@ Then only use the browser:
    report and republishes the dashboards.
 
 Breaches already present when the watcher starts stay muted until they clear. A service from a handled incident
-stays muted until it has been healthy for 3 checks. `cli.py watch --once` prints the current breaches. Without
-`--execute`, approved actions are only validated (dry-run).
+stays muted until it has been healthy for 3 checks. `cli.py watch --once` prints the current breaches. The hands-free demo needs
+`--execute`: without it, the run is a dry-run and the approval is asked at the terminal prompt instead of on the page.
 
 **Read-only investigation** (one terminal; no Action API needed):
 
