@@ -256,7 +256,7 @@ def request_approval(summary: str, digest: str, *, approver: str, ttl_s: float, 
         answer = input_fn("> ").strip()
     except (EOFError, KeyboardInterrupt):
         answer = ""
-    if clock() - started > ttl_s:
+    if clock() - started >= ttl_s:
         return Approval(proposal_digest=digest, decision="expired", approver=approver, expiry=expiry)
     decision = "approved" if answer == f"approve {code}" else "rejected"
     return Approval(proposal_digest=digest, decision=decision, approver=approver, expiry=expiry)

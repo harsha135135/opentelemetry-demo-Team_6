@@ -71,6 +71,7 @@ def test_success_records_request_id_and_sends_exact_body(api_url):
     def handler(req):
         seen.append(req)
         return httpx.Response(202, json={"request_id": "r-9", "status": "accepted"})
+
     res = _client(handler).execute(RESTART, "cart", {"grace_period_seconds": 5}, "INC-1-abc")
     assert res.outcome == "success" and res.request_id == "r-9"
     assert json.loads(seen[0].content) == {"grace_period_seconds": 5, "service": "cart"}
@@ -88,7 +89,8 @@ def test_timeout_after_send_is_unknown_and_not_retried(api_url):
     def handler(req):
         n.append(1)
         raise httpx.ReadTimeout("slow", request=req)
-    res = _client(handler).execute(LOAD, None, {"users": 1}, "k")  # idempotent op still not retried after sending
+
+    res = _client(handler).execute(LOAD, None, {"users": 1}, "k")
     assert res.outcome == "unknown" and len(n) == 1
 
 
@@ -99,7 +101,13 @@ def test_connect_error_retried_only_for_idempotent(api_url):
         def handler(req):
             n.append(1)
             raise httpx.ConnectError("down", request=req)
-        assert _client(handler).execute(op, None if op is LOAD else "cart", {"users": 1} if op is LOAD else {}, "k").outcome == "failed"
+
+        assert _client(handler).execute(
+            op,
+            None if op is LOAD else "cart",
+            {"users": 1} if op is LOAD else {},
+            "k",
+        ).outcome == "failed"
         assert len(n) == expected
 
 
@@ -173,6 +181,7 @@ def test_approval_requires_exact_code_and_expires():
     digest = "abcdef0123456789" * 4
     ok = request_approval("s", digest, approver="h", ttl_s=60, input_fn=lambda p: "approve abcdef01", interactive=True, print_fn=lambda s: None)
     assert ok.decision == "approved" and ok.proposal_digest == digest
+
     t = iter([0.0, 500.0])
     late = request_approval("s", digest, approver="h", ttl_s=60, input_fn=lambda p: "approve abcdef01", interactive=True,
                             print_fn=lambda s: None, clock=lambda: next(t))
@@ -180,7 +189,26 @@ def test_approval_requires_exact_code_and_expires():
 
     def interrupted(_):
         raise KeyboardInterrupt
+
     assert request_approval("s", digest, approver="h", ttl_s=60, input_fn=interrupted, interactive=True, print_fn=lambda s: None).decision == "rejected"
+
+
+def test_approval_at_exact_expiry_boundary_is_expired():
+    digest = "abcdef0123456789" * 4
+    times = iter([0.0, 60.0])
+
+    result = request_approval(
+        "s",
+        digest,
+        approver="h",
+        ttl_s=60,
+        input_fn=lambda prompt: "approve abcdef01",
+        interactive=True,
+        print_fn=lambda message: None,
+        clock=lambda: next(times),
+    )
+
+    assert result.decision == "expired"
 
 
 def test_kill_switch_env_and_file(tmp_path, monkeypatch):
@@ -214,7 +242,7 @@ def test_empty_follow_up_resolves_a_silent_flag(tmp_path):
     assert anomaly_follow_up(reg, rep.diagnosis) == ([], [])
 
 
-# ---- bounded diagnosis correction (fix for the smoke-test INCONCLUSIVE)
+# ---- bounded diagnosis correction
 def test_unsupported_component_gets_one_correction_then_succeeds(tmp_path):
     tel = Telemetry(tmp_path, {("search_traces", "cart"): ("ok", {"origin": "cart"}, {})})
     wrong = finish_citing("redis", "cache problem", ["search_traces"])
@@ -247,6 +275,7 @@ def test_discover_parses_docker_port_output():
     class R:
         def __init__(self, out):
             self.stdout = out
+
     outs = {"opensearch": "0.0.0.0:62208\n[::]:62208\n", "jaeger": "0.0.0.0:62205\n"}
     found = endpoints.discover(run=lambda cmd, **kw: R(outs.get(cmd[2], "")))
     assert found == {"OPENSEARCH_URL": "http://localhost:62208", "JAEGER_URL": "http://localhost:62205"}
