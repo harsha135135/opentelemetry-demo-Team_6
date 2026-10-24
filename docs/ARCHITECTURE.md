@@ -6,7 +6,8 @@ or report schema was supplied, so both are team-defined.
 
 ```mermaid
 flowchart LR
-    A[Alert / operator CLI] --> O[Orchestrator<br/>budgets, state, evidence registry]
+    W[Alert watcher<br/>cli.py watch, polls Prometheus] --> O
+    A[Operator CLI] --> O[Orchestrator<br/>budgets, state, evidence registry]
     O <--> L[Claude investigator<br/>read-only tools only]
     L --> T[Telemetry tools]
     T --> P[(Prometheus)] & J[(Jaeger)] & S[(OpenSearch)]
@@ -15,7 +16,7 @@ flowchart LR
     V1 --> PL[Claude planner<br/>propose_action or escalate]
     PL --> POL[Deterministic policy<br/>allowlist, args, target = diagnosis,<br/>evidence, confidence, baseline]
     POL --> KS{Kill switch}
-    KS --> AP[Human approval<br/>types one-time code]
+    KS --> AP[Human approval<br/>one-time code on the approval page<br/>or at the agent prompt]
     AP --> API[Team Action API<br/>auth, digest-bound approval,<br/>idempotency, audit]
     API --> EX[Executor: docker restart<br/>allowlisted containers only]
     EX --> VR[Verification<br/>fresh metrics vs baseline]
@@ -27,6 +28,8 @@ flowchart LR
 | Component | File(s) | Role |
 | --- | --- | --- |
 | CLI and orchestrator | `cli.py`, `orchestrator.py` | One incident at a time: state, budgets, tool dispatch, evidence registry |
+| Alert watcher | `detector.py`, `cli.py watch` | Polls Prometheus for a stopped container, CPU, error-rate and p95 breaches. Each breach must hold for 2 checks in a row. Pre-existing and already-handled services stay muted until healthy. An alert starts the full pipeline. |
+| Approval page | `approval_ui.py`, served by the Action API at `/ui` | Shows the exact payload JSON. Approving needs the console code, and there is no approve endpoint under `/v1`. The page checks the Host and Origin headers and carries a form token. |
 | Investigator (LLM) | `reasoning.py` | Claude with tool calling. Tool results are wrapped as untrusted data. |
 | Telemetry tools | `telemetry.py`, `resources.py`, `state_tool.py` | Fixed query templates, validated service names, windows of at most 60 min, evidence saved to disk |
 | Evidence validator | `guardrails.py` | Checks each diagnosis against the captured evidence |
@@ -78,7 +81,7 @@ The model never sees feature-flag state, fault configuration or evaluator data.
 | Control | How it works |
 | --- | --- |
 | No direct mutation | The LLM has no state-changing tool. Only the Action API can restart a container: fixed argv, allowlist, compose-label identity check, hard-deny list (flagd, load-generator, collector, observability). |
-| Approval gate | A single-use code bound to the SHA-256 of the exact action, printed on **the Action API console only**. The human types `approve XXXX-XXXX` and the server verifies it. An incomplete answer gets a hint and up to 3 prompts; an empty line rejects. The TTL defaults to 120 s, 5 wrong codes lock it on the server, and any change voids it. Non-interactive sessions are rejected. |
+| Approval gate | A single-use code bound to the SHA-256 of the exact action, printed on **the Action API console only**. The human types `approve XXXX-XXXX` at the agent prompt, or enters the code on the approval page; either way the server verifies it. With the page, the agent only polls the approval status and never handles the code. An incomplete answer gets a hint and up to 3 prompts; an empty line rejects. The TTL defaults to 120 s, 5 wrong codes lock it on the server, and any change voids it. Non-interactive sessions are rejected. |
 | Kill switch | `cli.py kill-switch on` (the `incident-agent/KILL_SWITCH` file) or `INCIDENT_AGENT_KILL_SWITCH=1`. The agent checks it before approval and dispatch; the server checks it at execute and in its worker. |
 | Dry-run default | Nothing is executed without `--execute`. Dry-run asks the server only to validate. |
 | One action per incident | The agent journal and the server both enforce it. Idempotency keys are used, and unknown outcomes are never retried. |

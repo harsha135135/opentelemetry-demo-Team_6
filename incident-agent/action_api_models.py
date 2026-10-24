@@ -74,6 +74,7 @@ class ErrorCode(str, Enum):
     APPROVAL_REJECTED = "APPROVAL_REJECTED"
     APPROVAL_LOCKED = "APPROVAL_LOCKED"
     APPROVAL_CODE_INVALID = "APPROVAL_CODE_INVALID"
+    APPROVAL_NOT_GRANTED = "APPROVAL_NOT_GRANTED"
     PAYLOAD_MISMATCH = "PAYLOAD_MISMATCH"
     IDEMPOTENCY_CONFLICT = "IDEMPOTENCY_CONFLICT"
     INCIDENT_ACTION_EXISTS = "INCIDENT_ACTION_EXISTS"
@@ -119,7 +120,7 @@ class ApprovalCreateRequest(_Strict):
     ttl_seconds: int = Field(120, ge=30, le=300)
 
 
-ApprovalStatus = Literal["pending", "consumed", "rejected", "expired", "locked"]
+ApprovalStatus = Literal["pending", "approved", "consumed", "rejected", "expired", "locked"]
 
 
 class Approval(_Strict):
@@ -135,6 +136,8 @@ class Approval(_Strict):
     expires_at: datetime
     failed_attempts: int = 0
     code_delivery: Literal["action-api-console"] = "action-api-console"
+    approved_by: Optional[str] = Field(None, description="set when a human entered the code on the approval page")
+    approval_page: Optional[str] = Field(None, description="path of the browser approval page on this server")
 
 
 class ApprovalRejectRequest(_Strict):
@@ -145,7 +148,8 @@ class ApprovalRejectRequest(_Strict):
 class ExecuteRequest(_Strict):
     payload: ActionPayload
     approval_id: str = Field(pattern=APPROVAL_ID)
-    approval_code: str = Field(pattern=APPROVAL_CODE)
+    approval_code: Optional[str] = Field(None, pattern=APPROVAL_CODE,
+                                         description="required unless a human already approved on the approval page")
     idempotency_key: str = Field(pattern=IDEMPOTENCY_KEY)
 
 

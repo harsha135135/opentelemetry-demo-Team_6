@@ -21,7 +21,7 @@ from remediation import Planner, PlannerOutputError
 from action_api_client import ActionApiError
 from safety import (
     AuditJournal, DispatchLock, Escalation, KillSwitch, PlannedAction, VerificationCheck, evaluate, proposal_digest,
-    request_approval, request_server_approval,
+    request_approval, request_server_approval, wait_for_page_approval,
 )
 import verify
 
@@ -41,6 +41,7 @@ VERIFICATION_RESULT = {
 class ResponseConfig(BaseModel):
     mode: Literal["dry_run", "live"] = "dry_run"
     approval_ttl_s: float = 120
+    approval_channel: Literal["terminal", "page"] = "terminal"  # page: the Action API's browser approval page
     max_planner_calls: int = 2
     settle_s: float = 120  # rate() windows must cover post-action time only
     interval_s: float = 30
@@ -67,6 +68,7 @@ class ResponseDeps:
     sleep: Callable[[float], None] = time.sleep
     clock: Callable[[], float] = time.monotonic
     notes: list[str] = field(default_factory=list)
+    on_stage: Optional[Callable[[str, IncidentReport], None]] = None  # e.g. publish the interim report to Grafana
 
 
 def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> IncidentReport:
@@ -83,6 +85,15 @@ def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> 
             deps.registry.register(ev)
         except EvidenceConflict as exc:
             limitations.append(f"Evidence rejected: {exc}")
+
+    def stage(name: str, status: IncidentStatus) -> None:
+        if deps.on_stage is None:
+            return
+        try:
+            deps.on_stage(name, report.model_copy(update={**upd, "status": status, "timeline": list(timeline),
+                                                          "limitations": list(limitations), "evidence": deps.registry.all()}))
+        except Exception as exc:  # noqa: BLE001 - publishing progress must never change the remediation
+            deps.print_fn(f"(progress update {name} not published: {type(exc).__name__}: {exc})")
 
     def finish(status: IncidentStatus, outcome: str, reason: Optional[str] = None) -> IncidentReport:
         if reason:
@@ -167,9 +178,19 @@ def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> 
                                 payload_digest=ticket.payload_digest)
             log(IncidentStatus.AWAITING_APPROVAL, f"Action API approval {ticket.approval_id} opened; code shown only on the Action API console",
                 payload_digest=ticket.payload_digest, expires_at=ticket.expires_at.isoformat())
-            approval, server_code = request_server_approval(summary, digest, ticket.approval_id, approver=deps.approver,
-                                                            ttl_s=cfg.approval_ttl_s, input_fn=deps.input_fn,
-                                                            interactive=deps.interactive, print_fn=deps.print_fn, clock=deps.clock)
+            if cfg.approval_channel == "page":
+                page = deps.client.approval_page_url(ticket)
+                log(IncidentStatus.AWAITING_APPROVAL, f"Approval page: {page}")
+                stage("awaiting_approval", IncidentStatus.AWAITING_APPROVAL)
+                approval = wait_for_page_approval(summary, digest, ticket.approval_id, status_fn=deps.client.approval_status,
+                                                  page_url=page, ttl_s=cfg.approval_ttl_s, print_fn=deps.print_fn,
+                                                  sleep=deps.sleep, clock=deps.clock)
+                server_code = None
+            else:
+                approval, server_code = request_server_approval(summary, digest, ticket.approval_id, approver=deps.approver,
+                                                                ttl_s=cfg.approval_ttl_s, input_fn=deps.input_fn,
+                                                                interactive=deps.interactive, print_fn=deps.print_fn,
+                                                                clock=deps.clock)
         else:
             approval = request_approval(summary, digest, approver=deps.approver, ttl_s=cfg.approval_ttl_s, input_fn=deps.input_fn,
                                         interactive=deps.interactive, print_fn=deps.print_fn, clock=deps.clock)
@@ -257,6 +278,7 @@ def respond(report: IncidentReport, cfg: ResponseConfig, deps: ResponseDeps) -> 
 
         # ---- bounded observation and independent verification
         log(IncidentStatus.VERIFYING, f"Observing for {cfg.settle_s + cfg.interval_s * (cfg.samples - 1):.0f}s")
+        stage("verifying", IncidentStatus.VERIFYING)
         deps.sleep(cfg.settle_s)
         samples, traffic, post_ids = [], [], []
         for i in range(cfg.samples):

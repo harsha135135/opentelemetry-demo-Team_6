@@ -87,9 +87,18 @@
   "additionalProperties": false,
   "properties": {
     "approval_code": {
-      "pattern": "^[A-Z2-9]{4}-?[A-Z2-9]{4}$",
-      "title": "Approval Code",
-      "type": "string"
+      "anyOf": [
+        {
+          "pattern": "^[A-Z2-9]{4}-?[A-Z2-9]{4}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "required unless a human already approved on the approval page",
+      "title": "Approval Code"
     },
     "approval_id": {
       "pattern": "^apr-[a-f0-9]{16}$",
@@ -108,7 +117,6 @@
   "required": [
     "payload",
     "approval_id",
-    "approval_code",
     "idempotency_key"
   ],
   "title": "ExecuteRequest",

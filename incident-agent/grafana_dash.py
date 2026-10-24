@@ -42,6 +42,7 @@ INDEX_UID = "iz-index"
 TAG = "incident-zero"
 JAEGER_UI = "http://localhost:8080/jaeger/ui"  # frontend-proxy, as in the Prometheus datasource's exemplar links
 APM_UID = "febljk0a32qyoa"
+ACTION_API_UI = os.getenv("ACTION_API_URL", "http://127.0.0.1:8787").rstrip("/")
 VERIFY_WINDOW_MIN = 2  # ResponseConfig.window_minutes, the window verification queried with
 MAX_EVIDENCE_PANELS = 36
 MAX_TRACE_PANELS = 4
@@ -496,7 +497,7 @@ def _evidence_panels(grid: _Grid, ev: Evidence, comp: Optional[str], seen: set[s
 def root_cause_dashboard(rep: IncidentReport) -> dict:
     rc, _ = dashboard_uids(rep.incident_id)
     comp, d, inc = _component(rep), rep.diagnosis, rep.incident
-    lines = [_nav(rep, "rc"), ""]
+    lines = [_nav(rep, "rc"), ""] + _pending_banner(rep)
     if d:
         lines += [f"## Root cause: {code(d.suspected_component)} · confidence {code(d.confidence_label.value)} (not calibrated)",
                   f"**Status** {code(rep.status.value)} · **Detected** {_utc(inc.detection_time)} UTC · "
@@ -517,7 +518,11 @@ def root_cause_dashboard(rep: IncidentReport) -> dict:
                   f"**Status** {code(rep.status.value)} · **Detected** {_utc(inc.detection_time)} UTC. The agent abstained "
                   "or its diagnosis failed validation, so no root cause is claimed.", ""]
         lines += [f"- {md(x, 300)}" for x in rep.limitations[:6]] + [""]
-    lines.append(f"**Reported symptom.** {md(inc.symptom, 400)}")
+    alerts = _alert_lines(rep)
+    if alerts:
+        lines += [f"**Alert that opened this incident** (source {code(inc.source, 40)}, {_utc(inc.detection_time)} UTC):", *alerts]
+    else:
+        lines.append(f"**Reported symptom.** {md(inc.symptom, 400)}")
     header = "\n".join(lines)
     grid = _Grid()
     grid.add(_text("Diagnosis", header), 24, _text_h(header))
@@ -567,6 +572,41 @@ def root_cause_dashboard(rep: IncidentReport) -> dict:
 _APPROVAL_ID = re.compile(r"\bapr-[a-f0-9]{16}\b")
 
 
+def _approval_id(rep: IncidentReport) -> Optional[str]:
+    return next((m.group(0) for t in rep.timeline for m in [_APPROVAL_ID.search(t.description)] if m), None)
+
+
+def approval_page(rep: IncidentReport) -> Optional[str]:
+    """Link to the Action API approval page while the incident waits for a human decision."""
+    aid = _approval_id(rep)
+    return f"{ACTION_API_UI}/ui/approvals/{aid}" if aid and rep.status == IncidentStatus.AWAITING_APPROVAL else None
+
+
+def _pending_banner(rep: IncidentReport) -> list[str]:
+    page = approval_page(rep)
+    if not page:
+        return []
+    return [f"### Waiting for your approval: [open the approval page]({page})",
+            "Check the exact Action API request below, then approve with the one-time code printed in the Action API "
+            "terminal, or reject. The agent runs nothing until then. Refresh this dashboard after deciding.", ""]
+
+
+def _alerts(rep: IncidentReport) -> list[dict]:
+    return next((t.metadata.get("alerts") or [] for t in rep.timeline if isinstance(t.metadata.get("alerts"), list)), [])
+
+
+def _alert_lines(rep: IncidentReport) -> list[str]:
+    tr = _time_range(rep)
+    out = []
+    for a in _alerts(rep)[:5]:
+        if not isinstance(a, dict) or not a.get("promql"):
+            continue
+        link = explore_url(PROM, [{"expr": str(a["promql"])[:500]}], tr)
+        out.append(f"- {code(a.get('service', '?'), 40)} {code(a.get('signal', '?'), 20)}: {md(a.get('detail', ''), 200)} "
+                   f"([alert query]({link}))")
+    return out
+
+
 def action_request_markdown(rep: IncidentReport) -> str:
     """The proposal as the exact team Action API ActionPayload (validated against its schema), with the server IDs."""
     from action_api_models import ActionPayload
@@ -583,8 +623,8 @@ def action_request_markdown(rep: IncidentReport) -> str:
     body = json.dumps(payload, indent=2, ensure_ascii=True).replace("`", "\\u0060")  # no fence breaking
     api = ("POST /v1/actions/execute on the **team-defined** Action API (not an organiser contract)"
            if p.catalog_provenance == "team" else f"catalog provenance {code(p.catalog_provenance or '-')}")
-    approval_id = next((m.group(0) for t in rep.timeline for m in [_APPROVAL_ID.search(t.description)] if m), None)
-    lines = [f"**Endpoint.** {api} · payload {valid}.", "", "```json", body, "```", ""]
+    approval_id = _approval_id(rep)
+    lines = _pending_banner(rep) + [f"**Endpoint.** {api} · payload {valid}.", "", "```json", body, "```", ""]
     if approval_id:
         lines.append(f"**Approval.** {code(approval_id)}: the one-time code was shown only on the Action API console.")
     if a and a.request_id:
@@ -598,7 +638,7 @@ def verification_dashboard(rep: IncidentReport) -> dict:
     _, ver = dashboard_uids(rep.incident_id)
     comp, p, a, v = _component(rep), (rep.proposals[0] if rep.proposals else None), rep.approval, rep.verification
     outcome = rep.remediation_outcome or "not requested"
-    lines = [_nav(rep, "ver"), "", f"## Outcome: {code(outcome)} · status {code(rep.status.value)}"
+    lines = [_nav(rep, "ver"), ""] + _pending_banner(rep) + [f"## Outcome: {code(outcome)} · status {code(rep.status.value)}"
              + (f" · mode {code(rep.execution_mode)}" if rep.execution_mode else ""), ""]
     if not p:
         reason = rep.escalation_reason or ("Investigation only: remediation was not requested (run without --respond)."
@@ -663,7 +703,8 @@ def verification_dashboard(rep: IncidentReport) -> dict:
 
 
 def _index_links(r: IncidentReport, rc: str, ver: str) -> str:
-    links = [f"[Root cause](/grafana/d/{rc})", f"[Verification](/grafana/d/{ver})"]
+    page = approval_page(r)
+    links = ([f"[**Approve or reject**]({page})"] if page else []) + [f"[Root cause](/grafana/d/{rc})", f"[Verification](/grafana/d/{ver})"]
     if r.proposals:
         links.append(f"[Action API request](/grafana/d/{ver})")
     comp = _component(r)
@@ -694,7 +735,8 @@ def index_dashboard(reports: list[IncidentReport]) -> dict:
         action = f"{code(r.remediation_outcome or 'not requested')}" + (
             f" {code(r.proposals[0].action)} → {code(r.proposals[0].target_service)}" if r.proposals else "")
         verified = code(r.verification.result.value) if r.verification else "not run"
-        rows.append(f"| **{md(r.incident_id, 60)}** | {_utc(r.incident.detection_time, '%m-%d %H:%M')} | {code(r.status.value)} | "
+        src = " (alert)" if _alerts(r) else ""
+        rows.append(f"| **{md(r.incident_id, 60)}**{src} | {_utc(r.incident.detection_time, '%m-%d %H:%M')} | {code(r.status.value)} | "
                     f"{cause} | {action} | {verified} | {_index_links(r, rc, ver)} |")
         if d:
             faults.setdefault(d.suspected_component, []).append(
@@ -714,6 +756,14 @@ def index_dashboard(reports: list[IncidentReport]) -> dict:
     by_fault = "\n".join(["### Faults by root-cause component"] + (
         [f"- {code(c, 40)}: " + "; ".join(xs) for c, xs in sorted(faults.items())] or ["- No accepted diagnosis yet."]))
     grid = _Grid()
+    pending = [r for r in reports if approval_page(r)]
+    if pending:
+        waiting = "\n".join(["## Waiting for human approval"] + [
+            f"- **{md(r.incident_id, 60)}**: {code(r.proposals[0].action) if r.proposals else ''} → "
+            f"{code(r.proposals[0].target_service) if r.proposals else ''} · [**Approve or reject**]({approval_page(r)}) · "
+            f"[Action API request](/grafana/d/{dashboard_uids(r.incident_id)[1]}) · "
+            f"[Root cause and evidence](/grafana/d/{dashboard_uids(r.incident_id)[0]})" for r in pending])
+        grid.add(_text("Approvals", waiting), 24, _text_h(waiting))
     grid.add(_text("How to use", intro), 24, _text_h(intro))
     table = "\n".join(rows) if reports else "No incident reports found."
     grid.add(_text("Incidents (newest first)", table), 24, _text_h(table, 85))

@@ -15,7 +15,7 @@ live read-only runs and live remediation separate. Results in this note come fro
 | Item | Value |
 | --- | --- |
 | Command | `cd incident-agent && .venv/bin/python -m pytest -q tests` |
-| Result | **220 passed** on 24 Oct 2026 (after the CPU-metric fix, the restart guard and the Grafana navigation). Re-run and update this line before submission. |
+| Result | **229 passed** on 24 Oct 2026 (after the CPU-metric fix, the restart guard, the Grafana navigation, the alert watcher and the browser approval page). Re-run and update this line before submission. |
 | Files | `test_orchestration.py`, `test_safety.py`, `test_scenarios.py`, `test_action_api.py`, `test_telemetry.py`, `test_report.py` |
 | Scope | Budgets and loop termination; evidence validation and the bounded correction; policy refusals; approval rejection, expiry, replay and payload mismatch; the kill switch; idempotency; unknown outcomes; verification outcomes; prompt-injection text in telemetry. Action API scenarios A–J run against a real HTTP server on 127.0.0.1 with a fake Docker runner, plus a test that the schemas and OpenAPI file don't drift from the models. |
 

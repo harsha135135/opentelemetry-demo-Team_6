@@ -1,7 +1,8 @@
 """Agent-side client for the team Action API. Deterministic code only; never offered to the LLM.
 
 Live execution needs a server-issued approval: the agent opens an approval for the exact payload, the human reads the
-one-time code on the Action API console and types it into the agent prompt, and the server verifies it.
+one-time code on the Action API console and types it into the agent prompt or onto the server's approval page, and the
+server verifies it. With the page, the agent only polls the approval status and never handles the code.
 """
 from __future__ import annotations
 
@@ -77,10 +78,16 @@ class TeamActionApiClient:
                 "ttl_seconds": int(min(300, max(30, ttl_s)))}
         return Approval.model_validate(self._call("POST", "/v1/approvals", body)[1])
 
+    def approval_status(self, approval_id: str) -> Approval:
+        return Approval.model_validate(self._call("GET", f"/v1/approvals/{approval_id}")[1])
+
+    def approval_page_url(self, approval: Approval) -> str:
+        return f"{self.base_url}{approval.approval_page or '/ui/approvals/' + approval.approval_id}"
+
     def reject_approval(self, approval_id: str, by: str, reason: str) -> None:
         self._call("POST", f"/v1/approvals/{approval_id}/reject", {"rejected_by": by[:80] or "operator", "reason": reason[:500]})
 
-    def execute_approved(self, payload: ActionPayload, approval_id: str, code: str, idempotency_key: str) -> ActionResult:
+    def execute_approved(self, payload: ActionPayload, approval_id: str, code: Optional[str], idempotency_key: str) -> ActionResult:
         body = {"payload": payload.model_dump(mode="json"), "approval_id": approval_id, "approval_code": code,
                 "idempotency_key": idempotency_key}
         try:

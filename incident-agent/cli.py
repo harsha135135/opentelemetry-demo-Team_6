@@ -7,6 +7,7 @@ human-approved remediation through the Action API and measured verification.
     python cli.py kill-switch on|off|status
     python cli.py action-api init-token | serve [--executor docker|simulate] | health | operations | services | actions | show <id>
     python cli.py investigate ... --respond --action-api [--execute]     # use the team Action API
+    python cli.py watch --model <id> [--execute]     # alert watcher: investigates on its own, approval page, Grafana
     python cli.py audit [--server] [--incident-id ID]
     python cli.py report <incident-id>
     python cli.py grafana sync | export <dir>                            # root-cause and verification dashboards
@@ -15,9 +16,11 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import json
 import os
 import select
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -30,7 +33,7 @@ os.environ.setdefault("TELEMETRY_TIMEOUT_S", "5")  # must be set before telemetr
 from actions import CatalogError, HttpActionClient, load_catalog  # noqa: E402
 from contracts import ModelError  # noqa: E402
 from integration import EvidenceRegistry, make_telemetry_runner  # noqa: E402
-from models import Incident, TimeWindow  # noqa: E402
+from models import Incident, IncidentStatus, TimelineEvent, TimeWindow  # noqa: E402
 from orchestrator import (  # noqa: E402
     RECOVERY_NOT_PROVIDED, Dependencies, IncidentInputError, InvestigationConfig, investigate,
 )
@@ -50,6 +53,21 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--symptom", required=True)
     i.add_argument("--service", help="affected service, if known")
     i.add_argument("--source", default="manual-cli")
+    _incident_args(i)
+    w = sub.add_parser("watch", help="poll Prometheus; on an alert run the whole pipeline (respond, Action API, "
+                                     "approval page, Grafana) without typing commands")
+    w.add_argument("--poll-s", type=float, default=20, help="seconds between checks")
+    w.add_argument("--prefix", default="AUTO", help="incident id prefix")
+    w.add_argument("--once", action="store_true", help="print current breaches and exit")
+    w.add_argument("--max-incidents", type=int, default=0, help="stop after this many incidents (0 = no limit)")
+    _incident_args(w)
+    w.set_defaults(respond=True, action_api=True, grafana=True, approval_channel="page", approval_ttl_s=300,
+                   max_tool_calls=16, max_model_calls=8)
+    _rest_of_parser(sub)
+    return p
+
+
+def _incident_args(i: argparse.ArgumentParser) -> None:
     i.add_argument("--window-minutes", type=int, default=15, help="incident observation window ending now")
     i.add_argument("--recovery-condition", default=RECOVERY_NOT_PROVIDED)
     i.add_argument("--model", default=os.getenv("ANTHROPIC_MODEL", ""))
@@ -68,10 +86,15 @@ def build_parser() -> argparse.ArgumentParser:
                    help="use the team Action API (ACTION_API_URL, ACTION_API_TOKEN): catalog, validation, server-issued approval")
     r.add_argument("--approver", default=os.getenv("INCIDENT_AGENT_APPROVER", ""), help="name recorded with the approval")
     r.add_argument("--approval-ttl-s", type=float, default=120)
+    r.add_argument("--approval-channel", choices=["terminal", "page"], default="terminal",
+                   help="terminal: type approve CODE here; page: approve on the Action API page (needs --action-api)")
     r.add_argument("--settle-s", type=float, default=120, help="wait after dispatch before the first verification sample")
     r.add_argument("--interval-s", type=float, default=30)
     r.add_argument("--samples", type=int, default=2)
     i.add_argument("--grafana", action="store_true", help="after the report, publish the Grafana dashboards (grafana sync)")
+
+
+def _rest_of_parser(sub) -> None:
     e = sub.add_parser("endpoints", help="show each backend, the tools that use it, reachability and browser URLs")
     e.add_argument("--write-env", action="store_true", help="discover published ports with `docker port` and update .env")
     k = sub.add_parser("kill-switch", help="operator kill switch for all state-changing actions")
@@ -110,7 +133,6 @@ def build_parser() -> argparse.ArgumentParser:
     ge = gsub.add_parser("export", help="write the dashboard JSON files instead of publishing")
     ge.add_argument("dir")
     ge.add_argument("--out", default="runs")
-    return p
 
 
 def _team_client():
@@ -204,10 +226,12 @@ def _serve(args) -> int:
     service = ActionApiService(executor=executor, targets=targets, state_dir=Path(args.state_dir),
                                kill_switch=KillSwitch(KILL_SWITCH_FILE).active,
                                inspector=inspector if inspector.docker else None, state_services=STATE_SERVICES,
-                               loadgen_url=os.getenv("ACTION_API_LOADGEN_URL", "http://localhost:8080/loadgen"))
+                               loadgen_url=os.getenv("ACTION_API_LOADGEN_URL", "http://localhost:8080/loadgen"),
+                               ui_base=f"http://127.0.0.1:{args.port}", grafana_url=os.getenv("GRAFANA_URL", ""))
     server = build_server(service, token, args.host, args.port)
     print(f"Team Action API {args.host}:{args.port}  executor={executor.mode}  targets={', '.join(targets)}\n"
           f"state/audit: {args.state_dir}  kill switch: {KILL_SWITCH_FILE}\n"
+          f"Approval page: http://127.0.0.1:{args.port}/ui\n"
           "Approval codes for this API are printed ONLY in this terminal. Ctrl+C to stop.", file=sys.stderr, flush=True)
     try:
         server.serve_forever()
@@ -327,6 +351,18 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_report(args)
     if args.cmd == "grafana":
         return cmd_grafana(args)
+    if args.cmd == "watch" and args.once:
+        return cmd_watch(args, None, None)
+    ready = _preflight(args)
+    if isinstance(ready, int):
+        return ready
+    if args.cmd == "watch":
+        return cmd_watch(args, *ready)
+    return run_incident(args, args.incident_id, args.symptom, args.service, args.source, *ready)
+
+
+def _preflight(args):
+    """Model, key and Action API checks shared by investigate and watch: (catalog, client) or an exit code."""
     if not args.model:
         print("error: model identifier missing (use --model or ANTHROPIC_MODEL)", file=sys.stderr)
         return 2
@@ -354,12 +390,23 @@ def main(argv: list[str] | None = None) -> int:
     elif args.execute or args.action_api:
         print("error: --execute and --action-api require --respond", file=sys.stderr)
         return 2
+    if args.approval_channel == "page" and not (args.respond and args.action_api):
+        print("error: --approval-channel page needs --respond --action-api", file=sys.stderr)
+        return 2
+    return catalog, client
+
+
+def run_incident(args, incident_id: str, symptom: str, service, source: str, catalog, client, alerts=None) -> int:
     now = datetime.now(timezone.utc)
     out = Path(args.out).resolve()
-    run_dir = out / args.incident_id
+    run_dir = out / incident_id
     try:
+        if alerts:
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / "alert.json").write_text(json.dumps({"received_at": now.isoformat(), "alerts": alerts}, indent=2),
+                                                encoding="utf-8")
         incident = Incident(
-            id=args.incident_id, source=args.source, symptom=args.symptom, affected_service=args.service,
+            id=incident_id, source=source, symptom=symptom, affected_service=service,
             detection_time=now, observation_window=TimeWindow(start_time=now - timedelta(minutes=args.window_minutes), end_time=now),
             recovery_condition=args.recovery_condition,
         )
@@ -373,6 +420,10 @@ def main(argv: list[str] | None = None) -> int:
                                      max_model_calls=args.max_model_calls, request_timeout_s=args.request_timeout_s,
                                      max_total_tokens=args.max_total_tokens)
         report = investigate(incident, config, deps)
+        if alerts:
+            report = report.model_copy(update={"timeline": [TimelineEvent(
+                timestamp=now, status=IncidentStatus.RECEIVED, description=f"Alert received from the watcher: {symptom}",
+                metadata={"alerts": alerts})] + list(report.timeline)})
         if args.respond:
             report = _respond(args, report, catalog, client, run_tool, registry, policy.approved_services, out)
     except (IncidentInputError, ModelError, ValueError) as exc:
@@ -427,12 +478,71 @@ def _respond(args, report, catalog, client, run_tool, registry, inventory, out: 
     from safety import AuditJournal, KillSwitch
 
     cfg = ResponseConfig(mode="live" if args.execute else "dry_run", approval_ttl_s=args.approval_ttl_s,
+                         approval_channel=args.approval_channel if args.execute else "terminal",
                          settle_s=args.settle_s, interval_s=args.interval_s, samples=max(1, args.samples))
+
+    def on_stage(name: str, interim) -> None:
+        write_report(interim, out / interim.incident_id)
+        if args.grafana:
+            cmd_grafana(args, interim.incident_id)
+
     deps = ResponseDeps(planner=AnthropicPlanner(args.model), catalog=catalog, run_tool=run_tool, registry=registry,
                         inventory=inventory, kill_switch=KillSwitch(KILL_SWITCH_FILE), journal=AuditJournal(out / "audit.jsonl"),
                         lock_path=out / ".dispatch.lock", approver=args.approver or getpass.getuser(),
-                        interactive=sys.stdin.isatty(), input_fn=timed_input(args.approval_ttl_s), client=client)
+                        interactive=sys.stdin.isatty(), input_fn=timed_input(args.approval_ttl_s), client=client,
+                        on_stage=on_stage)
     return respond(report, cfg, deps)
+
+
+def cmd_watch(args, catalog, client) -> int:
+    """Poll Prometheus; when an alert holds for consecutive checks, run the whole incident pipeline for it."""
+    import detector
+    import telemetry
+
+    det = detector.Detector()
+    handled = 0
+    if not args.once:
+        mode = "LIVE: approved actions run" if args.execute else "dry-run: approved actions are only validated"
+        print(f"Alert watcher, every {args.poll_s:.0f}s ({mode}).\n"
+              f"Approvals: {os.getenv('ACTION_API_URL', DEFAULT_ACTION_API_URL)}/ui   Grafana: index 'Incident Zero · Incidents'\n"
+              "Breaches already present now count as pre-existing until they clear. Ctrl+C to stop.", flush=True)
+    while True:
+        try:
+            breaches = detector.evaluate(detector.fetch())
+        except Exception as exc:  # noqa: BLE001 - keep watching through a Prometheus hiccup
+            print(f"[watch] check failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+            breaches = None
+        if args.once:
+            for a in breaches or []:
+                print(f"{a.service:16} {a.signal:12} {a.detail}")
+            if breaches == []:
+                print("no breaches")
+            return 0 if breaches is not None else 1
+        firing = det.check(breaches) if breaches is not None else []
+        stamp = datetime.now().strftime("%H:%M:%S")
+        if breaches is not None and not firing:
+            muted = detector.muted_summary(det)
+            print(f"[watch {stamp}] {len(breaches)} breach(es)" + (f"; muted until healthy: {muted}" if muted else ""), flush=True)
+        if firing:
+            inventory = set(telemetry.service_inventory(refresh=True))
+            service = next((a.service for a in firing if a.service in inventory), None)
+            incident_id = f"{args.prefix}-{firing[0].service}-{datetime.now(timezone.utc):%H%M%S}"[:64]
+            symptom = detector.symptom(firing)
+            print(f"[watch {stamp}] ALERT -> incident {incident_id}: {symptom}", flush=True)
+            try:
+                run_incident(args, incident_id, symptom, service, "alert-watcher", catalog, client,
+                             alerts=[a.as_dict() for a in firing])
+            except Exception as exc:  # noqa: BLE001 - one failed incident must not stop the watcher
+                print(f"[watch] incident {incident_id} failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+            det.handled([a.service for a in firing] + ([service] if service else []))
+            handled += 1
+            if args.max_incidents and handled >= args.max_incidents:
+                return 0
+            print(f"[watch] watching again; muted until healthy: {detector.muted_summary(det)}", flush=True)
+        try:
+            time.sleep(args.poll_s)
+        except KeyboardInterrupt:
+            return 0
 
 
 if __name__ == "__main__":

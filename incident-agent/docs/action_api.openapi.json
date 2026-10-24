@@ -332,6 +332,32 @@
             "title": "Approval Id",
             "type": "string"
           },
+          "approval_page": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "path of the browser approval page on this server",
+            "title": "Approval Page"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "set when a human entered the code on the approval page",
+            "title": "Approved By"
+          },
           "code_delivery": {
             "const": "action-api-console",
             "default": "action-api-console",
@@ -373,6 +399,7 @@
           "status": {
             "enum": [
               "pending",
+              "approved",
               "consumed",
               "rejected",
               "expired",
@@ -502,6 +529,7 @@
           "APPROVAL_REJECTED",
           "APPROVAL_LOCKED",
           "APPROVAL_CODE_INVALID",
+          "APPROVAL_NOT_GRANTED",
           "PAYLOAD_MISMATCH",
           "IDEMPOTENCY_CONFLICT",
           "INCIDENT_ACTION_EXISTS",
@@ -554,9 +582,18 @@
         "additionalProperties": false,
         "properties": {
           "approval_code": {
-            "pattern": "^[A-Z2-9]{4}-?[A-Z2-9]{4}$",
-            "title": "Approval Code",
-            "type": "string"
+            "anyOf": [
+              {
+                "pattern": "^[A-Z2-9]{4}-?[A-Z2-9]{4}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "required unless a human already approved on the approval page",
+            "title": "Approval Code"
           },
           "approval_id": {
             "pattern": "^apr-[a-f0-9]{16}$",
@@ -575,7 +612,6 @@
         "required": [
           "payload",
           "approval_id",
-          "approval_code",
           "idempotency_key"
         ],
         "title": "ExecuteRequest",

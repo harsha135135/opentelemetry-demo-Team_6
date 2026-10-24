@@ -341,6 +341,36 @@ def request_approval(summary: str, digest: str, *, approver: str, ttl_s: float, 
     return Approval(proposal_digest=digest, decision=decision, approver=approver, expiry=expiry)
 
 
+def wait_for_page_approval(summary: str, digest: str, approval_id: str, *, status_fn: Callable[[str], Any], page_url: str,
+                           ttl_s: float, print_fn: Callable[[str], None] = print, sleep: Callable[[float], None] = time.sleep,
+                           clock: Callable[[], float] = time.monotonic, poll_s: float = 2.0) -> Approval:
+    """Approval decided by a human on the Action API approval page with the console code. The agent only reads the
+    approval status, so it cannot approve on its own. No decision within the TTL counts as expired."""
+    expiry = datetime.now(timezone.utc) + timedelta(seconds=ttl_s)
+    print_fn(summary)
+    print_fn(f"\n>>> Waiting for a human decision on the approval page:  {page_url}\n"
+             f">>> Enter the ONE-TIME APPROVAL CODE from the Action API terminal there.  Expires in {ttl_s:.0f}s.")
+    start, failures = clock(), 0
+    while clock() - start <= ttl_s + poll_s:
+        try:
+            st = status_fn(approval_id)
+            failures = 0
+        except Exception:  # noqa: BLE001 - an unreachable API must end in a rejection, never an approval
+            failures += 1
+            if failures >= 5:
+                return Approval(proposal_digest=digest, decision="rejected", approver="none (Action API unreachable)", expiry=expiry)
+            sleep(poll_s)
+            continue
+        if st.status == "approved":
+            return Approval(proposal_digest=digest, decision="approved", approver=st.approved_by or "approval page", expiry=expiry)
+        if st.status in ("rejected", "locked", "consumed"):
+            return Approval(proposal_digest=digest, decision="rejected", approver=f"approval page ({st.status})", expiry=expiry)
+        if st.status == "expired":
+            break
+        sleep(poll_s)
+    return Approval(proposal_digest=digest, decision="expired", approver="none (no decision on the approval page)", expiry=expiry)
+
+
 def request_server_approval(summary: str, digest: str, approval_id: str, *, approver: str, ttl_s: float,
                             input_fn: Callable[[str], str], interactive: bool, print_fn: Callable[[str], None] = print,
                             clock: Callable[[], float] = time.monotonic) -> tuple[Approval, Optional[str]]:

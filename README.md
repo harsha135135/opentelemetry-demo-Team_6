@@ -77,6 +77,33 @@ Re-run `endpoints --write-env` after every `make start`.
 
 ## How to Run the Agent
 
+**Hands-free demo: the alert watcher** (two terminals, started once; no commands per incident):
+
+Terminal 1: the Action API (the only process that can restart containers; approval codes appear here).
+
+    cd incident-agent && .venv/bin/python cli.py action-api serve --executor docker
+
+Terminal 2: the watcher.
+
+    cd incident-agent && .venv/bin/python cli.py watch --model claude-sonnet-5-5 --execute
+
+Then only use the browser:
+1. **Inject a fault**: toggle a flag in the flagd UI (<http://localhost:8080/feature>) or stop a container.
+2. **The watcher alerts by itself.** It polls Prometheus every 20 s. A breach must hold for 2 checks in a row before
+   it alerts: a container that stopped reporting, CPU above 150% of one core, an error-rate jump against the same
+   service 10 minutes earlier, or a p95 jump. The alert becomes the incident's symptom. It is saved as `alert.json`
+   and is the first timeline event, and the root-cause page shows it with a link to its exact query.
+3. **Approve in the browser.** Once the proposal passes policy, the Grafana index
+   (<http://localhost:8080/grafana/d/iz-index>) shows **Waiting for human approval**. Its link opens the approval
+   page (<http://127.0.0.1:8787/ui>), which shows the exact Action API JSON and links to the evidence. Type the
+   one-time code printed in terminal 1 and choose Approve, or choose Reject.
+4. **Read the report in Grafana.** The agent runs the action once, verifies recovery against the baseline, writes the
+   report and republishes the dashboards.
+
+Breaches already present when the watcher starts stay muted until they clear. A service from a handled incident
+stays muted until it has been healthy for 3 checks. `cli.py watch --once` prints the current breaches. Without
+`--execute`, approved actions are only validated (dry-run).
+
 **Read-only investigation** (one terminal; no Action API needed):
 
     cd incident-agent
@@ -267,7 +294,7 @@ The incident agent is implemented in `incident-agent/`:
   switch and an audit trail;
 - measured recovery verification and reports.
 
-220 mocked and in-process tests pass (24 October). Checkpoints count only once they are demonstrated live.
+229 mocked and in-process tests pass (24 October). Checkpoints count only once they are demonstrated live.
 
 | Guide | Contents |
 | --- | --- |

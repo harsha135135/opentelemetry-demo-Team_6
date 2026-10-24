@@ -13,11 +13,11 @@ Slide contents for the 5-minute demo. **Live** results (real stack, real Claude,
 
 | # | Step | What happens |
 | --- | --- | --- |
-| 1 | **Alert** | The operator gives a symptom and service through the CLI. |
+| 1 | **Alert** | The watcher (`cli.py watch`) polls Prometheus. A breach holding for 2 checks opens an incident by itself. The CLI can also start one by hand. |
 | 2 | **Investigate** | Claude, in a bounded loop (12 tool calls, 6 model calls, 180 s), calls 7 **read-only** tools. |
 | 3 | **Diagnose** | Deterministic code validates the diagnosis against the evidence it cites. |
 | 4 | **Propose** | One Action API operation, or an escalation. |
-| 5 | **Approve** | The human types a one-time code shown only on the Action API terminal. |
+| 5 | **Approve** | Grafana links to the approval page, which shows the exact Action API JSON. The human enters the one-time code shown only on the Action API terminal. |
 | 6 | **Act** | The team Action API runs `docker restart` on an allowlisted container. |
 | 7 | **Verify** | Fresh telemetry is compared with the pre-approval baseline, then a report and Grafana pages are written. |
 
@@ -130,7 +130,7 @@ LIVE-STACKDOWN-1). It did not confuse missing data with a fault.
 recovery, the action log) is scheduled. *Replace this box only after the run has been observed*, with the outcome,
 the action ID and the verification checks.
 
-**MOCKED / IN-PROCESS: 220 tests pass.**
+**MOCKED / IN-PROCESS: 229 tests pass.**
 - Scenarios A–J run over a real local HTTP Action API, with a fake Docker runner and scripted telemetry and LLM.
 - Also covered: approval replay, expiry and lockout, the kill switch, prompt injection, and terminal-escape injection.
 - These tests prove the control logic, **not** live recovery or diagnosis quality on unseen faults.

@@ -5,6 +5,8 @@ Security model (see docs/ACTION_API_ARCHITECTURE.md):
 - strict allowlist of operations and targets; arguments validated against the operation schema
 - approval is created by the server, bound to the SHA-256 digest of the exact payload, and unlocked by a one-time
   code printed only on this server's console (stored as a hash, never returned, 5 attempts, TTL <= 300s, single use)
+- the human enters that code either at the agent prompt or on the browser page /ui/approvals/<id>; the page has no
+  bearer token and no approve endpoint exists under /v1, so the agent cannot approve its own request
 - one action per incident, idempotency keys, kill switch checked at execute and again in the worker
 - state persisted atomically; records left running by a crash become 'unknown' and are never resumed
 - append-only audit log; tokens and approval codes are never logged
@@ -18,11 +20,13 @@ import os
 import secrets
 import sys
 import threading
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable, Optional
+from urllib.parse import parse_qs
 
 from pydantic import BaseModel, ValidationError
 
@@ -32,11 +36,15 @@ from action_api_models import (
     ExecutionResult, Health, LoadGeneratorState, OperationList, OperationSpec, ServiceState, SystemState,
     ValidateResponse, VerificationReport,
 )
+import approval_ui
 from actions import Operation, validate_arguments
 
 MAX_BODY = 16 * 1024
 MAX_CODE_ATTEMPTS = 5
 _CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+MAX_FORM_BODY = 4096
+_APPROVAL_PATH_ID = re.compile(r"^apr-[a-f0-9]{16}$")  # approval ids as issued by create_approval
+_FORM_CODE = re.compile(r"^[A-Z2-9]{4}-?[A-Z2-9]{4}$")  # the one-time code, with or without its dash
 
 
 class ApiError(Exception):
@@ -75,8 +83,9 @@ class ActionApiService:
                  announce: Callable[[str], None] = lambda s: print(s, file=sys.stderr, flush=True),
                  clock: Callable[[], datetime] = _now, run_async: bool = True,
                  inspector: Optional[Callable[[list[str]], list[dict]]] = None, state_services: Optional[list[str]] = None,
-                 loadgen_url: str = "") -> None:
+                 loadgen_url: str = "", ui_base: str = "", grafana_url: str = "") -> None:
         self.executor, self.kill_switch, self.announce, self.clock = executor, kill_switch, announce, clock
+        self.ui_base, self.grafana_url = ui_base.rstrip("/"), grafana_url.rstrip("/")
         self.inspector, self.loadgen_url = inspector, loadgen_url.rstrip("/")
         self.state_services = state_services or []
         self.operations = {"restart_service": restart_operation(targets)}
@@ -176,10 +185,10 @@ class ActionApiService:
         return ValidateResponse(valid=True, payload_digest=p.digest(), normalized_arguments=p.arguments)
 
     def _approval_view(self, a: dict) -> Approval:
-        if a["status"] == "pending" and self.clock() > datetime.fromisoformat(a["expires_at"]):
+        if a["status"] in ("pending", "approved") and self.clock() > datetime.fromisoformat(a["expires_at"]):
             a["status"] = "expired"
             self._save()
-        return Approval(**{k: v for k, v in a.items() if k != "code_hash"})
+        return Approval(**{k: v for k, v in a.items() if k in Approval.model_fields})
 
     def get_approval(self, approval_id: str) -> Approval:
         with self.lock:
@@ -213,7 +222,8 @@ class ActionApiService:
                  "operation": payload.operation, "target": payload.target, "payload_digest": payload.digest(),
                  "requested_by": req.requested_by, "created_at": now.isoformat(),
                  "expires_at": (now + timedelta(seconds=req.ttl_seconds)).isoformat(), "failed_attempts": 0,
-                 "code_hash": _code_hash(approval_id, code)}
+                 "code_hash": _code_hash(approval_id, code), "payload": payload.model_dump(mode="json"),
+                 "form_token": secrets.token_urlsafe(18), "approval_page": f"/ui/approvals/{approval_id}"}
             self.approvals[approval_id] = a
             self._save()
             self._audit("approval_created", approval_id=approval_id, incident_id=payload.incident_id,
@@ -229,7 +239,9 @@ class ActionApiService:
                 f"  ACTION:   {payload.operation}", f"  TARGET:   {payload.target}", f"  ARGS:     {payload.arguments!r}",
                 f"  DIGEST:   {a['payload_digest'][:16]}...  expires {a['expires_at']}",
                 f"  ONE-TIME APPROVAL CODE: {code[:4]}-{code[4:]}",
-                "  Give this code to the agent prompt only if you approve this exact action.", "=" * 70]))
+                f"  APPROVAL PAGE: {self.ui_base}/ui/approvals/{approval_id}",
+                "  Enter this code on that page (or at the agent prompt) only if you approve this exact action.",
+                "=" * 70]))
             return self._approval_view(a)
 
     def reject_approval(self, approval_id: str, req: ApprovalRejectRequest) -> Approval:
@@ -242,6 +254,67 @@ class ActionApiService:
                 self._save()
             self._audit("approval_rejected", approval_id=approval_id, by=req.rejected_by, reason=req.reason[:200])
             return self._approval_view(a)
+
+    # ---- browser approval page (no bearer token: the console code is the proof that a human decided)
+    def ui_list(self, limit: int = 30) -> list[dict]:
+        with self.lock:
+            views = [self._approval_view(a).model_dump(mode="json") for a in self.approvals.values()]
+        return sorted(views, key=lambda v: v["created_at"], reverse=True)[:limit]
+
+    def ui_record(self, approval_id: str) -> dict:
+        with self.lock:
+            a = self.approvals.get(approval_id)
+            if a is None:
+                raise ApiError(404, ErrorCode.APPROVAL_NOT_FOUND, "no such approval")
+            view = self._approval_view(a).model_dump(mode="json")
+            return {**view, "payload": a.get("payload") or {}, "form_token": a.get("form_token", "")}
+
+    def grafana_links(self, incident_id: str) -> list[tuple[str, str]]:
+        if not self.grafana_url:
+            return []
+        try:
+            from grafana_dash import INDEX_UID, dashboard_uids
+        except Exception:  # noqa: BLE001 - links are a convenience only
+            return []
+        rc, ver = dashboard_uids(incident_id)
+        base = self.grafana_url if self.grafana_url.endswith("/grafana") else self.grafana_url + "/grafana"
+        return [("Root cause and cited evidence", f"{base}/d/{rc}"), ("Action API request and verification", f"{base}/d/{ver}"),
+                ("All incidents", f"{base}/d/{INDEX_UID}")]
+
+    def decide_on_page(self, approval_id: str, *, approve: bool, code: str, approver: str, form_token: str) -> str:
+        with self.lock:
+            a = self.approvals.get(approval_id)
+            if a is None:
+                raise ApiError(404, ErrorCode.APPROVAL_NOT_FOUND, "no such approval")
+            if not a.get("form_token") or not hmac.compare_digest(a["form_token"].encode(), form_token.encode()):
+                self._audit("refused_page_decision", approval_id=approval_id, reason="form token mismatch")
+                raise ApiError(403, ErrorCode.UNAUTHORIZED, "stale or forged form; reload the approval page")
+            status = self._approval_view(a).status
+            if status != "pending":
+                return f"This request is already {status}; nothing changed."
+            who = printable(approver, 80).strip() or "approval page"
+            if not approve:
+                a["status"] = "rejected"
+                self._save()
+                self._audit("approval_rejected", approval_id=approval_id, by=who, reason="rejected on the approval page")
+                return "Rejected. Nothing will run; the agent records the rejection."
+            norm = code.strip().upper()
+            if not _FORM_CODE.match(norm) or not hmac.compare_digest(a["code_hash"], _code_hash(approval_id, norm)):
+                a["failed_attempts"] += 1
+                if a["failed_attempts"] >= MAX_CODE_ATTEMPTS:
+                    a["status"] = "locked"
+                self._save()
+                self._audit("refused_approval", approval_id=approval_id, reason=ErrorCode.APPROVAL_CODE_INVALID.value,
+                            attempts=a["failed_attempts"], via="approval page")
+                if a["status"] == "locked":
+                    return "Wrong code. The request is now locked; nothing will run."
+                return (f"Wrong code ({a['failed_attempts']} of {MAX_CODE_ATTEMPTS} attempts used). Copy the ONE-TIME "
+                        "APPROVAL CODE for this approval id from the Action API terminal.")
+            a["status"], a["approved_by"] = "approved", who
+            self._save()
+            self._audit("approval_granted", approval_id=approval_id, incident_id=a["incident_id"], by=who,
+                        via="approval page", payload_digest=a["payload_digest"])
+            return "Approved. The agent will now re-check the system and run exactly this action once."
 
     # ---- execution
     def execute(self, req: ExecuteRequest, remote_addr: Optional[str] = None) -> tuple[int, ActionRecord]:
@@ -291,6 +364,16 @@ class ActionApiService:
             s, c, m = refusals[view.status]
             self._audit("refused_approval", approval_id=req.approval_id, reason=c.value)
             raise ApiError(s, c, m)
+        if view.status == "approved":  # a human entered the console code on the approval page
+            if a["payload_digest"] != digest:
+                self._audit("refused_approval", approval_id=req.approval_id, reason=ErrorCode.PAYLOAD_MISMATCH.value)
+                raise ApiError(403, ErrorCode.PAYLOAD_MISMATCH, "payload differs from the approved action")
+            a["status"] = "consumed"
+            self._save()
+            return
+        if not req.approval_code:
+            self._audit("refused_approval", approval_id=req.approval_id, reason=ErrorCode.APPROVAL_NOT_GRANTED.value)
+            raise ApiError(403, ErrorCode.APPROVAL_NOT_GRANTED, "no human approval yet: approve on the approval page or supply the code")
         if not hmac.compare_digest(a["code_hash"], _code_hash(req.approval_id, req.approval_code)) or a["payload_digest"] != digest:
             mismatch = a["payload_digest"] != digest
             a["failed_attempts"] += 1
@@ -377,11 +460,63 @@ def make_handler(service: ActionApiService, token: str) -> type[BaseHTTPRequestH
                 raise ApiError(400, ErrorCode.INVALID_REQUEST, "request does not match the schema",
                                [f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors()[:8]])
 
+        def _html(self, status: int, page: str) -> None:
+            data = page.encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Security-Policy", approval_ui.CSP)
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _form(self) -> dict[str, str]:
+            if (self.headers.get("Content-Type") or "").split(";")[0].strip() != "application/x-www-form-urlencoded":
+                raise ApiError(415, ErrorCode.UNSUPPORTED_MEDIA_TYPE, "form expected")
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                raise ApiError(400, ErrorCode.INVALID_REQUEST, "invalid Content-Length")
+            if length > MAX_FORM_BODY:
+                raise ApiError(413, ErrorCode.PAYLOAD_TOO_LARGE, "form too large")
+            raw = self.rfile.read(length).decode("utf-8", "replace")
+            return {k: v[0] for k, v in parse_qs(raw, max_num_fields=8).items()}
+
+        def _ui(self, method: str, path: str) -> None:
+            port = self.server.server_address[1]
+            hosts = {f"127.0.0.1:{port}", f"localhost:{port}", f"[::1]:{port}"}
+            if self.headers.get("Host", "") not in hosts:  # DNS-rebinding guard
+                return self._html(400, approval_ui.message_page("Wrong host", f"Open http://127.0.0.1:{port}/ui"))
+            parts = path.split("/")[2:]
+            try:
+                if method == "GET" and not parts:
+                    return self._html(200, approval_ui.index_page(service.ui_list()))
+                if len(parts) != 2 or parts[0] != "approvals" or not _APPROVAL_PATH_ID.match(parts[1]):
+                    return self._html(404, approval_ui.message_page("Not found", "No such page."))
+                message = ""
+                if method == "POST":
+                    origin = self.headers.get("Origin")
+                    if origin and origin not in {f"http://{h}" for h in hosts}:
+                        return self._html(403, approval_ui.message_page("Refused", "Cross-site form submission refused."))
+                    form = self._form()
+                    message = service.decide_on_page(parts[1], approve=form.get("decision") == "approve",
+                                                     code=form.get("code", ""), approver=form.get("approver", ""),
+                                                     form_token=form.get("form_token", ""))
+                rec = service.ui_record(parts[1])
+                return self._html(200, approval_ui.approval_page(rec, message, service.grafana_links(rec["incident_id"])))
+            except ApiError as e:
+                return self._html(e.status, approval_ui.message_page("Refused", e.message))
+
         def _route(self, method: str) -> None:
             path = self.path.split("?")[0].rstrip("/") or "/"
             try:
                 if method == "GET" and path == "/health":
                     return self._send(200, service.health())
+                if path == "/ui" or path.startswith("/ui/"):
+                    return self._ui(method, path)
                 if not path.startswith("/v1/"):
                     raise ApiError(404, ErrorCode.NOT_FOUND, "unknown path")
                 self._auth()

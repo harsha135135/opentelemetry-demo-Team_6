@@ -9,6 +9,32 @@
       "title": "Approval Id",
       "type": "string"
     },
+    "approval_page": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "path of the browser approval page on this server",
+      "title": "Approval Page"
+    },
+    "approved_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "set when a human entered the code on the approval page",
+      "title": "Approved By"
+    },
     "code_delivery": {
       "const": "action-api-console",
       "default": "action-api-console",
@@ -50,6 +76,7 @@
     "status": {
       "enum": [
         "pending",
+        "approved",
         "consumed",
         "rejected",
         "expired",
